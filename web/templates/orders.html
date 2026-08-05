@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders | Halisi</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<header class="navbar">
+
+    <div class="logo">HALISI</div>
+
+    <nav>
+        <a href="/dashboard">Home</a>
+        <a href="/shops">Find Shop</a>
+        <a href="/order">Order Gas</a>
+        <a href="/orders">My Orders</a>
+        <a href="/logout">Logout</a>
+    </nav>
+
+</header>
+
+<main>
+
+<section class="orders-page">
+
+    <h1>My Orders</h1>
+
+    <p>Track every gas order you've placed.</p>
+
+    {{if .}}
+
+        {{range .}}
+
+        <div class="order-item">
+
+            <div class="order-left">
+
+                <h3>{{.CylinderSize}} Cylinder</h3>
+
+                <p><strong>Quantity:</strong> {{.Quantity}}</p>
+
+                <p><strong>Total:</strong> KSh {{printf "%.0f" .TotalPrice}}</p>
+
+            </div>
+
+            <div class="order-right">
+
+                {{if eq .Status "Pending"}}
+                    <span class="status pending">Pending</span>
+                {{end}}
+
+                {{if eq .Status "Delivered"}}
+                    <span class="status delivered">Delivered</span>
+                {{end}}
+
+                {{if eq .Status "Cancelled"}}
+                    <span class="status cancelled">Cancelled</span>
+                {{end}}
+
+            </div>
+
+        </div>
+
+        {{end}}
+
+    {{else}}
+
+        <div class="empty-orders">
+
+            <h2>No Orders Yet</h2>
+
+            <p>
+                You haven't placed any orders.
+            </p>
+
+            <br>
+
+            <a href="/shops" class="btn-primary">
+                Find a Shop
+            </a>
+
+        </div>
+
+    {{end}}
+
+</section>
+
+</main>
+
+<footer>
+
+<p>© 2026 Halisi. All Rights Reserved.</p>
+
+</footer>
+
+</body>
+</html>

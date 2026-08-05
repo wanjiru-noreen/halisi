@@ -1,0 +1,286 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    color: #0F2147;
+    background: #ffffff;
+}
+
+
+/* NAVBAR */
+
+.navbar {
+    height: 85px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 80px;
+    background: white;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+}
+
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #0F2147;
+}
+
+
+.logo-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #2E0A9B;
+}
+
+
+.navbar nav {
+    display: flex;
+    gap: 40px;
+}
+
+
+.navbar nav a {
+    text-decoration: none;
+    color: #555;
+    font-size: 16px;
+    font-weight: 500;
+    position: relative;
+}
+
+
+.navbar nav a.active {
+    color: #2E0A9B;
+}
+
+
+.navbar nav a.active::after {
+    content: "";
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: #2E0A9B;
+    border-radius: 10px;
+}
+
+
+/* HERO */
+
+.hero {
+    height: 320px;
+    background: #2E0A9B;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 60px 100px;
+    overflow: hidden;
+}
+
+
+.hero-content {
+    color: white;
+}
+
+
+.badge {
+    display: inline-block;
+    background: #FFC72C;
+    color: #0F2147;
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+
+.hero h1 {
+    font-size: 52px;
+    line-height: 1.1;
+    margin: 18px 0;
+}
+
+
+.hero p {
+    font-size: 20px;
+    color: #e7e7e7;
+}
+
+
+.hero-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+
+.btn {
+    padding: 12px 28px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+
+.primary {
+    background: white;
+    color: #2E0A9B;
+}
+
+
+.secondary {
+    border: 2px solid white;
+    color: white;
+}
+
+
+/* SIMPLE GAS ILLUSTRATION */
+
+.hero-image {
+    position: relative;
+    width: 300px;
+    height: 250px;
+}
+
+
+.circle {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+}
+
+
+.gas-cylinder {
+    position: absolute;
+    bottom: 20px;
+    left: 90px;
+}
+
+
+.gas-cylinder .body {
+    width: 90px;
+    height: 140px;
+    background: white;
+    border-radius: 20px;
+}
+
+
+.gas-cylinder .top {
+    width: 40px;
+    height: 20px;
+    background: white;
+    margin: auto;
+}
+
+
+/* STATS */
+
+.stats {
+    display: flex;
+    justify-content: space-around;
+    padding: 60px 100px;
+    text-align: center;
+}
+
+
+.stats h2 {
+    font-size: 40px;
+    margin: 0;
+}
+
+
+.stats p {
+    color: #7B7B7B;
+}
+
+
+/* FEATURES */
+
+.features {
+    display: flex;
+    gap: 30px;
+    padding: 40px 100px;
+}
+
+
+.card {
+    flex: 1;
+    padding: 35px;
+    border-radius: 20px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+}
+
+
+.icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 15px;
+}
+
+
+.blue {
+    background: #DCEBFF;
+}
+
+
+.cream {
+    background: #FFF1D6;
+}
+
+
+.mint {
+    background: #D9FFF0;
+}
+
+
+.card p {
+    color: #7B7B7B;
+}
+
+
+/* HOW IT WORKS */
+
+.how {
+    text-align: center;
+    padding: 70px 100px;
+}
+
+
+.steps {
+    display: flex;
+    justify-content: center;
+    gap: 100px;
+}
+
+
+.steps span {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 60px;
+    height: 60px;
+    background: #2E0A9B;
+    color: white;
+    border-radius: 50%;
+    font-size: 22px;
+}
+
+
+/* TESTIMONIAL */
+
+.testimonial {
+    text-align: center;
+    background: #FFF7E8;
+    padding: 60px;
+    font-size: 20px;
+}

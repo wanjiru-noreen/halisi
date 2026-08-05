@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Name}} | Halisi</title>
+
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<header class="navbar">
+
+    <div class="logo">
+        HALISI
+    </div>
+
+    <nav>
+
+        <a href="/dashboard">Home</a>
+        <a href="/shops">Find Shop</a>
+        <a href="/order">Order Gas</a>
+        <a href="/orders">My Orders</a>
+        <a href="/logout">Logout</a>
+
+    </nav>
+
+</header>
+
+<main>
+
+    <a href="/shops" class="back-link">
+        ← Back to Shops
+    </a>
+
+    <section class="shop-banner">
+
+        <div class="shop-image-container">
+
+            <img
+                src="/static/images/shop-placeholder.jpg"
+                alt="{{.Name}}"
+                class="banner-image"
+            >
+
+        </div>
+
+        <div class="shop-info">
+
+            <h1>{{.Name}}</h1>
+
+            <p class="rating">⭐⭐⭐⭐⭐ 4.9</p>
+
+            <p>📍 {{.Location}}</p>
+
+            <p>📞 {{.Phone}}</p>
+
+            <span class="open">
+                ● Open Now
+            </span>
+
+        </div>
+
+    </section>
+
+    <section class="cylinder-section">
+
+        <h2>Available Cylinders</h2>
+
+        <div class="cylinder-grid">
+
+            <div class="cylinder-card">
+
+                <h3>6 KG</h3>
+
+                <p>KSh 950</p>
+
+                <a href="/order?shop_id={{.ID}}" class="btn-primary">
+                    Select
+                </a>
+
+            </div>
+
+            <div class="cylinder-card">
+
+                <h3>13 KG</h3>
+
+                <p>KSh 1,850</p>
+
+                <a href="/order?shop_id={{.ID}}" class="btn-primary">
+                    Select
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <section class="shop-about">
+
+        <h2>About This Shop</h2>
+
+        <p>
+
+            {{.Name}} is a trusted LPG supplier serving
+            {{.Location}} with safe, affordable and reliable
+            gas delivery. Place your order and have your
+            cylinder delivered straight to your doorstep.
+
+        </p>
+
+    </section>
+
+    <section class="shop-cta">
+
+        <h2>Ready to Order?</h2>
+
+        <p>
+            Complete your order in less than two minutes.
+        </p>
+
+        <a href="/order?shop_id={{.ID}}" class="btn-primary">
+            Order From This Shop
+        </a>
+
+    </section>
+
+</main>
+
+<footer>
+
+    <p>
+        © 2026 Halisi. All Rights Reserved.
+    </p>
+
+</footer>
+
+</body>
+</html>
