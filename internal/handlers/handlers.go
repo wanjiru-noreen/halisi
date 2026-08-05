@@ -3,6 +3,7 @@ package handlers
 import (
 	"html/template"
 	"net/http"
+	"strconv"
 
 	"halisi/internal/models"
 	"halisi/internal/services"
@@ -10,11 +11,16 @@ import (
 
 type Handler struct {
 	userService *services.UserService
+	shopService *services.ShopService
 }
 
-func NewHandler(service *services.UserService) *Handler {
+func NewHandler(
+	userService *services.UserService,
+	shopService *services.ShopService,
+) *Handler {
 	return &Handler{
-		userService: service,
+		userService: userService,
+		shopService: shopService,
 	}
 }
 
@@ -35,11 +41,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 		tmpl := template.Must(template.ParseFiles("web/templates/register.html"))
-
-		err := tmpl.Execute(w, nil)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		tmpl.Execute(w, nil)
 
 	case http.MethodPost:
 
@@ -70,11 +72,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 		tmpl := template.Must(template.ParseFiles("web/templates/login.html"))
-
-		err := tmpl.Execute(w, nil)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		tmpl.Execute(w, nil)
 
 	case http.MethodPost:
 
@@ -82,6 +80,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		password := r.FormValue("password")
 
 		user, err := h.userService.LoginUser(email)
+
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -107,18 +106,23 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 // Dashboard page
 func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("web/templates/dashboard.html"))
-
-	err := tmpl.Execute(w, nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	tmpl.Execute(w, nil)
 }
 
 // Shops page
 func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
+
+	shops, err := h.shopService.GetShops()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	tmpl := template.Must(template.ParseFiles("web/templates/shops.html"))
 
-	err := tmpl.Execute(w, nil)
+	err = tmpl.Execute(w, shops)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -126,9 +130,30 @@ func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
 
 // Shop page
 func (h *Handler) Shop(w http.ResponseWriter, r *http.Request) {
+
+	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+
+	if err != nil {
+		http.Error(w, "Invalid shop ID", http.StatusBadRequest)
+		return
+	}
+
+	shop, err := h.shopService.GetShopByID(id)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if shop.ID == 0 {
+		http.Error(w, "Shop not found", http.StatusNotFound)
+		return
+	}
+
 	tmpl := template.Must(template.ParseFiles("web/templates/shop.html"))
 
-	err := tmpl.Execute(w, nil)
+	err = tmpl.Execute(w, shop)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -141,11 +166,7 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodGet:
 		tmpl := template.Must(template.ParseFiles("web/templates/order.html"))
-
-		err := tmpl.Execute(w, nil)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		tmpl.Execute(w, nil)
 
 	case http.MethodPost:
 		http.Redirect(w, r, "/orders", http.StatusSeeOther)
@@ -158,9 +179,5 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 // Orders page
 func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("web/templates/orders.html"))
-
-	err := tmpl.Execute(w, nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	tmpl.Execute(w, nil)
 }

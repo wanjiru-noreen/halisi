@@ -16,8 +16,14 @@ func main() {
 
 	// Initialize application layers
 	userRepository := repository.NewUserRepository()
+
 	userService := services.NewUserService(userRepository)
-	handler := handlers.NewHandler(userService)
+	shopService := services.NewShopService(userRepository)
+
+	handler := handlers.NewHandler(
+		userService,
+		shopService,
+	)
 
 	// Serve static files
 	http.Handle("/static/",

@@ -10,34 +10,37 @@
 
 <header>
     <h1>Available Gas Shops</h1>
-    <p>Choose a trusted refill station</p>
+    <p>Choose a trusted gas supplier near you</p>
 </header>
 
 <main>
 
-    <div>
-        <h3>Shell Gas</h3>
-        <p>📍 Kisumu CBD</p>
-        <a href="/shop">View Shop</a>
-    </div>
+    {{if .}}
+
+        {{range .}}
+
+        <div class="shop-card">
+            <h2>{{.Name}}</h2>
+
+            <p><strong>Location:</strong> {{.Location}}</p>
+
+            <p><strong>Phone:</strong> {{.Phone}}</p>
+
+            <a href="/shop">View Shop</a>
+
+            <hr>
+
+        </div>
+
+        {{end}}
+
+    {{else}}
+
+        <h2>No shops available.</h2>
+
+    {{end}}
 
     <br>
-
-    <div>
-        <h3>TotalEnergies</h3>
-        <p>📍 Milimani</p>
-        <a href="/shop">View Shop</a>
-    </div>
-
-    <br>
-
-    <div>
-        <h3>Rubis Gas</h3>
-        <p>📍 Kondele</p>
-        <a href="/shop">View Shop</a>
-    </div>
-
-    <br><br>
 
     <a href="/dashboard">← Back to Dashboard</a>
 
