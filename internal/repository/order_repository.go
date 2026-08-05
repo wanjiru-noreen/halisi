@@ -132,3 +132,113 @@ func (r *OrderRepository) GetOrderByID(id int) (models.Order, error) {
 
 	return order, nil
 }
+
+func (r *OrderRepository) GetOrdersByUserID(userID int) ([]models.Order, error) {
+
+	rows, err := database.DB.Query(`
+		SELECT id,
+		       user_id,
+		       shop_id,
+		       cylinder_size,
+		       quantity,
+		       total_price,
+		       status
+		FROM orders
+		WHERE user_id = ?
+	`, userID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []models.Order
+
+	for rows.Next() {
+		var order models.Order
+
+		err := rows.Scan(
+			&order.ID,
+			&order.UserID,
+			&order.ShopID,
+			&order.CylinderSize,
+			&order.Quantity,
+			&order.TotalPrice,
+			&order.Status,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}
+
+func (r *OrderRepository) UpdateOrderStatus(id int, status string) error {
+
+	_, err := database.DB.Exec(`
+		UPDATE orders
+		SET status = ?
+		WHERE id = ?
+	`, status, id)
+
+	return err
+}
+
+func (r *OrderRepository) GetOrdersByShopID(shopID int) ([]models.Order, error) {
+
+	rows, err := database.DB.Query(`
+		SELECT
+			id,
+			user_id,
+			shop_id,
+			cylinder_size,
+			quantity,
+			total_price,
+			status
+		FROM orders
+		WHERE shop_id = ?
+	`, shopID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orders []models.Order
+
+	for rows.Next() {
+		var order models.Order
+
+		err := rows.Scan(
+			&order.ID,
+			&order.UserID,
+			&order.ShopID,
+			&order.CylinderSize,
+			&order.Quantity,
+			&order.TotalPrice,
+			&order.Status,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}
+
+func (r *OrderRepository) DeleteOrder(id int) error {
+
+	_, err := database.DB.Exec(`
+		DELETE FROM orders
+		WHERE id = ?
+		  AND status = 'Pending'
+	`, id)
+
+	return err
+}
