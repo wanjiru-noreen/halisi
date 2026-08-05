@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register | Halisi</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<header>
+    <h1>Halisi Gas Refill</h1>
+    <p>Create your account</p>
+</header>
+
+<main>
+    <h2>Register</h2>
+
+    <form action="/register" method="POST">
+
+        <label for="name">Full Name</label><br>
+        <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="Enter your full name"
+            required
+        ><br><br>
+
+        <label for="email">Email</label><br>
+        <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="Enter your email"
+            required
+        ><br><br>
+
+        <label for="password">Password</label><br>
+        <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="Create a password"
+            required
+        ><br><br>
+
+        <button type="submit">Register</button>
+
+    </form>
+
+    <br>
+
+    <p>
+        Already have an account?
+        <a href="/login">Login</a>
+    </p>
+
+    <br>
+
+    <a href="/">← Back Home</a>
+
+</main>
+
+</body>
+</html>

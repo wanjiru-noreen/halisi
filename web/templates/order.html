@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place Order | Halisi</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<header>
+    <h1>Place Your Order</h1>
+    <p>Complete the details below</p>
+</header>
+
+<main>
+
+    <form action="/order" method="POST">
+
+        <label>Cylinder Size</label><br>
+        <select name="size">
+            <option value="6kg">6 Kg</option>
+            <option value="13kg">13 Kg</option>
+        </select>
+
+        <br><br>
+
+        <label>Quantity</label><br>
+        <input type="number" name="quantity" min="1" value="1">
+
+        <br><br>
+
+        <label>Delivery Address</label><br>
+        <input
+            type="text"
+            name="address"
+            placeholder="Enter your location"
+            required
+        >
+
+        <br><br>
+
+        <label>Phone Number</label><br>
+        <input
+            type="tel"
+            name="phone"
+            placeholder="07XXXXXXXX"
+            required
+        >
+
+        <br><br>
+
+        <button type="submit">Place Order</button>
+
+    </form>
+
+    <br>
+
+    <a href="/shop">← Back to Shop</a>
+
+</main>
+
+</body>
+</html>

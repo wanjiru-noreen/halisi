@@ -15,10 +15,14 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 	}
 }
 
-func (s *UserService) RegisterUser(user models.User) models.User {
+func (s *UserService) RegisterUser(user models.User) (models.User, error) {
 	return s.repo.CreateUser(user)
 }
 
-func (s *UserService) GetAllUsers() []models.User {
+func (s *UserService) GetAllUsers() ([]models.User, error) {
 	return s.repo.GetUsers()
+}
+
+func (s *UserService) LoginUser(email string) (models.User, error) {
+	return s.repo.GetUserByEmail(email)
 }
