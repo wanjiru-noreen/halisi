@@ -32,3 +32,19 @@ func (s *OrderService) GetOrders() ([]models.Order, error) {
 func (s *OrderService) GetOrderByID(id int) (models.Order, error) {
 	return s.repo.GetOrderByID(id)
 }
+
+func (s *OrderService) GetOrdersByUserID(userID int) ([]models.Order, error) {
+	return s.repo.GetOrdersByUserID(userID)
+}
+
+func (s *OrderService) UpdateOrderStatus(id int, status string) error {
+	return s.repo.UpdateOrderStatus(id, status)
+}
+
+func (s *OrderService) GetOrdersByShopID(shopID int) ([]models.Order, error) {
+	return s.repo.GetOrdersByShopID(shopID)
+}
+
+func (s *OrderService) DeleteOrder(id int) error {
+	return s.repo.DeleteOrder(id)
+}
