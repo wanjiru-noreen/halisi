@@ -4,28 +4,213 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | Halisi</title>
+
     <link rel="stylesheet" href="/static/css/style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
-<header>
-    <h1>Halisi Dashboard</h1>
-    <p>Manage your gas refill orders</p>
+<header class="navbar">
+
+    <div class="logo">
+        HALISI
+    </div>
+
+    <nav>
+
+        <a href="/dashboard">Home</a>
+
+        <a href="/shops">Find Shop</a>
+
+        <a href="/order">Order Gas</a>
+
+        <a href="/orders">My Orders</a>
+
+        <a href="/logout">Logout</a>
+
+    </nav>
+
 </header>
 
 <main>
-    <h2>Welcome to Halisi</h2>
 
-    <p>Select an option below.</p>
+    <!-- Welcome Section -->
 
-    <a href="/shops">Find Gas Shops</a>
-    <br><br>
+    <section class="welcome">
 
-    <a href="/orders">My Orders</a>
-    <br><br>
+        <div class="welcome-content">
 
-    <a href="/">Logout</a>
+            <h1>Welcome Back 👋</h1>
+
+            <p>
+                Ready to order gas today?
+                Fast, safe and reliable delivery right to your doorstep.
+            </p>
+
+            <div class="buttons">
+
+                <a href="/order" class="btn-primary">
+                    Order Gas
+                </a>
+
+                <a href="/shops" class="btn-secondary">
+                    Find Shop
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- Quick Actions -->
+
+    <section class="quick-actions">
+
+        <a href="/order" class="action-card">
+
+            <div class="icon">🛒</div>
+
+            <h3>Order Gas</h3>
+
+            <p>Place a new order quickly.</p>
+
+        </a>
+
+        <a href="/shops" class="action-card">
+
+            <div class="icon">📍</div>
+
+            <h3>Find Shops</h3>
+
+            <p>Browse trusted gas suppliers.</p>
+
+        </a>
+
+        <a href="/orders" class="action-card">
+
+            <div class="icon">📦</div>
+
+            <h3>My Orders</h3>
+
+            <p>Track all your deliveries.</p>
+
+        </a>
+
+    </section>
+
+    <!-- Recent Orders -->
+
+    <section class="recent-orders">
+
+        <h2>Recent Orders</h2>
+
+        <div class="order-card">
+
+            <div>
+
+                <h3>🔥 13kg Cylinder</h3>
+
+                <p>Blue Flame Gas</p>
+
+                <span class="status pending">
+                    Pending
+                </span>
+
+            </div>
+
+            <a href="/orders" class="btn-primary">
+                Track Order
+            </a>
+
+        </div>
+
+    </section>
+
+    <!-- Recommended Shops -->
+
+    <section class="recommended-shops">
+
+        <h2>Recommended Shops</h2>
+
+        <div class="shop-grid">
+
+            <div class="shop-card">
+
+                <h3>Blue Flame Gas</h3>
+
+                <p>⭐⭐⭐⭐⭐</p>
+
+                <p>📍 Kisumu CBD</p>
+
+                <span class="open">
+                    Open
+                </span>
+
+                <br><br>
+
+                <a href="/shops" class="btn-primary">
+                    View Shop
+                </a>
+
+            </div>
+
+            <div class="shop-card">
+
+                <h3>ProGas</h3>
+
+                <p>⭐⭐⭐⭐☆</p>
+
+                <p>📍 Milimani</p>
+
+                <span class="open">
+                    Open
+                </span>
+
+                <br><br>
+
+                <a href="/shops" class="btn-primary">
+                    View Shop
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- CTA -->
+
+    <section class="welcome">
+
+        <h2>Need Gas Today?</h2>
+
+        <p>
+            Order in less than two minutes and get it delivered to your home.
+        </p>
+
+        <br>
+
+        <a href="/order" class="btn-primary">
+            Order Now
+        </a>
+
+    </section>
+
 </main>
+
+<footer>
+
+    <p>
+        © 2026 Halisi. All Rights Reserved.
+    </p>
+
+</footer>
 
 </body>
 </html>
