@@ -4,51 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Orders | Halisi</title>
+
     <link rel="stylesheet" href="/static/css/style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
-<header>
-    <h1>My Orders</h1>
-    <p>Track your gas refill requests</p>
+<header class="navbar">
+
+    <div class="logo">HALISI</div>
+
+    <nav>
+        <a href="/dashboard">Home</a>
+        <a href="/shops">Find Shop</a>
+        <a href="/order">Order Gas</a>
+        <a href="/orders">My Orders</a>
+        <a href="/logout">Logout</a>
+    </nav>
+
 </header>
 
 <main>
 
-    <h2>Recent Orders</h2>
+<section class="orders-page">
 
-    <table border="1" cellpadding="10">
-        <tr>
-            <th>Order ID</th>
-            <th>Shop</th>
-            <th>Cylinder</th>
-            <th>Quantity</th>
-            <th>Status</th>
-        </tr>
+    <h1>My Orders</h1>
 
-        <tr>
-            <td>1</td>
-            <td>Shell Gas</td>
-            <td>13 Kg</td>
-            <td>1</td>
-            <td>Pending</td>
-        </tr>
+    <p>Track every gas order you've placed.</p>
 
-        <tr>
-            <td>2</td>
-            <td>Rubis Gas</td>
-            <td>6 Kg</td>
-            <td>2</td>
-            <td>Delivered</td>
-        </tr>
+    {{if .}}
 
-    </table>
+        {{range .}}
 
-    <br>
+        <div class="order-item">
 
-    <a href="/dashboard">Back to Dashboard</a>
+            <div class="order-left">
+
+                <h3>{{.CylinderSize}} Cylinder</h3>
+
+                <p><strong>Quantity:</strong> {{.Quantity}}</p>
+
+                <p><strong>Total:</strong> KSh {{printf "%.0f" .TotalPrice}}</p>
+
+            </div>
+
+            <div class="order-right">
+
+                {{if eq .Status "Pending"}}
+                    <span class="status pending">Pending</span>
+                {{end}}
+
+                {{if eq .Status "Delivered"}}
+                    <span class="status delivered">Delivered</span>
+                {{end}}
+
+                {{if eq .Status "Cancelled"}}
+                    <span class="status cancelled">Cancelled</span>
+                {{end}}
+
+            </div>
+
+        </div>
+
+        {{end}}
+
+    {{else}}
+
+        <div class="empty-orders">
+
+            <h2>No Orders Yet</h2>
+
+            <p>
+                You haven't placed any orders.
+            </p>
+
+            <br>
+
+            <a href="/shops" class="btn-primary">
+                Find a Shop
+            </a>
+
+        </div>
+
+    {{end}}
+
+</section>
 
 </main>
+
+<footer>
+
+<p>© 2026 Halisi. All Rights Reserved.</p>
+
+</footer>
 
 </body>
 </html>

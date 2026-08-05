@@ -4,33 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Place Order | Halisi</title>
+
     <link rel="stylesheet" href="/static/css/style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
-<header>
-    <h1>Place Your Order</h1>
-    <p>Complete the details below</p>
+<header class="navbar">
+
+    <div class="logo">HALISI</div>
+
+    <nav>
+
+        <a href="/dashboard">Home</a>
+        <a href="/shops">Find Shop</a>
+        <a href="/orders">My Orders</a>
+        <a href="/logout">Logout</a>
+
+    </nav>
+
 </header>
 
 <main>
 
+<section class="order-container">
+
+    <h1>Complete Your Order</h1>
+
+    <p>
+        Fill in the details below and we'll handle the rest.
+    </p>
+
     <form action="/order" method="POST">
 
-        <label>Cylinder Size</label><br>
-        <select name="size">
-            <option value="6kg">6 Kg</option>
-            <option value="13kg">13 Kg</option>
+        <label>Select Shop</label>
+
+        <select name="shop_id" required>
+
+            {{range .}}
+
+            <option value="{{.ID}}">
+                {{.Name}}
+            </option>
+
+            {{end}}
+
         </select>
 
-        <br><br>
+        <label>Cylinder Size</label>
 
-        <label>Quantity</label><br>
-        <input type="number" name="quantity" min="1" value="1">
+        <select name="cylinder_size" required>
 
-        <br><br>
+            <option value="6kg">6 KG</option>
 
-        <label>Delivery Address</label><br>
+            <option value="13kg">13 KG</option>
+
+        </select>
+
+        <label>Quantity</label>
+
+        <input
+            type="number"
+            name="quantity"
+            min="1"
+            value="1"
+            required
+        >
+
+        <label>Delivery Address</label>
+
         <input
             type="text"
             name="address"
@@ -38,27 +85,30 @@
             required
         >
 
-        <br><br>
+        <label>Phone Number</label>
 
-        <label>Phone Number</label><br>
         <input
-            type="tel"
+            type="text"
             name="phone"
             placeholder="07XXXXXXXX"
             required
         >
 
-        <br><br>
-
-        <button type="submit">Place Order</button>
+        <button type="submit">
+            Confirm Order
+        </button>
 
     </form>
 
-    <br>
-
-    <a href="/shop">← Back to Shop</a>
+</section>
 
 </main>
+
+<footer>
+
+<p>© 2026 Halisi. All Rights Reserved.</p>
+
+</footer>
 
 </body>
 </html>
