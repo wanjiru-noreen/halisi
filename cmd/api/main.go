@@ -11,26 +11,26 @@ import (
 
 func main() {
 
-	// Connect to SQLite database
 	database.ConnectDatabase()
 
-	// Initialize application layers
 	userRepository := repository.NewUserRepository()
 
 	userService := services.NewUserService(userRepository)
 	shopService := services.NewShopService(userRepository)
 
+	orderRepository := repository.NewOrderRepository()
+	orderService := services.NewOrderService(orderRepository)
+
 	handler := handlers.NewHandler(
 		userService,
 		shopService,
+		orderService,
 	)
 
-	// Serve static files
 	http.Handle("/static/",
 		http.StripPrefix("/static/",
 			http.FileServer(http.Dir("web/static"))))
 
-	// Routes
 	http.HandleFunc("/", handler.Home)
 	http.HandleFunc("/register", handler.Register)
 	http.HandleFunc("/login", handler.Login)
@@ -43,6 +43,7 @@ func main() {
 	fmt.Println("Halisi server running on http://localhost:8080")
 
 	err := http.ListenAndServe(":8080", nil)
+
 	if err != nil {
 		panic(err)
 	}

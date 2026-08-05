@@ -10,17 +10,20 @@ import (
 )
 
 type Handler struct {
-	userService *services.UserService
-	shopService *services.ShopService
+	userService  *services.UserService
+	shopService  *services.ShopService
+	orderService *services.OrderService
 }
 
 func NewHandler(
 	userService *services.UserService,
 	shopService *services.ShopService,
+	orderService *services.OrderService,
 ) *Handler {
 	return &Handler{
-		userService: userService,
-		shopService: shopService,
+		userService:  userService,
+		shopService:  shopService,
+		orderService: orderService,
 	}
 }
 
@@ -53,6 +56,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_, err := h.userService.RegisterUser(user)
+
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -169,6 +173,30 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, nil)
 
 	case http.MethodPost:
+
+		quantity, err := strconv.Atoi(r.FormValue("quantity"))
+
+		if err != nil {
+			http.Error(w, "Invalid quantity", http.StatusBadRequest)
+			return
+		}
+
+		order := models.Order{
+			UserID:       1,
+			ShopID:       1,
+			CylinderSize: r.FormValue("cylinder_size"),
+			Quantity:     quantity,
+			TotalPrice:   1000 * float64(quantity),
+			Status:       "Pending",
+		}
+
+		_, err = h.orderService.CreateOrder(order)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		http.Redirect(w, r, "/orders", http.StatusSeeOther)
 
 	default:
@@ -178,6 +206,15 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 
 // Orders page
 func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
+
+	orders, err := h.orderService.GetOrders()
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	tmpl := template.Must(template.ParseFiles("web/templates/orders.html"))
-	tmpl.Execute(w, nil)
+
+	tmpl.Execute(w, orders)
 }
