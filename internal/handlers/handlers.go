@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"halisi/internal/middleware"
 	"halisi/internal/models"
 	"halisi/internal/services"
 )
@@ -31,8 +32,7 @@ func NewHandler(
 func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("web/templates/index.html"))
 
-	err := tmpl.Execute(w, nil)
-	if err != nil {
+	if err := tmpl.Execute(w, nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -56,7 +56,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 
 		_, err := h.userService.RegisterUser(user)
-
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -83,25 +82,33 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		email := r.FormValue("email")
 		password := r.FormValue("password")
 
-		user, err := h.userService.LoginUser(email)
-
+		user, err := h.userService.LoginUser(email, password)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		if user.ID == 0 {
-			http.Error(w, "User not found", http.StatusUnauthorized)
+			http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 			return
 		}
 
-		if user.Password != password {
-			http.Error(w, "Invalid password", http.StatusUnauthorized)
+		session, err := middleware.Store.Get(r, "halisi-session")
+		if err != nil {
+			http.Error(w, "Failed to get session", http.StatusInternalServerError)
+			return
+		}
+
+		session.Values["user_id"] = user.ID
+		session.Values["role"] = user.Role
+
+		err = session.Save(r, w)
+		if err != nil {
+			http.Error(w, "Failed to save session", http.StatusInternalServerError)
 			return
 		}
 
 		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
-
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
@@ -117,7 +124,6 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
 
 	shops, err := h.shopService.GetShops()
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -125,9 +131,7 @@ func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
 
 	tmpl := template.Must(template.ParseFiles("web/templates/shops.html"))
 
-	err = tmpl.Execute(w, shops)
-
-	if err != nil {
+	if err := tmpl.Execute(w, shops); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -136,14 +140,12 @@ func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Shop(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
-
 	if err != nil {
 		http.Error(w, "Invalid shop ID", http.StatusBadRequest)
 		return
 	}
 
 	shop, err := h.shopService.GetShopByID(id)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -156,42 +158,59 @@ func (h *Handler) Shop(w http.ResponseWriter, r *http.Request) {
 
 	tmpl := template.Must(template.ParseFiles("web/templates/shop.html"))
 
-	err = tmpl.Execute(w, shop)
-
-	if err != nil {
+	if err := tmpl.Execute(w, shop); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-// Order page
 func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 
 	case http.MethodGet:
+
+		shops, err := h.shopService.GetShops()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		tmpl := template.Must(template.ParseFiles("web/templates/order.html"))
-		tmpl.Execute(w, nil)
+
+		if err := tmpl.Execute(w, shops); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 
 	case http.MethodPost:
 
-		quantity, err := strconv.Atoi(r.FormValue("quantity"))
+		userID, ok := middleware.GetCurrentUserID(r)
+		if !ok {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
 
+		shopID, err := strconv.Atoi(r.FormValue("shop_id"))
+		if err != nil {
+			http.Error(w, "Invalid shop", http.StatusBadRequest)
+			return
+		}
+
+		quantity, err := strconv.Atoi(r.FormValue("quantity"))
 		if err != nil {
 			http.Error(w, "Invalid quantity", http.StatusBadRequest)
 			return
 		}
 
 		order := models.Order{
-			UserID:       1,
-			ShopID:       1,
+			UserID:       userID,
+			ShopID:       shopID,
 			CylinderSize: r.FormValue("cylinder_size"),
 			Quantity:     quantity,
-			TotalPrice:   1000 * float64(quantity),
+			TotalPrice:   float64(quantity) * 1000,
 			Status:       "Pending",
 		}
 
 		_, err = h.orderService.CreateOrder(order)
-
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -207,7 +226,13 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 // Orders page
 func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
 
-	orders, err := h.orderService.GetOrders()
+	userID, ok := middleware.GetCurrentUserID(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	orders, err := h.orderService.GetOrdersByUserID(userID)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -216,5 +241,136 @@ func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
 
 	tmpl := template.Must(template.ParseFiles("web/templates/orders.html"))
 
-	tmpl.Execute(w, orders)
+	if err := tmpl.Execute(w, orders); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+
+	session, err := middleware.Store.Get(r, "halisi-session")
+	if err != nil {
+		http.Error(w, "Failed to get session", http.StatusInternalServerError)
+		return
+	}
+
+	session.Options.MaxAge = -1
+
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, "Failed to logout", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		http.Error(w, "Invalid order ID", http.StatusBadRequest)
+		return
+	}
+
+	status := r.FormValue("status")
+
+	err = h.orderService.UpdateOrderStatus(id, status)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/orders", http.StatusSeeOther)
+}
+
+func (h *Handler) ShopOrders(w http.ResponseWriter, r *http.Request) {
+
+	shopID, err := strconv.Atoi(r.URL.Query().Get("shop_id"))
+	if err != nil {
+		http.Error(w, "Invalid shop ID", http.StatusBadRequest)
+		return
+	}
+
+	orders, err := h.orderService.GetOrdersByShopID(shopID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	tmpl := template.Must(template.ParseFiles("web/templates/shop_orders.html"))
+
+	err = tmpl.Execute(w, orders)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	id, err := strconv.Atoi(r.FormValue("id"))
+	if err != nil {
+		http.Error(w, "Invalid order ID", http.StatusBadRequest)
+		return
+	}
+
+	err = h.orderService.DeleteOrder(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/orders", http.StatusSeeOther)
+}
+
+func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
+	users, err := h.userService.GetAllUsers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	shops, err := h.shopService.GetShops()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	orders, err := h.orderService.GetOrders()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		Users       []models.User
+		Shops       []models.Shop
+		Orders      []models.Order
+		TotalUsers  int
+		TotalShops  int
+		TotalOrders int
+	}{
+		Users:       users,
+		Shops:       shops,
+		Orders:      orders,
+		TotalUsers:  len(users),
+		TotalShops:  len(shops),
+		TotalOrders: len(orders),
+	}
+
+	tmpl := template.Must(template.ParseFiles("web/templates/admin.html"))
+
+	if err := tmpl.Execute(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
