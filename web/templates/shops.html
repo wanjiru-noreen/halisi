@@ -3,48 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gas Shops | Halisi</title>
+    <title>Find Shops | Halisi</title>
+
     <link rel="stylesheet" href="/static/css/style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
-<header>
-    <h1>Available Gas Shops</h1>
-    <p>Choose a trusted gas supplier near you</p>
+<header class="navbar">
+
+    <div class="logo">
+        HALISI
+    </div>
+
+    <nav>
+
+        <a href="/dashboard">Home</a>
+
+        <a href="/shops">Find Shop</a>
+
+        <a href="/order">Order Gas</a>
+
+        <a href="/orders">My Orders</a>
+
+        <a href="/logout">Logout</a>
+
+    </nav>
+
 </header>
 
 <main>
 
-    {{if .}}
+<section class="welcome">
+
+    <h1>Find a Trusted Gas Supplier</h1>
+
+    <p>
+        Browse verified gas suppliers near you and order safely from trusted shops.
+    </p>
+
+</section>
+
+<section>
+
+    <h2>Nearby Shops</h2>
+
+    <div class="shop-grid">
 
         {{range .}}
 
         <div class="shop-card">
-            <h2>{{.Name}}</h2>
 
-            <p><strong>Location:</strong> {{.Location}}</p>
+            <img
+                src="/static/images/shop-placeholder.jpg"
+                alt="Shop"
+                class="shop-image"
+            >
 
-            <p><strong>Phone:</strong> {{.Phone}}</p>
+            <h3>{{.Name}}</h3>
 
-            <a href="/shop">View Shop</a>
+            <p>⭐⭐⭐⭐⭐</p>
 
-            <hr>
+            <p>📍 {{.Location}}</p>
+
+            <p>📞 {{.Phone}}</p>
+
+            <span class="open">
+                ● Open
+            </span>
+
+            <br><br>
+
+            <a href="/shop?id={{.ID}}" class="btn-primary">
+                View Shop
+            </a>
 
         </div>
 
+        {{else}}
+
+        <p>No shops available.</p>
+
         {{end}}
 
-    {{else}}
+    </div>
 
-        <h2>No shops available.</h2>
-
-    {{end}}
-
-    <br>
-
-    <a href="/dashboard">← Back to Dashboard</a>
+</section>
 
 </main>
+
+<footer>
+
+    <p>
+        © 2026 Halisi. All Rights Reserved.
+    </p>
+
+</footer>
 
 </body>
 </html>
