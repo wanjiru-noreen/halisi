@@ -3,6 +3,8 @@ package services
 import (
 	"halisi/internal/models"
 	"halisi/internal/repository"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // ---------------- USER SERVICE ----------------
@@ -18,6 +20,18 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 }
 
 func (s *UserService) RegisterUser(user models.User) (models.User, error) {
+
+	hashedPassword, err := bcrypt.GenerateFromPassword(
+		[]byte(user.Password),
+		bcrypt.DefaultCost,
+	)
+
+	if err != nil {
+		return models.User{}, err
+	}
+
+	user.Password = string(hashedPassword)
+
 	return s.repo.CreateUser(user)
 }
 
@@ -25,8 +39,27 @@ func (s *UserService) GetAllUsers() ([]models.User, error) {
 	return s.repo.GetUsers()
 }
 
-func (s *UserService) LoginUser(email string) (models.User, error) {
-	return s.repo.GetUserByEmail(email)
+func (s *UserService) LoginUser(email, password string) (models.User, error) {
+
+	user, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	if user.ID == 0 {
+		return models.User{}, nil
+	}
+
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(user.Password),
+		[]byte(password),
+	)
+
+	if err != nil {
+		return models.User{}, nil
+	}
+
+	return user, nil
 }
 
 // ---------------- SHOP SERVICE ----------------
