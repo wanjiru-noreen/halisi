@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shop Orders</title>
+</head>
+<body>
+
+<h1>Shop Orders</h1>
+
+{{range .}}
+<div>
+    <p>Order #{{.ID}}</p>
+    <p>User: {{.UserID}}</p>
+    <p>Size: {{.CylinderSize}}</p>
+    <p>Quantity: {{.Quantity}}</p>
+    <p>Total: KES {{.TotalPrice}}</p>
+    <p>Status: {{.Status}}</p>
+    <hr>
+</div>
+{{else}}
+<p>No orders found.</p>
+{{end}}
+
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Admin Dashboard | Halisi</title>
+
+<link rel="stylesheet" href="/static/css/style.css">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+
+<header class="navbar">
+
+<div class="logo">
+HALISI ADMIN
+</div>
+
+<nav>
+
+<a href="/dashboard">Dashboard</a>
+
+<a href="/shops">Shops</a>
+
+<a href="/orders">Orders</a>
+
+<a href="/logout">Logout</a>
+
+</nav>
+
+</header>
+
+<main class="admin-page">
+
+<h1>Dashboard Overview</h1>
+
+<div class="stats-grid">
+
+<div class="stat-card">
+
+<h2>{{.TotalUsers}}</h2>
+
+<p>Users</p>
+
+</div>
+
+<div class="stat-card">
+
+<h2>{{.TotalShops}}</h2>
+
+<p>Gas Shops</p>
+
+</div>
+
+<div class="stat-card">
+
+<h2>{{.TotalOrders}}</h2>
+
+<p>Orders</p>
+
+</div>
+
+</div>
+
+<section class="admin-section">
+
+<h2>Recent Orders</h2>
+
+<table>
+
+<tr>
+
+<th>ID</th>
+
+<th>User</th>
+
+<th>Shop</th>
+
+<th>Status</th>
+
+</tr>
+
+{{range .Orders}}
+
+<tr>
+
+<td>{{.ID}}</td>
+
+<td>{{.UserID}}</td>
+
+<td>{{.ShopID}}</td>
+
+<td>{{.Status}}</td>
+
+</tr>
+
+{{end}}
+
+</table>
+
+</section>
+
+<section class="admin-section">
+
+<h2>Registered Users</h2>
+
+<table>
+
+<tr>
+
+<th>Name</th>
+
+<th>Email</th>
+
+<th>Role</th>
+
+</tr>
+
+{{range .Users}}
+
+<tr>
+
+<td>{{.Name}}</td>
+
+<td>{{.Email}}</td>
+
+<td>{{.Role}}</td>
+
+</tr>
+
+{{end}}
+
+</table>
+
+</section>
+
+</main>
+
+<footer>
+
+© 2026 Halisi
+
+</footer>
+
+</body>
+</html>
