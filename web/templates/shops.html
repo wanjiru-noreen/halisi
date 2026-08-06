@@ -1,109 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Find Shops | Halisi</title>
-
-    <link rel="stylesheet" href="/static/css/style.css">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HALISI - Find a Shop</title>
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
-
 <body>
 
-<header class="navbar">
+  {{template "navbar.html" .}}
 
-    <div class="logo">
-        HALISI
+  <main class="container">
+    <div class="page-header">
+      <h2>Find a Trusted Gas Supplier</h2>
+      <p>Browse verified gas suppliers near you and order safely from trusted shops.</p>
     </div>
 
-    <nav>
+    <section class="section-title">
+      <h3>Nearby Shops</h3>
+    </section>
 
-        <a href="/dashboard">Home</a>
-
-        <a href="/shops">Find Shop</a>
-
-        <a href="/order">Order Gas</a>
-
-        <a href="/orders">My Orders</a>
-
-        <a href="/logout">Logout</a>
-
-    </nav>
-
-</header>
-
-<main>
-
-<section class="welcome">
-
-    <h1>Find a Trusted Gas Supplier</h1>
-
-    <p>
-        Browse verified gas suppliers near you and order safely from trusted shops.
-    </p>
-
-</section>
-
-<section>
-
-    <h2>Nearby Shops</h2>
-
-    <div class="shop-grid">
-
-        {{range .}}
-
-        <div class="shop-card">
-
-            <img
-                src="/static/images/shop-placeholder.jpg"
-                alt="Shop"
-                class="shop-image"
-            >
-
+    <div class="shops-list">
+      {{range .Shops}}
+      <div class="shop-card">
+        <div class="shop-info">
+          <div class="shop-avatar">🏢</div>
+          <div class="shop-details">
             <h3>{{.Name}}</h3>
-
-            <p>⭐⭐⭐⭐⭐</p>
-
-            <p>📍 {{.Location}}</p>
-
-            <p>📞 {{.Phone}}</p>
-
-            <span class="open">
-                ● Open
-            </span>
-
-            <br><br>
-
-            <a href="/shop?id={{.ID}}" class="btn-primary">
-                View Shop
-            </a>
-
+            <div class="shop-meta">
+              <span class="rating">⭐⭐⭐⭐⭐</span>
+              <span>📍 {{.Location}}</span>
+              <span>📞 {{.Phone}}</span>
+              <span class="badge badge-open">● {{.Status}}</span>
+            </div>
+          </div>
         </div>
+        <a href="/order?shop_id={{.ID}}" class="btn btn-secondary">View Shop</a>
+      </div>
+      {{else}}
+      <div class="shop-card">
+        <div class="shop-info">
+          <div class="shop-avatar">🏬</div>
+          <div class="shop-details">
+            <h3>Shell Gas</h3>
+            <div class="shop-meta">
+              <span class="rating">⭐⭐⭐⭐⭐</span>
+              <span>📍 Kisumu CBD</span>
+              <span>📞 0712345678</span>
+              <span class="badge badge-open">● Open</span>
+            </div>
+          </div>
+        </div>
+        <a href="/order?shop_id=1" class="btn btn-secondary">View Shop</a>
+      </div>
 
-        {{else}}
-
-        <p>No shops available.</p>
-
-        {{end}}
-
+      <div class="shop-card">
+        <div class="shop-info">
+          <div class="shop-avatar">🏬</div>
+          <div class="shop-details">
+            <h3>Rubis Gas</h3>
+            <div class="shop-meta">
+              <span class="rating">⭐⭐⭐⭐⭐</span>
+              <span>📍 Kondele</span>
+              <span>📞 0723456789</span>
+              <span class="badge badge-open">● Open</span>
+            </div>
+          </div>
+        </div>
+        <a href="/order?shop_id=2" class="btn btn-secondary">View Shop</a>
+      </div>
+      {{end}}
     </div>
+  </main>
 
-</section>
-
-</main>
-
-<footer>
-
-    <p>
-        © 2026 Halisi. All Rights Reserved.
-    </p>
-
-</footer>
+  <footer class="site-footer">
+    <p>© 2026 Halisi. All Rights Reserved.</p>
+  </footer>
 
 </body>
 </html>

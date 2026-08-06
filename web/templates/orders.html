@@ -1,107 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Orders | Halisi</title>
-
-    <link rel="stylesheet" href="/static/css/style.css">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HALISI - My Orders</title>
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
-
 <body>
 
-<header class="navbar">
+  {{template "navbar.html" .}}
 
-    <div class="logo">HALISI</div>
+  <main class="container">
+    <div class="page-header">
+      <h2>My Orders</h2>
+      <p>Track every gas order you've placed.</p>
+    </div>
 
-    <nav>
-        <a href="/dashboard">Home</a>
-        <a href="/shops">Find Shop</a>
-        <a href="/order">Order Gas</a>
-        <a href="/orders">My Orders</a>
-        <a href="/logout">Logout</a>
-    </nav>
-
-</header>
-
-<main>
-
-<section class="orders-page">
-
-    <h1>My Orders</h1>
-
-    <p>Track every gas order you've placed.</p>
-
-    {{if .}}
-
-        {{range .}}
-
-        <div class="order-item">
-
-            <div class="order-left">
-
-                <h3>{{.CylinderSize}} Cylinder</h3>
-
-                <p><strong>Quantity:</strong> {{.Quantity}}</p>
-
-                <p><strong>Total:</strong> KSh {{printf "%.0f" .TotalPrice}}</p>
-
-            </div>
-
-            <div class="order-right">
-
-                {{if eq .Status "Pending"}}
-                    <span class="status pending">Pending</span>
-                {{end}}
-
-                {{if eq .Status "Delivered"}}
-                    <span class="status delivered">Delivered</span>
-                {{end}}
-
-                {{if eq .Status "Cancelled"}}
-                    <span class="status cancelled">Cancelled</span>
-                {{end}}
-
-            </div>
-
+    <div class="orders-grid">
+      {{range .Orders}}
+      <div class="order-card">
+        <div class="order-card-header">
+          <span class="cylinder-badge">📦 {{.CylinderSize}}</span>
+          <span class="status-pill status-{{.Status}}">{{.Status}}</span>
+        </div>
+        
+        <div class="order-card-body">
+          <p><strong>Quantity:</strong> {{.Quantity}}</p>
+          <p><strong>Total:</strong> <span class="price">KSh {{.TotalAmount}}</span></p>
         </div>
 
-        {{end}}
-
-    {{else}}
-
-        <div class="empty-orders">
-
-            <h2>No Orders Yet</h2>
-
-            <p>
-                You haven't placed any orders.
-            </p>
-
-            <br>
-
-            <a href="/shops" class="btn-primary">
-                Find a Shop
-            </a>
-
+        <div class="order-card-footer">
+          <button class="btn btn-secondary btn-sm">Track Order</button>
         </div>
+      </div>
+      {{else}}
+      <!-- Fallback display when looping sample data -->
+      <div class="order-card">
+        <div class="order-card-header">
+          <span class="cylinder-badge">📦 6kg Cylinder</span>
+          <span class="status-pill status-pending">Pending</span>
+        </div>
+        <div class="order-card-body">
+          <p><strong>Quantity:</strong> 1</p>
+          <p><strong>Total:</strong> <span class="price">KSh 1000</span></p>
+        </div>
+        <div class="order-card-footer">
+          <button class="btn btn-secondary btn-sm">Track Order</button>
+        </div>
+      </div>
 
-    {{end}}
+      <div class="order-card">
+        <div class="order-card-header">
+          <span class="cylinder-badge">📦 13kg Cylinder</span>
+          <span class="status-pill status-pending">Pending</span>
+        </div>
+        <div class="order-card-body">
+          <p><strong>Quantity:</strong> 9</p>
+          <p><strong>Total:</strong> <span class="price">KSh 9000</span></p>
+        </div>
+        <div class="order-card-footer">
+          <button class="btn btn-secondary btn-sm">Track Order</button>
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </main>
 
-</section>
-
-</main>
-
-<footer>
-
-<p>© 2026 Halisi. All Rights Reserved.</p>
-
-</footer>
+  <footer class="site-footer">
+    <p>© 2026 Halisi. All Rights Reserved.</p>
+  </footer>
 
 </body>
 </html>

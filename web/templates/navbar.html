@@ -1,0 +1,22 @@
+<header class="navbar">
+  <div class="nav-container">
+    <a href="/" class="logo">
+      <span class="logo-icon">G</span> HALISI
+    </a>
+
+    <nav class="nav-links">
+      <a href="/" class="nav-item">🏠 Home</a>
+      <a href="/order" class="nav-item">🛒 Order gas</a>
+      <a href="/shops" class="nav-item">📍 Find shop</a>
+      <a href="/orders" class="nav-item">📦 Orders</a>
+      
+      <!-- Account dropdown / link -->
+      {{if .User}}
+        <a href="/dashboard" class="nav-item account-btn">👤 Account</a>
+        <a href="/logout" class="nav-item logout-btn">Logout</a>
+      {{else}}
+        <a href="/login" class="nav-item account-btn">👤 Account</a>
+      {{endif}}
+    </nav>
+  </div>
+</header>
