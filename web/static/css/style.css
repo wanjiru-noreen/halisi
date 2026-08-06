@@ -1,6 +1,6 @@
-/* ==========================
+/* ===========================
    RESET
-========================== */
+=========================== */
 
 *{
     margin:0;
@@ -8,331 +8,187 @@
     box-sizing:border-box;
 }
 
-body{
-    font-family:'Poppins',sans-serif;
-    background:#f7f9fc;
-    color:#0f2147;
+html{
+    scroll-behavior:smooth;
 }
 
-/* ==========================
+body{
+    font-family:'Poppins',sans-serif;
+    background:#F7F9FC;
+    color:#1F2D3D;
+    line-height:1.6;
+}
+
+img{
+    max-width:100%;
+    display:block;
+}
+
+a{
+    text-decoration:none;
+}
+
+ul{
+    list-style:none;
+}
+
+.container{
+    width:90%;
+    max-width:1200px;
+    margin:auto;
+}
+
+/* ===========================
    NAVBAR
-========================== */
+=========================== */
+
+header{
+    background:#fff;
+    position:sticky;
+    top:0;
+    z-index:1000;
+    box-shadow:0 2px 15px rgba(0,0,0,.06);
+}
 
 .navbar{
-    width:100%;
-    height:90px;
-    background:#fff;
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:0 70px;
-    box-shadow:0 5px 20px rgba(0,0,0,.05);
+    height:82px;
 }
 
 .logo{
     display:flex;
     align-items:center;
-    gap:15px;
+    gap:12px;
 }
 
-.logo-circle{
-    width:45px;
-    height:45px;
-    border-radius:50%;
-    background:#3d19ff;
+.logo img{
+    width:42px;
 }
 
-.logo h2{
-    color:#0f2147;
-    font-weight:600;
+.logo span{
+    font-size:28px;
+    font-weight:700;
+    color:#2E46E6;
 }
 
 nav{
     display:flex;
-    gap:40px;
+    gap:35px;
 }
 
 nav a{
-    text-decoration:none;
     color:#444;
+    font-size:15px;
     font-weight:500;
     transition:.3s;
 }
 
 nav a:hover{
-    color:#3d19ff;
+    color:#2E46E6;
 }
 
 nav .active{
-    color:#3d19ff;
-    border-bottom:3px solid #3d19ff;
-    padding-bottom:8px;
-}
-
-/* ==========================
-   HERO
-========================== */
-
-.hero{
-    background:#2d0ba8;
-    color:#fff;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:70px;
-}
-
-.hero-left{
-    width:50%;
-}
-
-.badge{
-    display:inline-block;
-    background:#ffc928;
-    color:#222;
-    padding:8px 18px;
-    border-radius:30px;
-    font-size:14px;
-    margin-bottom:25px;
-}
-
-.hero h1{
-    font-size:56px;
-    line-height:1.2;
-    margin-bottom:20px;
-}
-
-.hero p{
-    font-size:20px;
-    color:#d9d9d9;
-    margin-bottom:40px;
-}
-
-.hero-buttons{
-    display:flex;
-    gap:20px;
-}
-
-.btn-primary,
-.btn-secondary{
-    text-decoration:none;
-    padding:14px 30px;
-    border-radius:12px;
-    transition:.3s;
-}
-
-.btn-primary{
-    background:#fff;
-    color:#2d0ba8;
-}
-
-.btn-secondary{
-    border:2px solid #fff;
-    color:#fff;
-}
-
-.btn-primary:hover,
-.btn-secondary:hover{
-    transform:translateY(-3px);
-}
-
-.hero-right{
-    width:40%;
-    text-align:center;
-}
-
-.hero-right img{
-    width:320px;
-}
-
-/* ==========================
-   STATS
-========================== */
-
-.stats{
-    background:#fff;
-    display:flex;
-    justify-content:space-around;
-    text-align:center;
-    padding:35px;
-}
-
-.stats h2{
-    font-size:42px;
-    color:#15356f;
-}
-
-.stats p{
-    color:#555;
-}
-
-/* ==========================
-   FEATURES
-========================== */
-
-.features{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:25px;
-    padding:40px;
-    background:#eef3fb;
-}
-
-.feature-card{
-    background:#fff;
-    border-radius:20px;
-    padding:35px;
-    text-align:center;
-    box-shadow:0 10px 25px rgba(0,0,0,.06);
-    transition:.3s;
-}
-
-.feature-card:hover{
-    transform:translateY(-8px);
-}
-
-.icon{
-    width:48px;
-    height:48px;
-    border-radius:14px;
-    margin:0 auto 20px;
-}
-
-.blue{
-    background:#d8e8fb;
-}
-
-.yellow{
-    background:#fff0c7;
-}
-
-.green{
-    background:#d8f5eb;
-}
-
-.feature-card h3{
-    margin-bottom:10px;
-}
-
-.feature-card p{
-    color:#666;
-}
-
-/* ==========================
-   HOW IT WORKS
-========================== */
-
-.steps{
-    padding:60px 40px;
-    background:#fff;
-}
-
-.steps h2{
-    margin-bottom:40px;
-}
-
-.step-container{
-    display:flex;
-    justify-content:space-around;
-    text-align:center;
-}
-
-.number{
-    width:44px;
-    height:44px;
-    border-radius:50%;
-    background:#3917ff;
-    color:#fff;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    margin:auto;
-    margin-bottom:20px;
+    color:#2E46E6;
     font-weight:600;
 }
 
-/* ==========================
-   TESTIMONIAL
-========================== */
+/* ===========================
+   BUTTONS
+=========================== */
 
-.testimonial{
-    background:#fff8e8;
+.btn-primary{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    background:#2E46E6;
+    color:#fff;
+    padding:14px 32px;
+    border-radius:12px;
+    font-weight:600;
+    transition:.3s;
+}
+
+.btn-primary:hover{
+    transform:translateY(-4px);
+    box-shadow:0 10px 25px rgba(46,70,230,.25);
+}
+
+.btn-secondary{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #2E46E6;
+    color:#2E46E6;
+    padding:14px 32px;
+    border-radius:12px;
+    font-weight:600;
+    transition:.3s;
+}
+
+.btn-secondary:hover{
+    background:#2E46E6;
+    color:#fff;
+}
+
+/* ===========================
+   SECTION TITLES
+=========================== */
+
+.section-title{
     text-align:center;
-    padding:60px;
+    margin-bottom:60px;
 }
 
-.stars{
-    color:#ffbf00;
-    font-size:22px;
-    margin-bottom:20px;
+.section-title span{
+    color:#2E46E6;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:2px;
+    text-transform:uppercase;
 }
 
-blockquote{
-    font-size:22px;
-    max-width:700px;
-    margin:auto;
-    margin-bottom:20px;
+.section-title h2{
+    font-size:38px;
+    margin-top:12px;
+    color:#22304E;
 }
 
-/* ==========================
-   SHOPS
-========================== */
-
-.shops{
-    padding:50px;
-}
-
-.shop-card{
-    margin-top:25px;
-    background:#fff;
-    border-radius:20px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:25px;
-    box-shadow:0 10px 20px rgba(0,0,0,.06);
-}
-
-.shop-left{
-    display:flex;
-    align-items:center;
-    gap:20px;
-}
-
-.shop-image{
-    width:60px;
-    height:60px;
-    border-radius:15px;
-    background:#3d19ff;
-}
-
-.shop-btn{
-    text-decoration:none;
-    border:2px solid #3d19ff;
-    color:#3d19ff;
-    padding:12px 25px;
-    border-radius:10px;
-}
-
-/* ==========================
+/* ===========================
    FOOTER
-========================== */
+=========================== */
 
 footer{
-    background:#112d67;
+    background:#152C73;
     color:#fff;
-    padding:35px 60px;
+    margin-top:80px;
+}
+
+.footer-content{
     display:flex;
     justify-content:space-between;
     align-items:center;
+    padding:60px 0;
 }
 
 .footer-links{
     display:flex;
-    gap:25px;
+    gap:30px;
 }
 
 .footer-links a{
     color:#fff;
-    text-decoration:none;
+    transition:.3s;
+}
+
+.footer-links a:hover{
+    color:#FFD84D;
+}
+
+.copyright{
+    text-align:center;
+    padding:20px;
+    background:#10235C;
+    font-size:14px;
 }

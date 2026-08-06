@@ -18,11 +18,12 @@ func main() {
 
 	// Initialize repositories
 	userRepository := repository.NewUserRepository()
+	shopRepository := repository.NewShopRepository()
 	orderRepository := repository.NewOrderRepository()
 
 	// Initialize services
 	userService := services.NewUserService(userRepository)
-	shopService := services.NewShopService(userRepository)
+	shopService := services.NewShopService(shopRepository)
 	orderService := services.NewOrderService(orderRepository)
 
 	// Initialize handlers
@@ -106,6 +107,7 @@ func main() {
 	fmt.Println("🚀 Halisi server running on http://localhost:8080")
 
 	err := http.ListenAndServe(":8080", nil)
+
 	if err != nil {
 		panic(err)
 	}
