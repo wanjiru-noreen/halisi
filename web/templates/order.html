@@ -1,114 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Place Order | Halisi</title>
-
-    <link rel="stylesheet" href="/static/css/style.css">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HALISI - Complete Your Order</title>
+  <link rel="stylesheet" href="/static/css/style.css">
 </head>
-
 <body>
 
-<header class="navbar">
+  <!-- Navbar -->
+  {{template "navbar.html" .}}
 
-    <div class="logo">HALISI</div>
+  <main class="container">
+    <div class="page-header">
+      <h2>Complete Your Order</h2>
+      <p>Fill in the details below and we'll handle the rest.</p>
+    </div>
 
-    <nav>
+    <div class="card form-card">
+      <form action="/order" method="POST" class="order-form">
+        <div class="form-grid">
+          
+          <div class="form-group">
+            <label for="shop">Select Shop</label>
+            <select id="shop" name="shop_id" class="input-field" required>
+              <option value="1">Shell Gas - Kisumu CBD</option>
+              <option value="2">Rubis Gas - Kondele</option>
+              <option value="3">TotalEnergies - Milimani</option>
+            </select>
+          </div>
 
-        <a href="/dashboard">Home</a>
-        <a href="/shops">Find Shop</a>
-        <a href="/orders">My Orders</a>
-        <a href="/logout">Logout</a>
+          <div class="form-group">
+            <label for="cylinder">Cylinder Size</label>
+            <select id="cylinder" name="cylinder_size" class="input-field" required>
+              <option value="6kg">6 KG</option>
+              <option value="13kg">13 KG</option>
+              <option value="45kg">45 KG</option>
+            </select>
+          </div>
 
-    </nav>
+          <div class="form-group">
+            <label for="quantity">Quantity</label>
+            <input type="number" id="quantity" name="quantity" value="1" min="1" class="input-field" required>
+          </div>
 
-</header>
+          <div class="form-group">
+            <label for="address">Delivery Address</label>
+            <input type="text" id="address" name="address" placeholder="Enter your location (e.g. Milimani, House #4)" class="input-field" required>
+          </div>
 
-<main>
+          <div class="form-group full-width">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone" placeholder="07XXXXXXXX" class="input-field" required>
+          </div>
 
-<section class="order-container">
+        </div>
 
-    <h1>Complete Your Order</h1>
+        <button type="submit" class="btn btn-primary btn-block">Confirm Order</button>
+      </form>
+    </div>
+  </main>
 
-    <p>
-        Fill in the details below and we'll handle the rest.
-    </p>
-
-    <form action="/order" method="POST">
-
-        <label>Select Shop</label>
-
-        <select name="shop_id" required>
-
-            {{range .}}
-
-            <option value="{{.ID}}">
-                {{.Name}}
-            </option>
-
-            {{end}}
-
-        </select>
-
-        <label>Cylinder Size</label>
-
-        <select name="cylinder_size" required>
-
-            <option value="6kg">6 KG</option>
-
-            <option value="13kg">13 KG</option>
-
-        </select>
-
-        <label>Quantity</label>
-
-        <input
-            type="number"
-            name="quantity"
-            min="1"
-            value="1"
-            required
-        >
-
-        <label>Delivery Address</label>
-
-        <input
-            type="text"
-            name="address"
-            placeholder="Enter your location"
-            required
-        >
-
-        <label>Phone Number</label>
-
-        <input
-            type="text"
-            name="phone"
-            placeholder="07XXXXXXXX"
-            required
-        >
-
-        <button type="submit">
-            Confirm Order
-        </button>
-
-    </form>
-
-</section>
-
-</main>
-
-<footer>
-
-<p>© 2026 Halisi. All Rights Reserved.</p>
-
-</footer>
+  <footer class="site-footer">
+    <p>© 2026 Halisi. All Rights Reserved.</p>
+  </footer>
 
 </body>
 </html>
