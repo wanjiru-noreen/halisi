@@ -4,213 +4,130 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | Halisi</title>
-
-    <link rel="stylesheet" href="/static/css/style.css">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
-
 <body>
-
-<header class="navbar">
-
+<header class="navbar container">
     <div class="logo">
-        HALISI
+        <div class="logo-circle"><span class="logo-mark">🔥</span></div>
+        <h1>HALISI</h1>
     </div>
-
     <nav>
-
-        <a href="/dashboard">Home</a>
-
+        <a class="active" href="/dashboard">Home</a>
         <a href="/shops">Find Shop</a>
-
         <a href="/order">Order Gas</a>
-
         <a href="/orders">My Orders</a>
-
         <a href="/logout">Logout</a>
-
     </nav>
-
 </header>
 
-<main>
-
-    <!-- Welcome Section -->
-
-    <section class="welcome">
-
-        <div class="welcome-content">
-
-            <h1>Welcome Back 👋</h1>
-
-            <p>
-                Ready to order gas today?
-                Fast, safe and reliable delivery right to your doorstep.
-            </p>
-
-            <div class="buttons">
-
-                <a href="/order" class="btn-primary">
-                    Order Gas
-                </a>
-
-                <a href="/shops" class="btn-secondary">
-                    Find Shop
-                </a>
-
+<main class="dashboard-main container">
+    <section class="welcome-section">
+        <div class="welcome-card">
+            <div>
+                <p class="eyebrow">Welcome back</p>
+                <h2>Ready to order gas today?</h2>
+                <p>Fast, safe and reliable delivery right to your doorstep.</p>
             </div>
-
+            <div class="welcome-actions">
+                <a href="/order" class="btn btn-primary">Order Gas</a>
+                <a href="/shops" class="btn btn-secondary">Find Shop</a>
+            </div>
         </div>
-
     </section>
-
-    <!-- Quick Actions -->
 
     <section class="quick-actions">
-
-        <a href="/order" class="action-card">
-
-            <div class="icon">🛒</div>
-
-            <h3>Order Gas</h3>
-
-            <p>Place a new order quickly.</p>
-
-        </a>
-
-        <a href="/shops" class="action-card">
-
-            <div class="icon">📍</div>
-
-            <h3>Find Shops</h3>
-
-            <p>Browse trusted gas suppliers.</p>
-
-        </a>
-
-        <a href="/orders" class="action-card">
-
-            <div class="icon">📦</div>
-
-            <h3>My Orders</h3>
-
-            <p>Track all your deliveries.</p>
-
-        </a>
-
+        <div class="section-heading">
+            <h2>Quick actions</h2>
+        </div>
+        <div class="action-grid">
+            <a href="/order" class="action-card">
+                <div class="action-icon">🛒</div>
+                <h3>Order Gas</h3>
+                <p>Place a new order quickly.</p>
+            </a>
+            <a href="/shops" class="action-card">
+                <div class="action-icon">📍</div>
+                <h3>Find Shops</h3>
+                <p>Browse trusted gas suppliers.</p>
+            </a>
+            <a href="/orders" class="action-card">
+                <div class="action-icon">📦</div>
+                <h3>My Orders</h3>
+                <p>Track all your deliveries.</p>
+            </a>
+        </div>
     </section>
-
-    <!-- Recent Orders -->
 
     <section class="recent-orders">
-
-        <h2>Recent Orders</h2>
-
-        <div class="order-card">
-
-            <div>
-
-                <h3>🔥 13kg Cylinder</h3>
-
-                <p>Blue Flame Gas</p>
-
-                <span class="status pending">
-                    Pending
-                </span>
-
-            </div>
-
-            <a href="/orders" class="btn-primary">
-                Track Order
-            </a>
-
+        <div class="section-heading">
+            <h2>Recent orders</h2>
         </div>
-
+        <div class="order-card">
+            <div>
+                <p class="eyebrow">Latest</p>
+                <h3>13kg Cylinder</h3>
+                <p class="subtle">Blue Flame Gas</p>
+            </div>
+            <div class="order-meta">
+                <span class="status pending">Pending</span>
+                <a href="/orders" class="btn btn-primary">Track Order</a>
+            </div>
+        </div>
     </section>
-
-    <!-- Recommended Shops -->
 
     <section class="recommended-shops">
-
-        <h2>Recommended Shops</h2>
-
-        <div class="shop-grid">
-
-            <div class="shop-card">
-
-                <h3>Blue Flame Gas</h3>
-
-                <p>⭐⭐⭐⭐⭐</p>
-
-                <p>📍 Kisumu CBD</p>
-
-                <span class="open">
-                    Open
-                </span>
-
-                <br><br>
-
-                <a href="/shops" class="btn-primary">
-                    View Shop
-                </a>
-
-            </div>
-
-            <div class="shop-card">
-
-                <h3>ProGas</h3>
-
-                <p>⭐⭐⭐⭐☆</p>
-
-                <p>📍 Milimani</p>
-
-                <span class="open">
-                    Open
-                </span>
-
-                <br><br>
-
-                <a href="/shops" class="btn-primary">
-                    View Shop
-                </a>
-
-            </div>
-
+        <div class="section-heading">
+            <h2>Recommended shops</h2>
         </div>
-
+        <div class="shop-grid">
+            <article class="shop-card">
+                <div>
+                    <h3>Blue Flame Gas</h3>
+                    <p class="rating">⭐⭐⭐⭐⭐</p>
+                    <p class="subtle">📍 Kisumu CBD</p>
+                </div>
+                <div class="shop-footer">
+                    <span class="open">Open</span>
+                    <a href="/shops" class="btn btn-primary">View Shop</a>
+                </div>
+            </article>
+            <article class="shop-card">
+                <div>
+                    <h3>ProGas</h3>
+                    <p class="rating">⭐⭐⭐⭐☆</p>
+                    <p class="subtle">📍 Milimani</p>
+                </div>
+                <div class="shop-footer">
+                    <span class="open">Open</span>
+                    <a href="/shops" class="btn btn-primary">View Shop</a>
+                </div>
+            </article>
+        </div>
     </section>
 
-    <!-- CTA -->
-
-    <section class="welcome">
-
-        <h2>Need Gas Today?</h2>
-
-        <p>
-            Order in less than two minutes and get it delivered to your home.
-        </p>
-
-        <br>
-
-        <a href="/order" class="btn-primary">
-            Order Now
-        </a>
-
+    <section class="cta-card">
+        <div>
+            <h2>Need gas today?</h2>
+            <p>Order in less than two minutes and get it delivered to your home.</p>
+        </div>
+        <a href="/order" class="btn btn-primary">Order Now</a>
     </section>
-
 </main>
 
 <footer>
-
-    <p>
-        © 2026 Halisi. All Rights Reserved.
-    </p>
-
+    <div class="container footer-grid">
+        <div class="footer-links">
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+            <a href="#">Support</a>
+            <a href="#">Privacy policy</a>
+        </div>
+        <p>© 2026 Halisi. All Rights Reserved.</p>
+    </div>
 </footer>
-
 </body>
 </html>
