@@ -21,12 +21,14 @@
       <div class="order-card">
         <div class="order-card-header">
           <span class="cylinder-badge">📦 {{.CylinderSize}}</span>
-          <span class="status-pill status-{{.Status}}">{{.Status}}</span>
+          <span class="status-pill">{{.Status}}</span>
         </div>
         
         <div class="order-card-body">
+          <p><strong>Shop:</strong> {{if .ShopName}}{{.ShopName}}{{else}}Unknown shop{{end}}</p>
+          <p><strong>Delivery to:</strong> {{.DeliveryAddress}}</p>
           <p><strong>Quantity:</strong> {{.Quantity}}</p>
-          <p><strong>Total:</strong> <span class="price">KSh {{.TotalAmount}}</span></p>
+          <p><strong>Total:</strong> <span class="price">KSh {{.TotalPrice}}</span></p>
         </div>
 
         <div class="order-card-footer">

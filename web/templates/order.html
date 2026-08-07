@@ -14,28 +14,34 @@
   <main class="container">
     <div class="page-header">
       <h2>Complete Your Order</h2>
-      <p>Fill in the details below and we'll handle the rest.</p>
+      <p>Choose a trusted shop and place your order for fast delivery.</p>
     </div>
+
+    <!-- Removed shop tap grid - using dropdown only -->
 
     <div class="card form-card">
       <form action="/order" method="POST" class="order-form">
         <div class="form-grid">
           
-          <div class="form-group">
+          <div class="form-group full-width">
             <label for="shop">Select Shop</label>
             <select id="shop" name="shop_id" class="input-field" required>
+              {{range .Shops}}
+              <option value="{{.ID}}" {{if eq .ID (selectedShopID $)}}selected{{end}}>{{.Name}} - {{.Location}}</option>
+              {{else}}
               <option value="1">Shell Gas - Kisumu CBD</option>
               <option value="2">Rubis Gas - Kondele</option>
               <option value="3">TotalEnergies - Milimani</option>
+              {{end}}
             </select>
           </div>
 
           <div class="form-group">
             <label for="cylinder">Cylinder Size</label>
             <select id="cylinder" name="cylinder_size" class="input-field" required>
-              <option value="6kg">6 KG</option>
-              <option value="13kg">13 KG</option>
-              <option value="45kg">45 KG</option>
+              <option value="6kg">6 KG — KSh 1400</option>
+              <option value="13kg">13 KG — KSh 2800</option>
+              <option value="45kg">45 KG — KSh 6000</option>
             </select>
           </div>
 
@@ -60,6 +66,10 @@
       </form>
     </div>
   </main>
+
+  <footer class="site-footer">
+    <p>© 2026 Halisi. All Rights Reserved.</p>
+  </footer>
 
   <footer class="site-footer">
     <p>© 2026 Halisi. All Rights Reserved.</p>
