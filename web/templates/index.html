@@ -4,379 +4,159 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HALISI | Gas Delivery</title>
-
     <link rel="stylesheet" href="/static/css/style.css">
-
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 </head>
-
 <body>
-
-<!-- ================= NAVIGATION ================= -->
-
 <header>
-
-    <div class="navbar">
-
+    <div class="navbar container">
         <div class="logo">
-
             <div class="logo-circle">
-
-                🔥
-
+                <span class="logo-mark">🔥</span>
             </div>
-
-            <h2>HALISI</h2>
-
+            <h1>HALISI</h1>
         </div>
-
         <nav>
-
             <a class="active" href="/">Home</a>
-
             <a href="/order">Order gas</a>
-
             <a href="/shops">Find shop</a>
-
             <a href="/orders">Orders</a>
-
             <a href="/login">Account</a>
-
         </nav>
-
     </div>
-
 </header>
 
-<!-- ================= HERO ================= -->
-
-<section class="hero">
-
-    <div class="hero-left">
-
-        <span class="badge">
-
-            Trusted by 120+ homes
-
-        </span>
-
-        <h1>
-
-            Never run out of
-            <br>
-            cooking gas
-
-        </h1>
-
-        <p>
-
-            Fast, safe and reliable gas delivery to your doorstep.
-
-        </p>
-
-        <div class="hero-buttons">
-
-            <a href="/order" class="primary-btn">
-
-                Order gas
-
-            </a>
-
-            <a href="/shops" class="secondary-btn">
-
-                Find shops
-
-            </a>
-
-        </div>
-
-    </div>
-
-    <div class="hero-right">
-
-        <!-- Replace later with rider image -->
-        <img src="/static/images/rider.png" alt="Delivery Rider">
-
-    </div>
-
-</section>
-
-<!-- ================= STATS ================= -->
-
-<section class="stats">
-
-    <div class="stat">
-
-        <i class="fa-solid fa-users"></i>
-
-        <h2>500+</h2>
-
-        <p>Happy customers</p>
-
-    </div>
-
-    <div class="stat">
-
-        <i class="fa-solid fa-store"></i>
-
-        <h2>50+</h2>
-
-        <p>Verified shops</p>
-
-    </div>
-
-    <div class="stat">
-
-        <i class="fa-solid fa-motorcycle"></i>
-
-        <h2>2,000+</h2>
-
-        <p>Gas deliveries</p>
-
-    </div>
-
-</section>
-
-<!-- ================= FEATURES ================= -->
-
-<section class="features">
-
-    <div class="feature-card">
-
-        <div class="feature-icon blue">
-
-            <i class="fa-solid fa-truck-fast"></i>
-
-        </div>
-
-        <h3>Fast delivery</h3>
-
-        <p>
-
-            Get your gas delivered quickly.
-
-        </p>
-
-    </div>
-
-    <div class="feature-card">
-
-        <div class="feature-icon yellow">
-
-            <i class="fa-solid fa-shield-halved"></i>
-
-        </div>
-
-        <h3>Safe and trusted</h3>
-
-        <p>
-
-            Verified suppliers you can rely on.
-
-        </p>
-
-    </div>
-
-    <div class="feature-card">
-
-        <div class="feature-icon green">
-
-            <i class="fa-solid fa-house"></i>
-
-        </div>
-
-        <h3>Home convenience</h3>
-
-        <p>
-
-            Order without leaving your house.
-
-        </p>
-
-    </div>
-
-</section>
-
-<!-- ================= HOW IT WORKS ================= -->
-
-<section class="how-it-works">
-
-    <h2>
-
-        How it works
-
-    </h2>
-
-    <div class="steps">
-
-        <div class="step">
-
-            <div class="circle">
-
-                1
-
+<main>
+    <section class="hero">
+        <div class="container hero-grid">
+            <div class="hero-copy">
+                <span class="badge">Trusted by 120+ homes</span>
+                <h2>Never run out of<br>cooking gas</h2>
+                <p>Fast, safe and reliable gas delivery to your doorstep.</p>
+                <div class="hero-actions">
+                    <a href="/order" class="btn btn-primary">Order gas</a>
+                    <a href="/shops" class="btn btn-secondary">Find shops</a>
+                </div>
             </div>
-
-            <p>
-
-                Find a nearby shop
-
-            </p>
-
-        </div>
-
-        <div class="step">
-
-            <div class="circle">
-
-                2
-
+            <div class="hero-visual">
+                <div class="hero-decor">
+                    <span class="circle-lg"></span>
+                    <span class="circle-sm"></span>
+                    <span class="dot dot-1"></span>
+                    <span class="dot dot-2"></span>
+                    <span class="dot dot-3"></span>
+                </div>
+                <div class="illustration-card">
+                    <div class="bike-card">
+                        <div class="cylinder">HALISI</div>
+                        <div class="rider-head"></div>
+                        <div class="rider-body"></div>
+                        <div class="bike-wheel back-wheel"></div>
+                        <div class="bike-wheel front-wheel"></div>
+                        <div class="bike-frame"></div>
+                        <div class="delivery-box">HALISI</div>
+                    </div>
+                </div>
             </div>
-
-            <p>
-
-                Choose your cylinder
-
-            </p>
-
         </div>
+    </section>
 
-        <div class="step">
+    <section class="stats container">
+        <article class="stat-card">
+            <i class="fa-solid fa-users"></i>
+            <h3>500+</h3>
+            <p>Happy customers</p>
+        </article>
+        <article class="stat-card">
+            <i class="fa-solid fa-store"></i>
+            <h3>50+</h3>
+            <p>Verified shops</p>
+        </article>
+        <article class="stat-card">
+            <i class="fa-solid fa-motorcycle"></i>
+            <h3>2,000+</h3>
+            <p>Gas deliveries</p>
+        </article>
+    </section>
 
-            <div class="circle">
+    <section class="features container">
+        <article class="feature-card">
+            <div class="feature-icon feature-blue"><i class="fa-solid fa-truck-fast"></i></div>
+            <h3>Fast delivery</h3>
+            <p>Get your gas delivered quickly.</p>
+        </article>
+        <article class="feature-card">
+            <div class="feature-icon feature-yellow"><i class="fa-solid fa-shield-halved"></i></div>
+            <h3>Safe and trusted</h3>
+            <p>Verified suppliers you can rely on.</p>
+        </article>
+        <article class="feature-card">
+            <div class="feature-icon feature-green"><i class="fa-solid fa-house"></i></div>
+            <h3>Home convenience</h3>
+            <p>Order without leaving your house.</p>
+        </article>
+    </section>
 
-                3
-
-            </div>
-
-            <p>
-
-                Delivered to your home
-
-            </p>
-
+    <section class="how-it-works container">
+        <div class="section-heading">
+            <h2>How it works</h2>
         </div>
-
-    </div>
-
-</section>
-
-<!-- ================= TESTIMONIAL ================= -->
-
-<section class="testimonial">
-
-    <div class="stars">
-
-        ★★★★★
-
-    </div>
-
-    <p>
-
-        "Halisi delivered my gas in under 30 minutes.
-        The ordering process was simple and the rider was professional."
-
-    </p>
-
-    <span>
-
-        Mary W. · Kisumu
-
-    </span>
-
-</section>
-
-<!-- ================= SHOPS ================= -->
-
-<section class="nearby-shops">
-
-    <h2>
-
-        Nearby shops
-
-    </h2>
-
-    <div class="shop-card">
-
-        <div class="shop-info">
-
-            <div class="shop-icon">
-
-                🔥
-
+        <div class="steps-row">
+            <div class="step-card">
+                <span class="step-number">1</span>
+                <p>Find a nearby shop</p>
             </div>
-
-            <div>
-
-                <h3>
-
-                    Blue Flame Gas
-
-                </h3>
-
-                <p>
-
-                    ⭐⭐⭐⭐⭐ (4.9)
-
-                </p>
-
-                <small>
-
-                    📍 Kisumu CBD • Open until 8pm
-
-                </small>
-
-                <br>
-
-                <small>
-
-                    Same day delivery
-
-                </small>
-
+            <div class="step-card">
+                <span class="step-number">2</span>
+                <p>Choose your cylinder</p>
             </div>
-
+            <div class="step-card">
+                <span class="step-number">3</span>
+                <p>Delivered to your home</p>
+            </div>
         </div>
+    </section>
 
-        <a href="/shops" class="view-btn">
+    <section class="testimonial container">
+        <div class="testimonial-card">
+            <div class="stars">★★★★★</div>
+            <p>“Halisi delivered my gas in under 30 minutes. The ordering process was simple and the rider was professional.”</p>
+            <span>Mary W. · Kisumu</span>
+        </div>
+    </section>
 
-            View shop
-
-        </a>
-
-    </div>
-
-</section>
-
-<!-- ================= FOOTER ================= -->
+    <section class="nearby-shops container">
+        <div class="section-heading">
+            <h2>Nearby shops</h2>
+        </div>
+        <div class="shop-card">
+            <div class="shop-details">
+                <div class="shop-mark">🔥</div>
+                <div>
+                    <h3>Blue Flame Gas</h3>
+                    <p class="rating">⭐⭐⭐⭐⭐ (4.9)</p>
+                    <p class="location">📍 Kisumu CBD · Open until 8pm</p>
+                    <p class="tagline">Same day delivery</p>
+                </div>
+            </div>
+            <a href="/shops" class="btn btn-outline">View shop</a>
+        </div>
+    </section>
+</main>
 
 <footer>
-
-    <div class="footer-links">
-
-        <a href="#">About</a>
-
-        <a href="#">Contact</a>
-
-        <a href="#">Support</a>
-
-        <a href="#">Privacy policy</a>
-
+    <div class="container footer-grid">
+        <div class="footer-links">
+            <a href="#">About</a>
+            <a href="#">Contact</a>
+            <a href="#">Support</a>
+            <a href="#">Privacy policy</a>
+        </div>
+        <p>© 2026 Halisi</p>
     </div>
-
-    <p>
-
-        © 2026 Halisi
-
-    </p>
-
 </footer>
-
 </body>
 </html>
