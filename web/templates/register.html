@@ -4,63 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | Halisi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-brand">
+            <span class="auth-logo">🔥</span>
+            <div>
+                <h1>HALISI</h1>
+                <p>Get gas delivered safely and fast.</p>
+            </div>
+        </div>
 
-<header>
-    <h1>Halisi Gas Refill</h1>
-    <p>Create your account</p>
-</header>
+        <div class="auth-header">
+            <h2>Create your account</h2>
+            <p>Join Halisi and order gas from verified shops in your area.</p>
+        </div>
 
-<main>
-    <h2>Register</h2>
+        <form action="/register" method="POST" class="auth-form">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" placeholder="Enter your full name" required>
 
-    <form action="/register" method="POST">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" placeholder="Enter your email" required>
 
-        <label for="name">Full Name</label><br>
-        <input
-            type="text"
-            id="name"
-            name="name"
-            placeholder="Enter your full name"
-            required
-        ><br><br>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Create a password" required>
 
-        <label for="email">Email</label><br>
-        <input
-            type="email"
-            id="email"
-            name="email"
-            placeholder="Enter your email"
-            required
-        ><br><br>
+            <button type="submit" class="btn btn-primary">Register</button>
+        </form>
 
-        <label for="password">Password</label><br>
-        <input
-            type="password"
-            id="password"
-            name="password"
-            placeholder="Create a password"
-            required
-        ><br><br>
-
-        <button type="submit">Register</button>
-
-    </form>
-
-    <br>
-
-    <p>
-        Already have an account?
-        <a href="/login">Login</a>
-    </p>
-
-    <br>
-
-    <a href="/">← Back Home</a>
-
-</main>
-
+        <p class="auth-footer">
+            Already have an account? <a href="/login">Login</a>
+        </p>
+        <p class="auth-back"><a href="/">← Back Home</a></p>
+    </div>
+</div>
 </body>
 </html>
