@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"halisi/internal/database"
 	"halisi/internal/handlers"
@@ -104,9 +105,14 @@ func main() {
 		middleware.RequireRole("admin", handler.AdminDashboard),
 	)
 
-	fmt.Println("🚀 Halisi server running on http://localhost:8080")
+	port := "8080"
+	if envPort := os.Getenv("PORT"); envPort != "" {
+		port = envPort
+	}
 
-	err := http.ListenAndServe(":8080", nil)
+	fmt.Printf("🚀 Halisi server running on http://localhost:%s\n", port)
+
+	err := http.ListenAndServe(":"+port, nil)
 
 	if err != nil {
 		panic(err)
