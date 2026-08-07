@@ -1,6 +1,6 @@
 module halisi
 
-go 1.25.0
+go 1.24.0
 
 require (
 	github.com/gorilla/sessions v1.4.0
