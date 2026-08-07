@@ -21,9 +21,10 @@ func (r *OrderRepository) CreateOrder(order models.Order) (models.Order, error) 
 		cylinder_size,
 		quantity,
 		total_price,
-		status
+		status,
+		delivery_address
 	)
-	VALUES (?, ?, ?, ?, ?, ?)
+	VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
 
 	result, err := database.DB.Exec(
@@ -34,6 +35,7 @@ func (r *OrderRepository) CreateOrder(order models.Order) (models.Order, error) 
 		order.Quantity,
 		order.TotalPrice,
 		order.Status,
+		order.DeliveryAddress,
 	)
 
 	if err != nil {
@@ -55,15 +57,18 @@ func (r *OrderRepository) CreateOrder(order models.Order) (models.Order, error) 
 func (r *OrderRepository) GetOrders() ([]models.Order, error) {
 
 	rows, err := database.DB.Query(`
-		SELECT 
-			id,
-			user_id,
-			shop_id,
-			cylinder_size,
-			quantity,
-			total_price,
-			status
-		FROM orders
+		SELECT
+			o.id,
+			o.user_id,
+			o.shop_id,
+			o.cylinder_size,
+			o.quantity,
+			o.total_price,
+			o.status,
+			o.delivery_address,
+			s.name
+		FROM orders o
+		LEFT JOIN shops s ON o.shop_id = s.id
 	`)
 
 	if err != nil {
@@ -86,6 +91,8 @@ func (r *OrderRepository) GetOrders() ([]models.Order, error) {
 			&order.Quantity,
 			&order.TotalPrice,
 			&order.Status,
+			&order.DeliveryAddress,
+			&order.ShopName,
 		)
 
 		if err != nil {
@@ -105,15 +112,18 @@ func (r *OrderRepository) GetOrderByID(id int) (models.Order, error) {
 
 	query := `
 	SELECT
-		id,
-		user_id,
-		shop_id,
-		cylinder_size,
-		quantity,
-		total_price,
-		status
-	FROM orders
-	WHERE id = ?
+		o.id,
+		o.user_id,
+		o.shop_id,
+		o.cylinder_size,
+		o.quantity,
+		o.total_price,
+		o.status,
+		o.delivery_address,
+		s.name
+	FROM orders o
+	LEFT JOIN shops s ON o.shop_id = s.id
+	WHERE o.id = ?
 	`
 
 	err := database.DB.QueryRow(query, id).Scan(
@@ -124,6 +134,8 @@ func (r *OrderRepository) GetOrderByID(id int) (models.Order, error) {
 		&order.Quantity,
 		&order.TotalPrice,
 		&order.Status,
+		&order.DeliveryAddress,
+		&order.ShopName,
 	)
 
 	if err != nil {
@@ -136,15 +148,18 @@ func (r *OrderRepository) GetOrderByID(id int) (models.Order, error) {
 func (r *OrderRepository) GetOrdersByUserID(userID int) ([]models.Order, error) {
 
 	rows, err := database.DB.Query(`
-		SELECT id,
-		       user_id,
-		       shop_id,
-		       cylinder_size,
-		       quantity,
-		       total_price,
-		       status
-		FROM orders
-		WHERE user_id = ?
+		SELECT o.id,
+		       o.user_id,
+		       o.shop_id,
+		       o.cylinder_size,
+		       o.quantity,
+		       o.total_price,
+		       o.status,
+		       o.delivery_address,
+		       s.name
+		FROM orders o
+		LEFT JOIN shops s ON o.shop_id = s.id
+		WHERE o.user_id = ?
 	`, userID)
 
 	if err != nil {
@@ -165,6 +180,8 @@ func (r *OrderRepository) GetOrdersByUserID(userID int) ([]models.Order, error) 
 			&order.Quantity,
 			&order.TotalPrice,
 			&order.Status,
+			&order.DeliveryAddress,
+			&order.ShopName,
 		)
 
 		if err != nil {
@@ -191,16 +208,18 @@ func (r *OrderRepository) UpdateOrderStatus(id int, status string) error {
 func (r *OrderRepository) GetOrdersByShopID(shopID int) ([]models.Order, error) {
 
 	rows, err := database.DB.Query(`
-		SELECT
-			id,
-			user_id,
-			shop_id,
-			cylinder_size,
-			quantity,
-			total_price,
-			status
-		FROM orders
-		WHERE shop_id = ?
+		SELECT o.id,
+		       o.user_id,
+		       o.shop_id,
+		       o.cylinder_size,
+		       o.quantity,
+		       o.total_price,
+		       o.status,
+		       o.delivery_address,
+		       s.name
+		FROM orders o
+		LEFT JOIN shops s ON o.shop_id = s.id
+		WHERE o.shop_id = ?
 	`, shopID)
 
 	if err != nil {
@@ -221,6 +240,8 @@ func (r *OrderRepository) GetOrdersByShopID(shopID int) ([]models.Order, error) 
 			&order.Quantity,
 			&order.TotalPrice,
 			&order.Status,
+			&order.DeliveryAddress,
+			&order.ShopName,
 		)
 		if err != nil {
 			return nil, err

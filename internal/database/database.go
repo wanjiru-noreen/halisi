@@ -58,7 +58,8 @@ func createTables() {
 		cylinder_size TEXT NOT NULL,
 		quantity INTEGER NOT NULL,
 		total_price REAL NOT NULL,
-		status TEXT NOT NULL
+		status TEXT NOT NULL,
+		delivery_address TEXT NOT NULL DEFAULT ''
 	);
 	`
 
@@ -75,6 +76,37 @@ func createTables() {
 	_, err = DB.Exec(orderTable)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	ensureOrderColumns()
+}
+
+func ensureOrderColumns() {
+	rows, err := DB.Query("PRAGMA table_info(orders)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
+	columns := map[string]bool{}
+	for rows.Next() {
+		var cid int
+		var name string
+		var ctype string
+		var notnull int
+		var dfltValue sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err != nil {
+			log.Fatal(err)
+		}
+		columns[name] = true
+	}
+
+	if !columns["delivery_address"] {
+		_, err := DB.Exec(`ALTER TABLE orders ADD COLUMN delivery_address TEXT NOT NULL DEFAULT ''`)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 

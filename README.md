@@ -107,3 +107,55 @@ Halisi/
 ## Author
 
 Wanjiru Noreen
+
+## Quickstart
+
+Prerequisites:
+
+- Go 1.20+ installed
+- (Optional) `sqlite3` for exploring the database file
+
+Local setup and run:
+
+```bash
+# fetch deps and build
+go build ./...
+
+# run the API server
+go run ./cmd/api
+
+# open http://localhost:8080
+```
+
+Database:
+
+- The project uses `halisi.db` (SQLite). On first run the app will create tables and apply lightweight migrations.
+
+Useful endpoints (after running):
+
+- `GET /` — Landing page
+- `GET /register`, `POST /register` — User registration
+- `GET /login`, `POST /login` — Login
+- `GET /dashboard` — User dashboard (requires auth)
+- `GET /shops` — Browse shops (requires auth)
+- `GET /order` — Order form (requires auth)
+- `POST /order` — Place order (renders confirmation)
+- `GET /orders` — Your orders
+
+Notes / recent UI behavior
+
+- The order form shows a single dropdown to select a shop (the previous tap/grid was removed).
+- After placing an order the server renders a confirmation page that includes a small static roadmap graphic and the delivery address.
+- Price mapping implemented in handlers:
+  - 6kg => KSh 1400
+  - 13kg => KSh 2800
+  - 45kg => KSh 6000
+
+Templates
+
+- Templates are in `web/templates`. Partials (like the navbar) are parsed alongside page templates — if you add new partials, include them in `template.ParseFiles` or use a template `FuncMap` as needed.
+
+Testing
+
+- Build with `go build ./...` and then run the server. Use the browser to exercise the `/order` flow and confirm the confirmation page displays the map and delivery address.
+

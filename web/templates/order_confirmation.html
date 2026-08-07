@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HALISI - Order Confirmed</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    {{template "navbar.html" .}}
+
+    <main class="container">
+      <div class="page-header">
+        <h2>Order Confirmed</h2>
+        <p>Your gas order is on its way. Here are the details:</p>
+      </div>
+
+      <div class="order-card">
+        <div class="order-card-header">
+          <span class="cylinder-badge">📦 {{.CylinderSize}}</span>
+          <span class="status-pill">{{.Status}}</span>
+        </div>
+
+        <div class="order-card-body">
+          <p>
+            <strong>Shop:</strong> {{if .ShopName}}{{.ShopName}}{{else}}Selected
+            shop{{end}}
+          </p>
+          <p><strong>Delivery address:</strong> {{.DeliveryAddress}}</p>
+          <p><strong>Cylinder size:</strong> {{.CylinderSize}}</p>
+          <p><strong>Quantity:</strong> {{.Quantity}}</p>
+          <p>
+            <strong>Total amount:</strong>
+            <span class="price">KSh {{.TotalPrice}}</span>
+          </p>
+        </div>
+
+        <div class="map-card">
+          <h4 class="map-title">Delivery route</h4>
+          <svg
+            class="map-svg"
+            viewBox="0 0 300 120"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <rect
+              x="0"
+              y="0"
+              width="300"
+              height="120"
+              rx="10"
+              fill="#f8fafc"
+              stroke="#e9e9ff"
+            />
+            <path
+              d="M30 90 C110 60, 190 60, 270 30"
+              fill="none"
+              stroke="#7c5dff"
+              stroke-width="3"
+              stroke-dasharray="6 6"
+            />
+            <g transform="translate(30,90)">
+              <circle r="8" fill="#fff" />
+              <circle r="12" fill="#4f46e5" />
+              <text x="20" y="6" font-size="10" fill="#374151">Pickup</text>
+            </g>
+            <g transform="translate(270,30)">
+              <circle r="8" fill="#fff" />
+              <circle r="12" fill="#10b981" />
+              <text x="-60" y="-10" font-size="10" fill="#374151">
+                Destination
+              </text>
+            </g>
+          </svg>
+          <p class="map-dest"><strong>To:</strong> {{.DeliveryAddress}}</p>
+        </div>
+
+        <div class="order-card-footer">
+          <a href="/dashboard" class="btn btn-primary">Return to Dashboard</a>
+          <a href="/orders" class="btn btn-secondary">View All Orders</a>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>© 2026 Halisi. All Rights Reserved.</p>
+    </footer>
+  </body>
+</html>
