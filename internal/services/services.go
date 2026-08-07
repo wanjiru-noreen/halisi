@@ -42,6 +42,7 @@ func (s *UserService) GetAllUsers() ([]models.User, error) {
 func (s *UserService) LoginUser(email, password string) (models.User, error) {
 
 	user, err := s.repo.GetUserByEmail(email)
+
 	if err != nil {
 		return models.User{}, err
 	}
@@ -62,13 +63,14 @@ func (s *UserService) LoginUser(email, password string) (models.User, error) {
 	return user, nil
 }
 
+
 // ---------------- SHOP SERVICE ----------------
 
 type ShopService struct {
-	repo *repository.UserRepository
+	repo *repository.ShopRepository
 }
 
-func NewShopService(repo *repository.UserRepository) *ShopService {
+func NewShopService(repo *repository.ShopRepository) *ShopService {
 	return &ShopService{
 		repo: repo,
 	}

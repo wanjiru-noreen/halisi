@@ -1,0 +1,326 @@
+/* ===========================
+   HOME PAGE ONLY
+   (navbar, buttons, container, footer, and colors
+   come from style.css — this file only covers
+   sections unique to the home page)
+=========================== */
+
+/* Small addition to the shared navbar: a logo mark,
+   since there's no logo image yet. If you add one later,
+   swap this span for an <img> and delete this block. */
+.logo-mark{
+    width:38px;
+    height:38px;
+    border-radius:50%;
+    background:#2E46E6;
+    display:inline-block;
+}
+
+/* ---------- Hero ---------- */
+.hero{
+    position:relative;
+    overflow:hidden;
+    background:linear-gradient(160deg,#2E46E6 0%,#152C73 100%);
+    color:#fff;
+    padding:72px 0 88px;
+}
+
+.hero-decor{
+    position:absolute;
+    top:-120px;
+    right:-60px;
+    width:320px;
+    height:320px;
+    border-radius:50%;
+    background:rgba(255,255,255,.06);
+}
+
+.hero-inner{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:40px;
+}
+
+.hero-content{
+    max-width:520px;
+}
+
+.badge{
+    display:inline-block;
+    background:#FFD84D;
+    color:#4A3600;
+    font-size:.8rem;
+    font-weight:600;
+    padding:6px 14px;
+    border-radius:999px;
+    margin-bottom:24px;
+}
+
+.hero-title{
+    font-size:2.6rem;
+    line-height:1.15;
+    font-weight:700;
+    margin:0 0 16px;
+}
+
+.hero-subtitle{
+    font-size:1.05rem;
+    color:rgba(255,255,255,.85);
+    margin:0 0 32px;
+}
+
+.hero-actions{
+    display:flex;
+    gap:16px;
+}
+
+/* Hero sits on a dark background, so the shared
+   .btn-primary/.btn-secondary need light variants here */
+.hero-btn-light{
+    background:#fff;
+    color:#2E46E6;
+}
+
+.hero-btn-light:hover{
+    background:#fff;
+    color:#2E46E6;
+    box-shadow:0 10px 25px rgba(0,0,0,.2);
+}
+
+.hero-btn-outline{
+    border-color:rgba(255,255,255,.7);
+    color:#fff;
+}
+
+.hero-btn-outline:hover{
+    background:rgba(255,255,255,.12);
+    color:#fff;
+}
+
+.hero-art{
+    position:relative;
+    width:220px;
+    height:220px;
+    flex-shrink:0;
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+}
+
+.cylinder{
+    position:relative;
+    width:90px;
+    height:170px;
+}
+
+.cylinder-body{
+    position:absolute;
+    bottom:12px;
+    left:8px;
+    width:74px;
+    height:110px;
+    background:#6E8CFF;
+    border-radius:10px;
+}
+
+.cylinder-cap{
+    position:absolute;
+    bottom:118px;
+    left:20px;
+    width:50px;
+    height:34px;
+    background:#FFD84D;
+    border-radius:8px 8px 4px 4px;
+}
+
+.cylinder-valve{
+    position:absolute;
+    bottom:150px;
+    left:38px;
+    width:14px;
+    height:14px;
+    background:#7A4A1E;
+    border-radius:50%;
+}
+
+.cylinder-base{
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:90px;
+    height:12px;
+    background:#10235C;
+    border-radius:4px;
+}
+
+.dot{
+    position:absolute;
+    border-radius:50%;
+    background:rgba(255,255,255,.7);
+}
+
+.dot-lg{ width:14px; height:14px; top:40px; right:-6px; }
+.dot-sm{ width:9px; height:9px; bottom:30px; left:-14px; }
+
+/* ---------- Stats ---------- */
+.stats{
+    padding:48px 0;
+}
+
+.stats-inner{
+    display:flex;
+    justify-content:center;
+    gap:96px;
+}
+
+.stat{
+    text-align:center;
+}
+
+.stat-number{
+    display:block;
+    font-size:1.9rem;
+    font-weight:700;
+    color:#2E46E6;
+}
+
+.stat-label{
+    display:block;
+    font-size:.9rem;
+    color:#6b7280;
+    margin-top:4px;
+}
+
+/* ---------- Benefits ---------- */
+.benefits{
+    background:#F7F9FC;
+    padding:8px 0 64px;
+}
+
+.benefits-inner{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:24px;
+}
+
+.benefit-card{
+    background:#fff;
+    border-radius:14px;
+    padding:32px 24px;
+    text-align:center;
+    box-shadow:0 1px 3px rgba(20,20,50,.06);
+    transition:.3s;
+}
+
+.benefit-card:hover{
+    transform:translateY(-4px);
+    box-shadow:0 10px 24px rgba(20,20,50,.08);
+}
+
+.benefit-icon{
+    display:inline-block;
+    width:44px;
+    height:44px;
+    border-radius:12px;
+    margin-bottom:16px;
+}
+
+.icon-blue{ background:#E3EEFC; }
+.icon-gold{ background:#FCF1DA; }
+.icon-green{ background:#DFF3E7; }
+
+.benefit-card h3{
+    margin:0 0 6px;
+    font-size:1.05rem;
+}
+
+.benefit-card p{
+    margin:0;
+    color:#6b7280;
+    font-size:.92rem;
+}
+
+/* ---------- How it works ---------- */
+.how-it-works{
+    padding:56px 0;
+}
+
+.section-eyebrow{
+    text-align:left;
+    font-size:.95rem;
+    font-weight:600;
+    color:#2E46E6;
+    margin:0 0 40px;
+}
+
+.steps{
+    display:flex;
+    justify-content:center;
+    gap:120px;
+}
+
+.step{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:12px;
+}
+
+.step-number{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    background:#2E46E6;
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:600;
+    font-size:.9rem;
+}
+
+.step p{
+    margin:0;
+    font-size:.95rem;
+}
+
+/* ---------- Testimonial ---------- */
+.testimonial{
+    background:#EFECE4;
+    text-align:center;
+    padding:56px 0;
+}
+
+.stars{
+    color:#FFD84D;
+    font-size:1.1rem;
+    margin-bottom:16px;
+}
+
+.quote{
+    max-width:620px;
+    margin:0 auto 16px;
+    font-size:1rem;
+    line-height:1.6;
+    color:#1F2D3D;
+}
+
+.author{
+    margin:0;
+    font-weight:600;
+    font-size:.9rem;
+    color:#6b7280;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width:860px){
+    .hero-inner{ flex-direction:column; text-align:center; }
+    .hero-content{ max-width:100%; }
+    .hero-actions{ justify-content:center; }
+    .stats-inner{ gap:40px; flex-wrap:wrap; }
+    .benefits-inner{ grid-template-columns:1fr; }
+    .steps{ gap:40px; flex-wrap:wrap; }
+}

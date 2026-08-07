@@ -13,8 +13,7 @@ func NewUserRepository() *UserRepository {
 	return &UserRepository{}
 }
 
-// ---------------- USERS ----------------
-
+// Create user
 func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 
 	query := `
@@ -35,6 +34,7 @@ func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 	}
 
 	id, err := result.LastInsertId()
+
 	if err != nil {
 		return models.User{}, err
 	}
@@ -44,6 +44,7 @@ func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 	return user, nil
 }
 
+// Get all users
 func (r *UserRepository) GetUsers() ([]models.User, error) {
 
 	rows, err := database.DB.Query(`
@@ -81,6 +82,7 @@ func (r *UserRepository) GetUsers() ([]models.User, error) {
 	return users, nil
 }
 
+// Get user by email
 func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
 
 	var user models.User
@@ -109,73 +111,4 @@ func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
 	}
 
 	return user, nil
-}
-
-// ---------------- SHOPS ----------------
-
-func (r *UserRepository) GetShops() ([]models.Shop, error) {
-
-	rows, err := database.DB.Query(`
-		SELECT id, name, location, phone, owner_id
-		FROM shops
-	`)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	var shops []models.Shop
-
-	for rows.Next() {
-
-		var shop models.Shop
-
-		err := rows.Scan(
-			&shop.ID,
-			&shop.Name,
-			&shop.Location,
-			&shop.Phone,
-			&shop.OwnerID,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		shops = append(shops, shop)
-	}
-
-	return shops, nil
-}
-
-func (r *UserRepository) GetShopByID(id int) (models.Shop, error) {
-
-	var shop models.Shop
-
-	query := `
-	SELECT id, name, location, phone, owner_id
-	FROM shops
-	WHERE id = ?
-	`
-
-	err := database.DB.QueryRow(query, id).Scan(
-		&shop.ID,
-		&shop.Name,
-		&shop.Location,
-		&shop.Phone,
-		&shop.OwnerID,
-	)
-
-	if err != nil {
-
-		if err == sql.ErrNoRows {
-			return models.Shop{}, nil
-		}
-
-		return models.Shop{}, err
-	}
-
-	return shop, nil
 }
