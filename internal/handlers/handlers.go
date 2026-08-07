@@ -3,6 +3,7 @@ package handlers
 import (
 	"html/template"
 	"net/http"
+	"reflect"
 	"strconv"
 
 	"halisi/internal/middleware"
@@ -129,9 +130,15 @@ func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpl := template.Must(template.ParseFiles("web/templates/shops.html"))
+	data := struct {
+		Shops []models.Shop
+	}{
+		Shops: shops,
+	}
 
-	if err := tmpl.Execute(w, shops); err != nil {
+	tmpl := template.Must(template.ParseFiles("web/templates/navbar.html", "web/templates/shops.html"))
+
+	if err := tmpl.ExecuteTemplate(w, "shops.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -175,9 +182,51 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tmpl := template.Must(template.ParseFiles("web/templates/order.html"))
+		selectedID := 0
+		if shopID := r.URL.Query().Get("shop_id"); shopID != "" {
+			if id, err := strconv.Atoi(shopID); err == nil {
+				selectedID = id
+			}
+		}
 
-		if err := tmpl.Execute(w, shops); err != nil {
+		data := struct {
+			Shops          []models.Shop
+			SelectedShopID int
+		}{
+			Shops:          shops,
+			SelectedShopID: selectedID,
+		}
+
+		// helper to safely read SelectedShopID from the root data without panicking
+		getSelectedShopID := func(root interface{}) int {
+			v := reflect.ValueOf(root)
+			if !v.IsValid() {
+				return 0
+			}
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
+			if v.IsValid() && v.Kind() == reflect.Struct {
+				f := v.FieldByName("SelectedShopID")
+				if f.IsValid() && f.Kind() >= reflect.Int && f.Kind() <= reflect.Int64 {
+					return int(f.Int())
+				}
+			}
+			if v.IsValid() && v.Kind() == reflect.Map {
+				key := reflect.ValueOf("SelectedShopID")
+				val := v.MapIndex(key)
+				if val.IsValid() && val.Kind() >= reflect.Int && val.Kind() <= reflect.Int64 {
+					return int(val.Int())
+				}
+			}
+			return 0
+		}
+
+		funcMap := template.FuncMap{"selectedShopID": getSelectedShopID}
+
+		tmpl := template.Must(template.New("order.html").Funcs(funcMap).ParseFiles("web/templates/navbar.html", "web/templates/order.html"))
+
+		if err := tmpl.ExecuteTemplate(w, "order.html", data); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 
@@ -201,22 +250,46 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		order := models.Order{
-			UserID:       userID,
-			ShopID:       shopID,
-			CylinderSize: r.FormValue("cylinder_size"),
-			Quantity:     quantity,
-			TotalPrice:   float64(quantity) * 1000,
-			Status:       "Pending",
+		cylinderSize := r.FormValue("cylinder_size")
+		price := 0.0
+
+		switch cylinderSize {
+		case "6kg":
+			price = 1400
+		case "13kg":
+			price = 2800
+		case "45kg":
+			price = 6000
+		default:
+			http.Error(w, "Invalid cylinder size", http.StatusBadRequest)
+			return
 		}
 
-		_, err = h.orderService.CreateOrder(order)
+		order := models.Order{
+			UserID:          userID,
+			ShopID:          shopID,
+			CylinderSize:    cylinderSize,
+			Quantity:        quantity,
+			TotalPrice:      price * float64(quantity),
+			Status:          "On its way",
+			DeliveryAddress: r.FormValue("address"),
+		}
+
+		placedOrder, err := h.orderService.CreateOrder(order)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		http.Redirect(w, r, "/orders", http.StatusSeeOther)
+		shop, err := h.shopService.GetShopByID(shopID)
+		if err == nil && shop.ID != 0 {
+			placedOrder.ShopName = shop.Name
+		}
+
+		tmpl := template.Must(template.ParseFiles("web/templates/navbar.html", "web/templates/order_confirmation.html"))
+		if err := tmpl.ExecuteTemplate(w, "order_confirmation.html", placedOrder); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
@@ -239,9 +312,15 @@ func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpl := template.Must(template.ParseFiles("web/templates/orders.html"))
+	data := struct {
+		Orders []models.Order
+	}{
+		Orders: orders,
+	}
 
-	if err := tmpl.Execute(w, orders); err != nil {
+	tmpl := template.Must(template.ParseFiles("web/templates/navbar.html", "web/templates/orders.html"))
+
+	if err := tmpl.ExecuteTemplate(w, "orders.html", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
