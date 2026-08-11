@@ -1,13 +1,3 @@
-/* ===========================
-   HOME PAGE ONLY
-   (navbar, buttons, container, footer, and colors
-   come from style.css — this file only covers
-   sections unique to the home page)
-=========================== */
-
-/* Small addition to the shared navbar: a logo mark,
-   since there's no logo image yet. If you add one later,
-   swap this span for an <img> and delete this block. */
 .logo-mark{
     width:38px;
     height:38px;

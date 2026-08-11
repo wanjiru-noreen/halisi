@@ -3,67 +3,373 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Manage Shop | Halisi</title>
+
     <link rel="stylesheet" href="/static/css/style.css">
+
+    <style>
+        body {
+            margin: 0;
+            background: #f5f4ff;
+            font-family: Arial, sans-serif;
+            color: #222;
+        }
+
+        .shop-page {
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .shop-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-header h1 {
+            margin: 0 0 8px;
+            color: #2E0A9B;
+            font-size: 32px;
+        }
+
+        .page-header p {
+            margin: 0;
+            color: #666;
+        }
+
+        .shop-card {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 25px rgba(46, 10, 155, 0.08);
+            border: 1px solid #e7e5f5;
+        }
+
+        .shop-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 22px;
+        }
+
+        .shop-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        .info-box {
+            background: #f7f6ff;
+            padding: 18px;
+            border-radius: 12px;
+        }
+
+        .info-label {
+            display: block;
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 7px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .active {
+            color: #16803c;
+        }
+
+        .shop-card h2 {
+            margin-top: 0;
+            margin-bottom: 22px;
+            color: #2E0A9B;
+        }
+
+        .price-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .price-box {
+            border: 1px solid #e2e0ef;
+            border-radius: 12px;
+            padding: 20px;
+            background: #fff;
+        }
+
+        .price-box label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .price-box input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 13px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .price-box input:focus {
+            border-color: #2E0A9B;
+            box-shadow: 0 0 0 3px rgba(46, 10, 155, 0.1);
+        }
+
+        .currency {
+            margin-top: 7px;
+            font-size: 12px;
+            color: #777;
+        }
+
+        .update-btn {
+            width: 100%;
+            margin-top: 25px;
+            padding: 14px;
+            border: none;
+            border-radius: 9px;
+            background: #2E0A9B;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .update-btn:hover {
+            background: #24077a;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            display: inline-block;
+            padding: 13px 22px;
+            border-radius: 9px;
+            text-decoration: none;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .orders-btn {
+            background: #2E0A9B;
+            color: white;
+        }
+
+        .orders-btn:hover {
+            background: #24077a;
+        }
+
+        .logout-btn {
+            background: #f1f0f6;
+            color: #333;
+        }
+
+        .logout-btn:hover {
+            background: #e5e3ed;
+        }
+
+        @media (max-width: 800px) {
+            .shop-info,
+            .price-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .action-btn {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="container">
+<div class="shop-page">
 
-    <h1>Manage Shop</h1>
+    <div class="shop-container">
 
-    <h2>{{.Name}}</h2>
-    <p>{{.Location}}</p>
-    <p>{{.Phone}}</p>
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Manage Shop</h1>
+            <p>Manage your shop information and gas prices.</p>
+        </div>
 
-    <form action="/shop/manage" method="POST">
 
-        <label for="price_6kg">
-            6kg Gas Price
-        </label>
+        <!-- Shop Information -->
+        <div class="shop-card">
 
-        <input
-            type="number"
-            id="price_6kg"
-            name="price_6kg"
-            value="{{.Price6kg}}"
-            min="0"
-            step="0.01"
-            required
-        >
+            <div class="shop-name">
+                {{.Name}}
+            </div>
 
-        <label for="price_13kg">
-            13kg Gas Price
-        </label>
+            <div class="shop-info">
 
-        <input
-            type="number"
-            id="price_13kg"
-            name="price_13kg"
-            value="{{.Price13kg}}"
-            min="0"
-            step="0.01"
-            required
-        >
+                <div class="info-box">
+                    <span class="info-label">Location</span>
+                    <span class="info-value">
+                        {{.Location}}
+                    </span>
+                </div>
 
-        <button type="submit" class="btn btn-primary">
-            Update Prices
-        </button>
+                <div class="info-box">
+                    <span class="info-label">Phone</span>
+                    <span class="info-value">
+                        {{.Phone}}
+                    </span>
+                </div>
 
-    </form>
+                <div class="info-box">
+                    <span class="info-label">Shop Status</span>
+                    <span class="info-value active">
+                        Active
+                    </span>
+                </div>
 
-    <br>
+            </div>
 
-    <a href="/shop/orders">
-        View Orders
-    </a>
+        </div>
 
-    <br>
 
-    <a href="/logout">
-        Logout
-    </a>
+        <!-- Gas Prices -->
+        <div class="shop-card">
+
+            <h2>Gas Prices</h2>
+
+            <form action="/shop/manage" method="POST">
+
+                <div class="price-grid">
+
+                    <!-- 6kg -->
+                    <div class="price-box">
+
+                        <label for="price_6kg">
+                            6kg Gas Price
+                        </label>
+
+                        <input
+                            type="number"
+                            id="price_6kg"
+                            name="price_6kg"
+                            value="{{.Price6kg}}"
+                            min="0"
+                            step="0.01"
+                            placeholder="Enter price"
+                            required
+                        >
+
+                        <div class="currency">
+                            Price in KSh
+                        </div>
+
+                    </div>
+
+
+                    <!-- 13kg -->
+                    <div class="price-box">
+
+                        <label for="price_13kg">
+                            13kg Gas Price
+                        </label>
+
+                        <input
+                            type="number"
+                            id="price_13kg"
+                            name="price_13kg"
+                            value="{{.Price13kg}}"
+                            min="0"
+                            step="0.01"
+                            placeholder="Enter price"
+                            required
+                        >
+
+                        <div class="currency">
+                            Price in KSh
+                        </div>
+
+                    </div>
+
+
+                    <!-- 45kg -->
+                    <div class="price-box">
+
+                        <label for="price_45kg">
+                            45kg Gas Price
+                        </label>
+
+                        <input
+                            type="number"
+                            id="price_45kg"
+                            name="price_45kg"
+                            value="{{.Price45kg}}"
+                            min="0"
+                            step="0.01"
+                            placeholder="Enter price"
+                            required
+                        >
+
+                        <div class="currency">
+                            Price in KSh
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="update-btn"
+                >
+                    Update Prices
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <!-- Actions -->
+        <div class="shop-card">
+
+            <h2>Shop Management</h2>
+
+            <div class="actions">
+
+                <a
+                    href="/shop/orders"
+                    class="action-btn orders-btn"
+                >
+                    View Orders
+                </a>
+
+                <a
+                    href="/logout"
+                    class="action-btn logout-btn"
+                >
+                    Logout
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
 
 </div>
 

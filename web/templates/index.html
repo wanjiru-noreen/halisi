@@ -3,45 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>HALISI | Gas Delivery</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+    >
+
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
+
 <header>
     <div class="navbar container">
-        <div class="logo">
-            <div class="logo-circle">
-                <span class="logo-mark">🔥</span>
-            </div>
-            <h1>HALISI</h1>
-        </div>
-        <nav>
-            <a class="active" href="/">Home</a>
-            <a href="/order">Order gas</a>
-            <a href="/shops">Find shop</a>
-            <a href="/orders">Orders</a>
-            <a href="/login">Account</a>
+
+        <a href="/" class="logo">
+            <span class="logo-icon">🔥</span>
+            <span>HALISI</span>
+        </a>
+
+        <nav class="nav-links">
+            <a href="/" class="nav-item active">Home</a>
+            <a href="/login" class="nav-item">Order Gas</a>
+            <a href="/login" class="nav-item">Find Shop</a>
+            <a href="/login" class="nav-item">Orders</a>
+            <a href="/login" class="nav-item">Account</a>
         </nav>
+
     </div>
 </header>
 
 <main>
+
     <section class="hero">
         <div class="container hero-grid">
+
             <div class="hero-copy">
+
                 <span class="badge">Trusted by 120+ homes</span>
-                <h2>Never run out of<br>cooking gas</h2>
-                <p>Fast, safe and reliable gas delivery to your doorstep.</p>
+
+                <h2>
+                    Never run out of<br>
+                    cooking gas
+                </h2>
+
+                <p>
+                    Fast, safe and reliable gas delivery to your doorstep.
+                </p>
+
                 <div class="hero-actions">
-                    <a href="/order" class="btn btn-primary">Order gas</a>
-                    <a href="/shops" class="btn btn-secondary">Find shops</a>
+                    <a href="/login" class="btn btn-primary">Order gas</a>
+                    <a href="/login" class="btn btn-secondary">Find shops</a>
                 </div>
+
             </div>
+
             <div class="hero-visual">
+
                 <div class="hero-decor">
                     <span class="circle-lg"></span>
                     <span class="circle-sm"></span>
@@ -49,114 +77,349 @@
                     <span class="dot dot-2"></span>
                     <span class="dot dot-3"></span>
                 </div>
+
                 <div class="illustration-card">
-                    <div class="bike-card">
-                        <div class="cylinder">HALISI</div>
-                        <div class="rider-head"></div>
-                        <div class="rider-body"></div>
-                        <div class="bike-wheel back-wheel"></div>
-                        <div class="bike-wheel front-wheel"></div>
-                        <div class="bike-frame"></div>
-                        <div class="delivery-box">HALISI</div>
-                    </div>
+                    <img
+                        src="/static/images/gas-delivery-rider.png"
+                        alt="Gas delivery rider transporting a gas cylinder"
+                        class="delivery-rider"
+                    >
                 </div>
+
             </div>
+
         </div>
     </section>
 
     <section class="stats container">
+
         <article class="stat-card">
             <i class="fa-solid fa-users"></i>
             <h3>500+</h3>
             <p>Happy customers</p>
         </article>
+
         <article class="stat-card">
             <i class="fa-solid fa-store"></i>
             <h3>50+</h3>
             <p>Verified shops</p>
         </article>
+
         <article class="stat-card">
             <i class="fa-solid fa-motorcycle"></i>
             <h3>2,000+</h3>
             <p>Gas deliveries</p>
         </article>
+
     </section>
 
     <section class="features container">
+
         <article class="feature-card">
-            <div class="feature-icon feature-blue"><i class="fa-solid fa-truck-fast"></i></div>
+            <div class="feature-icon feature-blue">
+                <i class="fa-solid fa-truck-fast"></i>
+            </div>
             <h3>Fast delivery</h3>
             <p>Get your gas delivered quickly.</p>
         </article>
+
         <article class="feature-card">
-            <div class="feature-icon feature-yellow"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="feature-icon feature-yellow">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
             <h3>Safe and trusted</h3>
             <p>Verified suppliers you can rely on.</p>
         </article>
+
         <article class="feature-card">
-            <div class="feature-icon feature-green"><i class="fa-solid fa-house"></i></div>
+            <div class="feature-icon feature-green">
+                <i class="fa-solid fa-house"></i>
+            </div>
             <h3>Home convenience</h3>
             <p>Order without leaving your house.</p>
         </article>
+
     </section>
 
     <section class="how-it-works container">
+
         <div class="section-heading">
             <h2>How it works</h2>
+            <p>Getting your gas delivered is simple.</p>
         </div>
+
         <div class="steps-row">
+
             <div class="step-card">
+
+                <div class="step-icon">
+                    <i class="fa-solid fa-location-dot"></i>
+                </div>
+
                 <span class="step-number">1</span>
-                <p>Find a nearby shop</p>
+
+                <h3>Find a nearby shop</h3>
+
+                <p>
+                    Choose a verified gas shop near your location.
+                </p>
+
             </div>
+
             <div class="step-card">
+
+                <div class="step-icon">
+                    <i class="fa-solid fa-fire-flame-simple"></i>
+                </div>
+
                 <span class="step-number">2</span>
-                <p>Choose your cylinder</p>
+
+                <h3>Choose your cylinder</h3>
+
+                <p>
+                    Select the gas cylinder size that suits your home.
+                </p>
+
             </div>
+
             <div class="step-card">
+
+                <div class="step-icon">
+                    <i class="fa-solid fa-motorcycle"></i>
+                </div>
+
                 <span class="step-number">3</span>
-                <p>Delivered to your home</p>
+
+                <h3>Delivered to your home</h3>
+
+                <p>
+                    Your gas is safely delivered straight to your doorstep.
+                </p>
+
             </div>
+
         </div>
+
     </section>
 
     <section class="testimonial container">
+
         <div class="testimonial-card">
-            <div class="stars">★★★★★</div>
-            <p>“Halisi delivered my gas in under 30 minutes. The ordering process was simple and the rider was professional.”</p>
+
+            <div class="stars">⭐⭐⭐⭐⭐</div>
+
+            <p>
+                “Halisi delivered my gas in under 30 minutes.
+                The ordering process was simple and the rider was professional.”
+            </p>
+
             <span>Mary W. · Kisumu</span>
+
         </div>
+
     </section>
 
     <section class="nearby-shops container">
+
         <div class="section-heading">
             <h2>Nearby shops</h2>
         </div>
+
         <div class="shop-card">
+
             <div class="shop-details">
+
                 <div class="shop-mark">🔥</div>
+
                 <div>
                     <h3>Blue Flame Gas</h3>
-                    <p class="rating">⭐⭐⭐⭐⭐ (4.9)</p>
-                    <p class="location">📍 Kisumu CBD · Open until 8pm</p>
-                    <p class="tagline">Same day delivery</p>
+
+                    <p class="rating">
+                        ⭐⭐⭐⭐⭐ (4.9)
+                    </p>
+
+                    <p class="location">
+                        📍 Kisumu CBD · Open until 8pm
+                    </p>
+
+                    <p class="tagline">
+                        Same day delivery
+                    </p>
                 </div>
+
             </div>
-            <a href="/shops" class="btn btn-outline">View shop</a>
+
+            <a href="/login" class="btn btn-outline">
+                View shop
+            </a>
+
         </div>
+
     </section>
+
 </main>
 
 <footer>
+
     <div class="container footer-grid">
+
         <div class="footer-links">
             <a href="#">About</a>
             <a href="#">Contact</a>
             <a href="#">Support</a>
             <a href="#">Privacy policy</a>
         </div>
+
         <p>© 2026 Halisi</p>
+
     </div>
+
 </footer>
+
+<style>
+
+.illustration-card {
+    position: relative;
+    width: 560px;
+    max-width: 560px;
+    height: 500px;
+    margin-left: auto;
+    margin-right: -650px;
+    overflow: hidden;
+    border-radius: 32px;
+}
+
+.delivery-rider {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+.how-it-works {
+    padding: 70px 0;
+}
+
+.how-it-works .section-heading {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.how-it-works .section-heading h2 {
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.how-it-works .section-heading p {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.steps-row {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 28px;
+    position: relative;
+}
+
+.step-card {
+    position: relative;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 35px 28px 30px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(30, 45, 90, 0.06);
+    transition: 0.25s ease;
+}
+
+.step-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-hover);
+}
+
+.step-icon {
+    width: 65px;
+    height: 65px;
+    margin: 0 auto 20px;
+    border-radius: 18px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+}
+
+.step-number {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 29px;
+    height: 29px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.step-card h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+.step-card p {
+    color: var(--muted);
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 1200px) {
+
+    .illustration-card {
+        margin-right: -80px;
+    }
+
+}
+
+@media (max-width: 900px) {
+
+    .illustration-card {
+        width: 100%;
+        max-width: 560px;
+        margin: 0 auto;
+    }
+
+}
+
+@media (max-width: 700px) {
+
+    .steps-row {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .step-card {
+        padding: 30px 22px;
+    }
+
+}
+
+@media (max-width: 600px) {
+
+    .illustration-card {
+        height: 380px;
+    }
+
+}
+
+</style>
+
 </body>
 </html>

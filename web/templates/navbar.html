@@ -1,16 +1,21 @@
-<header class="navbar">
-  <div class="nav-container">
-    <a href="/" class="logo">
-      <span class="logo-icon">G</span> HALISI
-    </a>
+{{define "navbar.html"}}
 
-    <nav class="nav-links">
-      <a href="/" class="nav-item">🏠 Home</a>
-      <a href="/order" class="nav-item">🛒 Order gas</a>
-      <a href="/shops" class="nav-item">📍 Find shop</a>
-      <a href="/orders" class="nav-item">📦 Orders</a>
-      <a href="/dashboard" class="nav-item account-btn">👤 Account</a>
-      <a href="/logout" class="nav-item logout-btn">Logout</a>
-    </nav>
-  </div>
+<header>
+    <div class="navbar container">
+        <a href="/dashboard" class="logo">
+            <span class="logo-icon">🔥</span>
+            <span>HALISI</span>
+        </a>
+
+        <nav class="nav-links">
+            <a href="/dashboard" class="nav-item">Home</a>
+            <a href="/order" class="nav-item">Order Gas</a>
+            <a href="/shops" class="nav-item">Find Shop</a>
+            <a href="/orders" class="nav-item">Orders</a>
+            <a href="/dashboard" class="nav-item">Account</a>
+            <a href="/logout" class="nav-item logout-btn">Logout</a>
+        </nav>
+    </div>
 </header>
+
+{{end}}

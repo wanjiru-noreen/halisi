@@ -1,28 +1,128 @@
-<div class="status-tracker">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Page metadata -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <div class="status-step {{if or (eq .Status "Pending") (eq .Status "Accepted") (eq .Status "Preparing") (eq .Status "Out for Delivery") (eq .Status "Delivered")}}active{{end}}">
-        <span>1</span>
-        <p>Pending</p>
+    <title>My Orders | Halisi</title>
+
+    <!-- Main stylesheet -->
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+<!-- Authenticated navigation -->
+{{template "navbar.html" .}}
+
+<!-- Orders page -->
+<main class="container">
+
+    <!-- Page heading -->
+    <div class="page-header">
+        <h2>My Orders</h2>
+        <p>Track your gas orders and delivery progress.</p>
     </div>
 
-    <div class="status-step {{if or (eq .Status "Accepted") (eq .Status "Preparing") (eq .Status "Out for Delivery") (eq .Status "Delivered")}}active{{end}}">
-        <span>2</span>
-        <p>Accepted</p>
-    </div>
+    <!-- Customer orders -->
+    <section class="order-shop-grid">
 
-    <div class="status-step {{if or (eq .Status "Preparing") (eq .Status "Out for Delivery") (eq .Status "Delivered")}}active{{end}}">
-        <span>3</span>
-        <p>Preparing</p>
-    </div>
+        {{range .Orders}}
 
-    <div class="status-step {{if or (eq .Status "Out for Delivery") (eq .Status "Delivered")}}active{{end}}">
-        <span>4</span>
-        <p>Out for Delivery</p>
-    </div>
+        <article class="order-card">
 
-    <div class="status-step {{if eq .Status "Delivered"}}active{{end}}">
-        <span>5</span>
-        <p>Delivered</p>
-    </div>
+            <!-- Order information -->
+            <div class="order-card-header">
+                <div>
+                    <p class="eyebrow">Order #{{.ID}}</p>
+                    <h3>{{.ShopName}}</h3>
+                </div>
 
-</div>
+                <span class="status {{.Status}}">
+                    {{.Status}}
+                </span>
+            </div>
+
+            <!-- Order details -->
+            <div class="order-card-body">
+
+                <p>
+                    <strong>Cylinder:</strong>
+                    {{.CylinderSize}}
+                </p>
+
+                <p>
+                    <strong>Quantity:</strong>
+                    {{.Quantity}}
+                </p>
+
+                <p>
+                    <strong>Total:</strong>
+                    KSh {{.TotalPrice}}
+                </p>
+
+                <p>
+                    <strong>Delivery Address:</strong>
+                    {{.DeliveryAddress}}
+                </p>
+
+            </div>
+
+            <!-- Order actions -->
+            <div class="order-card-footer">
+
+                <a href="/shops" class="btn btn-primary">
+                    Order Again
+                </a>
+
+                {{if eq .Status "Pending"}}
+
+                <form action="/orders/delete" method="POST">
+                    <input
+                        type="hidden"
+                        name="id"
+                        value="{{.ID}}"
+                    >
+
+                    <button
+                        type="submit"
+                        class="btn btn-danger"
+                    >
+                        Delete Order
+                    </button>
+                </form>
+
+                {{end}}
+
+            </div>
+
+        </article>
+
+        {{else}}
+
+        <!-- Empty orders state -->
+        <div class="order-card">
+            <h3>No orders yet</h3>
+            <p class="subtle">
+                You haven't placed any gas orders yet.
+            </p>
+
+            <a href="/shops" class="btn btn-primary">
+                Find a Shop
+            </a>
+        </div>
+
+        {{end}}
+
+    </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>© 2026 Halisi. All Rights Reserved.</p>
+</footer>
+
+</body>
+</html>

@@ -29,7 +29,6 @@ func ConnectDatabase() {
 }
 
 func createTables() {
-
 	userTable := `
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +47,7 @@ func createTables() {
 		phone TEXT NOT NULL,
 		price_6kg REAL NOT NULL DEFAULT 0,
 		price_13kg REAL NOT NULL DEFAULT 0,
+		price_45kg REAL NOT NULL DEFAULT 0,
 		owner_id INTEGER
 	);
 	`
@@ -182,6 +182,17 @@ func ensureShopColumns() {
 		}
 	}
 
+	if !columns["price_45kg"] {
+		_, err := DB.Exec(`
+			ALTER TABLE shops
+			ADD COLUMN price_45kg REAL NOT NULL DEFAULT 0
+		`)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	if !columns["owner_id"] {
 		_, err := DB.Exec(`
 			ALTER TABLE shops
@@ -192,26 +203,27 @@ func ensureShopColumns() {
 			log.Fatal(err)
 		}
 	}
-}
 
-func seedShops() {
-	var count int
-
-	err := DB.QueryRow("SELECT COUNT(*) FROM shops").Scan(&count)
+	// Set default 45kg prices for existing shops
+	// that were created before the 45kg column existed.
+	_, err = DB.Exec(`
+		UPDATE shops
+		SET price_45kg = 12000
+		WHERE price_45kg = 0
+	`)
 	if err != nil {
 		log.Fatal(err)
 	}
+}
 
-	if count > 0 {
-		return
-	}
-
+func seedShops() {
 	shops := []struct {
 		name     string
 		location string
 		phone    string
 		price6   float64
 		price13  float64
+		price45  float64
 	}{
 		{
 			"Shell Gas",
@@ -219,6 +231,7 @@ func seedShops() {
 			"0712345678",
 			1400,
 			2800,
+			12000,
 		},
 		{
 			"Rubis Gas",
@@ -226,6 +239,7 @@ func seedShops() {
 			"0723456789",
 			1450,
 			2900,
+			12000,
 		},
 		{
 			"TotalEnergies",
@@ -233,24 +247,42 @@ func seedShops() {
 			"0734567890",
 			1500,
 			3000,
+			12000,
 		},
 	}
 
 	for _, shop := range shops {
-		_, err := DB.Exec(
+		var count int
+
+		err := DB.QueryRow(
+			"SELECT COUNT(*) FROM shops WHERE name = ?",
+			shop.name,
+		).Scan(&count)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if count > 0 {
+			continue
+		}
+
+		_, err = DB.Exec(
 			`INSERT INTO shops (
 				name,
 				location,
 				phone,
 				price_6kg,
-				price_13kg
+				price_13kg,
+				price_45kg
 			)
-			VALUES (?, ?, ?, ?, ?)`,
+			VALUES (?, ?, ?, ?, ?, ?)`,
 			shop.name,
 			shop.location,
 			shop.phone,
 			shop.price6,
 			shop.price13,
+			shop.price45,
 		)
 
 		if err != nil {

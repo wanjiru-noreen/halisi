@@ -3,131 +3,661 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Dashboard | Halisi</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
     <link rel="stylesheet" href="/static/css/style.css">
+
+    <style>
+        .dashboard-main {
+            padding-bottom: 60px;
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            background: #2E0A9B;
+            color: white;
+            padding: 80px 0;
+        }
+
+        .hero::before {
+            content: "";
+            position: absolute;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.06);
+            right: -120px;
+            top: -160px;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            right: 180px;
+            bottom: -130px;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 700px;
+        }
+
+        .hero-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 30px;
+            background: #FFD84D;
+            color: #2E0A9B;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: clamp(42px, 6vw, 68px);
+            line-height: 1.05;
+            font-weight: 800;
+        }
+
+        .hero p {
+            max-width: 560px;
+            margin: 22px 0 30px;
+            color: #eeeaff;
+            font-size: 17px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .hero-actions .btn-primary {
+            background: white;
+            color: #2E0A9B;
+        }
+
+        .hero-actions .btn-outline {
+            border-color: white;
+            color: white;
+        }
+
+        .hero-illustration {
+            position: absolute;
+            right: 90px;
+            bottom: 10px;
+            z-index: 2;
+        }
+
+        .floating-dot {
+            position: absolute;
+            border-radius: 50%;
+        }
+
+        .dot-1 {
+            width: 14px;
+            height: 14px;
+            right: -40px;
+            top: 60px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        .dot-2 {
+            width: 90px;
+            height: 90px;
+            right: -60px;
+            top: -60px;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .stats-section {
+            background: white;
+            padding: 35px 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .stat {
+            text-align: center;
+            padding: 10px 25px;
+            border-right: 1px solid #eceaf5;
+        }
+
+        .stat:last-child {
+            border-right: none;
+        }
+
+        .stat strong {
+            display: block;
+            color: #2E0A9B;
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+        .stat span {
+            color: #777;
+            font-size: 14px;
+        }
+
+        .features-section {
+            background: #f7f6ff;
+            padding: 65px 0;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+
+        .feature-card {
+            padding: 30px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(46, 10, 155, 0.07);
+        }
+
+        .feature-icon {
+            width: 58px;
+            height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            background: #eeeaff;
+            font-size: 27px;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            margin: 0 0 8px;
+        }
+
+        .feature-card p {
+            margin: 0;
+            color: #777;
+        }
+
+        .how-section {
+            padding: 70px 0;
+            background: white;
+        }
+
+        .how-section h2 {
+            margin-bottom: 40px;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            align-items: start;
+        }
+
+        .step {
+            position: relative;
+            text-align: center;
+            padding: 0 25px;
+        }
+
+        .step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 24px;
+            left: 65%;
+            width: 70%;
+            border-top: 2px dashed #d8d3ee;
+        }
+
+        .step-number {
+            position: relative;
+            z-index: 2;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            border-radius: 50%;
+            background: #2E0A9B;
+            color: white;
+            font-weight: 700;
+        }
+
+        .step h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .testimonial-section {
+            padding: 0 0 70px;
+            background: white;
+        }
+
+        .testimonial {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 45px 35px;
+            text-align: center;
+            border-radius: 24px;
+            background: #fff8df;
+        }
+
+        .stars {
+            color: #f2b800;
+            font-size: 22px;
+            letter-spacing: 3px;
+            margin-bottom: 18px;
+        }
+
+        .testimonial blockquote {
+            margin: 0 auto 18px;
+            max-width: 650px;
+            color: #333;
+            font-size: 17px;
+            line-height: 1.7;
+        }
+
+        .testimonial cite {
+            color: #666;
+            font-style: normal;
+            font-size: 14px;
+        }
+
+        .shops-section {
+            padding: 70px 0;
+            background: #f7f6ff;
+            text-align: center;
+        }
+
+        .shops-section h2 {
+            margin-bottom: 8px;
+        }
+
+        .shops-intro {
+            margin: 0 auto 28px;
+            color: #777;
+        }
+
+        .shop-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 25px;
+            padding: 25px;
+            background: white;
+            border: 1px solid #eceaf5;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.04);
+            max-width: 850px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .shop-details {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .shop-icon {
+            width: 58px;
+            height: 58px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border-radius: 16px;
+            background: #2E0A9B;
+            color: white;
+            font-size: 25px;
+        }
+
+        .shop-details h3 {
+            margin: 0 0 7px;
+        }
+
+        .shop-rating {
+            margin-bottom: 5px;
+            color: #f2b800;
+            font-size: 14px;
+        }
+
+        .shop-rating span {
+            color: #777;
+            margin-left: 5px;
+        }
+
+        .shop-location {
+            margin: 0 0 5px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .shop-open {
+            color: #16834d;
+            font-weight: 600;
+        }
+
+        .shop-delivery {
+            margin: 0;
+            color: #777;
+            font-size: 14px;
+        }
+
+        .shop-card .btn-outline {
+            flex-shrink: 0;
+        }
+
+        .closing-cta {
+            padding: 70px 0;
+            background: white;
+        }
+
+        .cta-inner {
+            padding: 50px 30px;
+            text-align: center;
+            border-radius: 24px;
+            background: #2E0A9B;
+            color: white;
+        }
+
+        .cta-inner h2 {
+            margin: 0 0 8px;
+            font-size: 32px;
+        }
+
+        .cta-inner p {
+            margin: 0 0 25px;
+            color: #eeeaff;
+        }
+
+        .cta-inner .btn-primary {
+            background: white;
+            color: #2E0A9B;
+        }
+
+        @media (max-width: 800px) {
+            .hero {
+                padding: 60px 0;
+            }
+
+            .hero-illustration {
+                display: none;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .stat {
+                border-right: none;
+                border-bottom: 1px solid #eceaf5;
+                padding-bottom: 20px;
+            }
+
+            .stat:last-child {
+                border-bottom: none;
+            }
+
+            .steps {
+                grid-template-columns: 1fr;
+                gap: 35px;
+            }
+
+            .step:not(:last-child)::after {
+                display: none;
+            }
+
+            .shop-card {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .hero h1 {
+                font-size: 42px;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .hero-actions .btn {
+                width: 100%;
+                text-align: center;
+                box-sizing: border-box;
+            }
+
+            .shop-card .btn {
+                width: 100%;
+                text-align: center;
+                box-sizing: border-box;
+            }
+
+            .testimonial {
+                padding: 35px 20px;
+            }
+
+            .cta-inner {
+                padding: 40px 20px;
+            }
+        }
+    </style>
 </head>
+
 <body>
-<header class="navbar container">
-    <div class="logo">
-        <div class="logo-circle"><span class="logo-mark">🔥</span></div>
-        <h1>HALISI</h1>
-    </div>
-    <nav>
-        <a class="active" href="/dashboard">Home</a>
-        <a href="/shops">Find Shop</a>
-        <a href="/order">Order Gas</a>
-        <a href="/orders">My Orders</a>
-        <a href="/logout">Logout</a>
-    </nav>
-</header>
 
-<main class="dashboard-main container">
-    <section class="welcome-section">
-        <div class="welcome-card">
-            <div>
-                <p class="eyebrow">Welcome back</p>
-                <h2>Ready to order gas today?</h2>
-                <p>Fast, safe and reliable delivery right to your doorstep.</p>
-            </div>
-            <div class="welcome-actions">
-                <a href="/order" class="btn btn-primary">Order Gas</a>
-                <a href="/shops" class="btn btn-secondary">Find Shop</a>
-            </div>
-        </div>
-    </section>
+{{template "navbar.html" .}}
 
-    <section class="quick-actions">
-        <div class="section-heading">
-            <h2>Quick actions</h2>
-        </div>
-        <div class="action-grid">
-            <a href="/order" class="action-card">
-                <div class="action-icon">🛒</div>
-                <h3>Order Gas</h3>
-                <p>Place a new order quickly.</p>
-            </a>
-            <a href="/shops" class="action-card">
-                <div class="action-icon">📍</div>
-                <h3>Find Shops</h3>
-                <p>Browse trusted gas suppliers.</p>
-            </a>
-            <a href="/orders" class="action-card">
-                <div class="action-icon">📦</div>
-                <h3>My Orders</h3>
-                <p>Track all your deliveries.</p>
-            </a>
-        </div>
-    </section>
+<main class="dashboard-main">
 
-    <section class="recent-orders">
-        <div class="section-heading">
-            <h2>Recent orders</h2>
-        </div>
-        <div class="order-card">
-            <div>
-                <p class="eyebrow">Latest</p>
-                <h3>13kg Cylinder</h3>
-                <p class="subtle">Blue Flame Gas</p>
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <span class="hero-badge">Trusted by 120+ homes</span>
+
+                <h1>Never run out of<br>cooking gas</h1>
+
+                <p>
+                    Fast, safe and reliable gas delivery to your doorstep.
+                </p>
+
+                <div class="hero-actions">
+                    <a href="/order" class="btn btn-primary">Order gas</a>
+                    <a href="/shops" class="btn btn-outline">Find shops</a>
+                </div>
             </div>
-            <div class="order-meta">
-                <span class="status pending">Pending</span>
-                <a href="/orders" class="btn btn-primary">Track Order</a>
+
+            <div class="hero-illustration">
+                <svg width="160" height="200" viewBox="0 0 160 200" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="30" y="60" width="100" height="120" rx="16" fill="#4C8DFF"/>
+                    <rect x="45" y="42" width="70" height="26" rx="8" fill="#3B7AE0"/>
+                    <rect x="55" y="24" width="50" height="22" rx="6" fill="#2E63C2"/>
+                    <path d="M80 0c10 18 24 26 15 44-5 9-25 9-30 0-9-18 5-26 15-44Z" fill="#FFB020"/>
+                    <path d="M80 14c5 9 10 13 5 22-3 4-12 4-15 0-5-9 5-13 10-22Z" fill="#FF8A00"/>
+                </svg>
+                <span class="floating-dot dot-1"></span>
+                <span class="floating-dot dot-2"></span>
             </div>
         </div>
     </section>
 
-    <section class="recommended-shops">
-        <div class="section-heading">
-            <h2>Recommended shops</h2>
-        </div>
-        <div class="shop-grid">
-            <article class="shop-card">
-                <div>
-                    <h3>Blue Flame Gas</h3>
-                    <p class="rating">⭐⭐⭐⭐⭐</p>
-                    <p class="subtle">📍 Kisumu CBD</p>
+    <section class="stats-section">
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat">
+                    <strong>500+</strong>
+                    <span>Happy customers</span>
                 </div>
-                <div class="shop-footer">
-                    <span class="open">Open</span>
-                    <a href="/shops" class="btn btn-primary">View Shop</a>
+
+                <div class="stat">
+                    <strong>50+</strong>
+                    <span>Verified shops</span>
                 </div>
-            </article>
-            <article class="shop-card">
-                <div>
-                    <h3>ProGas</h3>
-                    <p class="rating">⭐⭐⭐⭐☆</p>
-                    <p class="subtle">📍 Milimani</p>
+
+                <div class="stat">
+                    <strong>2,000+</strong>
+                    <span>Gas deliveries</span>
                 </div>
-                <div class="shop-footer">
-                    <span class="open">Open</span>
-                    <a href="/shops" class="btn btn-primary">View Shop</a>
-                </div>
-            </article>
+            </div>
         </div>
     </section>
 
-    <section class="cta-card">
-        <div>
-            <h2>Need gas today?</h2>
-            <p>Order in less than two minutes and get it delivered to your home.</p>
+    <section class="features-section">
+        <div class="container">
+            <div class="features-grid">
+
+                <div class="feature-card">
+                    <div class="feature-icon">🚚</div>
+                    <h3>Fast delivery</h3>
+                    <p>Get your gas delivered quickly.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>Safe and trusted</h3>
+                    <p>Verified suppliers you can rely on.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🏠</div>
+                    <h3>Home convenience</h3>
+                    <p>Order without leaving your house.</p>
+                </div>
+
+            </div>
         </div>
-        <a href="/order" class="btn btn-primary">Order Now</a>
     </section>
+
+    <section class="how-section">
+        <div class="container">
+            <h2>How it works</h2>
+
+            <div class="steps">
+
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Find a nearby shop</h3>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Choose your cylinder</h3>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Delivered to your home</h3>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <section class="testimonial-section">
+        <div class="container">
+            <div class="testimonial">
+                <div class="stars">★★★★★</div>
+
+                <blockquote>
+                    "Halisi delivered my gas in under 30 minutes. The ordering
+                    process was simple and the rider was professional."
+                </blockquote>
+
+                <cite>Mary W. · Kisumu</cite>
+            </div>
+        </div>
+    </section>
+
+    <section class="shops-section">
+        <div class="container">
+            <h2>Nearby shops</h2>
+
+            <p class="shops-intro">
+                Choose a shop below to place your order quickly and safely.
+            </p>
+
+            <div class="shop-card">
+                <div class="shop-details">
+                    <div class="shop-icon">🔥</div>
+
+                    <div>
+                        <h3>Blue Flame gas</h3>
+
+                        <div class="shop-rating">
+                            ★★★★★ <span>(4.9)</span>
+                        </div>
+
+                        <p class="shop-location">
+                            Kisumu CBD ·
+                            <span class="shop-open">Open until 8pm</span>
+                        </p>
+
+                        <p class="shop-delivery">Same-day delivery</p>
+                    </div>
+                </div>
+
+                <a href="/shops" class="btn btn-outline">View shop</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="closing-cta">
+        <div class="container">
+            <div class="cta-inner">
+                <h2>Ready to order?</h2>
+
+                <p>
+                    Never run out of cooking gas again.
+                </p>
+
+                <a href="/order" class="btn btn-primary">Order gas</a>
+            </div>
+        </div>
+    </section>
+
 </main>
 
 <footer>
-    <div class="container footer-grid">
-        <div class="footer-links">
-            <a href="#">About</a>
-            <a href="#">Contact</a>
-            <a href="#">Support</a>
-            <a href="#">Privacy policy</a>
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Contact</a>
+                <a href="#">Support</a>
+                <a href="#">Privacy policy</a>
+            </div>
+
+            <p>© 2026 Halisi</p>
         </div>
-        <p>© 2026 Halisi. All Rights Reserved.</p>
     </div>
 </footer>
+
 </body>
 </html>

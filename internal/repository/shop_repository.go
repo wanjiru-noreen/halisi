@@ -22,15 +22,17 @@ func (r *ShopRepository) CreateShop(shop models.Shop) (models.Shop, error) {
 			phone,
 			price_6kg,
 			price_13kg,
+			price_45kg,
 			owner_id
 		)
-		VALUES (?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`,
 		shop.Name,
 		shop.Location,
 		shop.Phone,
 		shop.Price6kg,
 		shop.Price13kg,
+		shop.Price45kg,
 		shop.OwnerID,
 	)
 
@@ -53,14 +55,19 @@ func (r *ShopRepository) UpdateShopPrices(
 	id int,
 	price6kg float64,
 	price13kg float64,
+	price45kg float64,
 ) error {
 	_, err := database.DB.Exec(`
 		UPDATE shops
-		SET price_6kg = ?, price_13kg = ?
+		SET
+			price_6kg = ?,
+			price_13kg = ?,
+			price_45kg = ?
 		WHERE id = ?
 	`,
 		price6kg,
 		price13kg,
+		price45kg,
 		id,
 	)
 
@@ -77,6 +84,7 @@ func (r *ShopRepository) GetShops() ([]models.Shop, error) {
 			phone,
 			price_6kg,
 			price_13kg,
+			price_45kg,
 			owner_id
 		FROM shops
 	`)
@@ -99,6 +107,7 @@ func (r *ShopRepository) GetShops() ([]models.Shop, error) {
 			&shop.Phone,
 			&shop.Price6kg,
 			&shop.Price13kg,
+			&shop.Price45kg,
 			&shop.OwnerID,
 		)
 
@@ -107,6 +116,10 @@ func (r *ShopRepository) GetShops() ([]models.Shop, error) {
 		}
 
 		shops = append(shops, shop)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return shops, nil
@@ -124,6 +137,7 @@ func (r *ShopRepository) GetShopByID(id int) (models.Shop, error) {
 			phone,
 			price_6kg,
 			price_13kg,
+			price_45kg,
 			owner_id
 		FROM shops
 		WHERE id = ?
@@ -136,6 +150,7 @@ func (r *ShopRepository) GetShopByID(id int) (models.Shop, error) {
 		&shop.Phone,
 		&shop.Price6kg,
 		&shop.Price13kg,
+		&shop.Price45kg,
 		&shop.OwnerID,
 	)
 
@@ -162,6 +177,7 @@ func (r *ShopRepository) GetShopByOwnerID(ownerID int) (models.Shop, error) {
 			phone,
 			price_6kg,
 			price_13kg,
+			price_45kg,
 			owner_id
 		FROM shops
 		WHERE owner_id = ?
@@ -174,6 +190,7 @@ func (r *ShopRepository) GetShopByOwnerID(ownerID int) (models.Shop, error) {
 		&shop.Phone,
 		&shop.Price6kg,
 		&shop.Price13kg,
+		&shop.Price45kg,
 		&shop.OwnerID,
 	)
 

@@ -24,7 +24,6 @@ func (s *UserService) RegisterUser(user models.User) (models.User, error) {
 		[]byte(user.Password),
 		bcrypt.DefaultCost,
 	)
-
 	if err != nil {
 		return models.User{}, err
 	}
@@ -40,7 +39,6 @@ func (s *UserService) GetAllUsers() ([]models.User, error) {
 
 func (s *UserService) LoginUser(email, password string) (models.User, error) {
 	user, err := s.repo.GetUserByEmail(email)
-
 	if err != nil {
 		return models.User{}, err
 	}
@@ -93,6 +91,12 @@ func (s *ShopService) UpdateShopPrices(
 	id int,
 	price6kg float64,
 	price13kg float64,
+	price45kg float64,
 ) error {
-	return s.repo.UpdateShopPrices(id, price6kg, price13kg)
+	return s.repo.UpdateShopPrices(
+		id,
+		price6kg,
+		price13kg,
+		price45kg,
+	)
 }
