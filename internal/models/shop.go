@@ -7,5 +7,6 @@ type Shop struct {
 	Phone     string  `json:"phone"`
 	Price6kg  float64 `json:"price_6kg"`
 	Price13kg float64 `json:"price_13kg"`
+	Price45kg float64 `json:"price_45kg"`
 	OwnerID   *int    `json:"owner_id"`
 }

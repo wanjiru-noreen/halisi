@@ -1,9 +1,9 @@
 package handlers
 
 import (
+	"bytes"
 	"html/template"
 	"net/http"
-	"reflect"
 	"strconv"
 
 	"halisi/internal/middleware"
@@ -29,57 +29,100 @@ func NewHandler(
 	}
 }
 
-// Home page
-func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("web/templates/index.html"))
-
-	if err := tmpl.Execute(w, nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+func renderTemplate(w http.ResponseWriter, templateName string, data interface{}, files ...string) {
+	tmpl, err := template.ParseFiles(files...)
+	if err != nil {
+		http.Error(w, "Failed to load page: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	var buf bytes.Buffer
+
+	if err := tmpl.ExecuteTemplate(&buf, templateName, data); err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(buf.Bytes())
 }
 
-// Register page
+func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(
+		w,
+		"index.html",
+		nil,
+		"web/templates/index.html",
+	)
+}
+
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
-
 	switch r.Method {
-
 	case http.MethodGet:
-		tmpl := template.Must(template.ParseFiles("web/templates/register.html"))
-		tmpl.Execute(w, nil)
+		renderTemplate(
+			w,
+			"register.html",
+			nil,
+			"web/templates/register.html",
+		)
 
 	case http.MethodPost:
+		role := r.FormValue("role")
+
+		if role != "customer" && role != "owner" {
+			http.Error(w, "Invalid account type", http.StatusBadRequest)
+			return
+		}
 
 		user := models.User{
 			Name:     r.FormValue("name"),
 			Email:    r.FormValue("email"),
 			Password: r.FormValue("password"),
-			Role:     "customer",
+			Role:     role,
 		}
 
-		_, err := h.userService.RegisterUser(user)
+		registeredUser, err := h.userService.RegisterUser(user)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		if role == "owner" {
+			ownerID := registeredUser.ID
+
+			shop := models.Shop{
+				Name:     r.FormValue("shop_name"),
+				Location: r.FormValue("location"),
+				Phone:    r.FormValue("phone"),
+				OwnerID:  &ownerID,
+			}
+
+			_, err := h.shopService.CreateShop(shop)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
+
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// Login page
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
-
 	switch r.Method {
-
 	case http.MethodGet:
-		tmpl := template.Must(template.ParseFiles("web/templates/login.html"))
-		tmpl.Execute(w, nil)
+		renderTemplate(
+			w,
+			"login.html",
+			nil,
+			"web/templates/login.html",
+		)
 
 	case http.MethodPost:
-
 		email := r.FormValue("email")
 		password := r.FormValue("password")
 
@@ -103,27 +146,38 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		session.Values["user_id"] = user.ID
 		session.Values["role"] = user.Role
 
-		err = session.Save(r, w)
-		if err != nil {
+		if err := session.Save(r, w); err != nil {
 			http.Error(w, "Failed to save session", http.StatusInternalServerError)
 			return
 		}
 
-		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		switch user.Role {
+		case "owner":
+			http.Redirect(w, r, "/shop/orders", http.StatusSeeOther)
+
+		case "admin":
+			http.Redirect(w, r, "/admin", http.StatusSeeOther)
+
+		default:
+			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		}
+
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// Dashboard page
 func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
-	tmpl := template.Must(template.ParseFiles("web/templates/dashboard.html"))
-	tmpl.Execute(w, nil)
+	renderTemplate(
+		w,
+		"dashboard.html",
+		nil,
+		"web/templates/navbar.html",
+		"web/templates/dashboard.html",
+	)
 }
 
-// Shops page
 func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
-
 	shops, err := h.shopService.GetShops()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -136,16 +190,16 @@ func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
 		Shops: shops,
 	}
 
-	tmpl := template.Must(template.ParseFiles("web/templates/navbar.html", "web/templates/shops.html"))
-
-	if err := tmpl.ExecuteTemplate(w, "shops.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	renderTemplate(
+		w,
+		"shops.html",
+		data,
+		"web/templates/navbar.html",
+		"web/templates/shops.html",
+	)
 }
 
-// Shop page
 func (h *Handler) Shop(w http.ResponseWriter, r *http.Request) {
-
 	id, err := strconv.Atoi(r.URL.Query().Get("id"))
 	if err != nil {
 		http.Error(w, "Invalid shop ID", http.StatusBadRequest)
@@ -163,19 +217,18 @@ func (h *Handler) Shop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmpl := template.Must(template.ParseFiles("web/templates/shop.html"))
-
-	if err := tmpl.Execute(w, shop); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	renderTemplate(
+		w,
+		"shop.html",
+		shop,
+		"web/templates/navbar.html",
+		"web/templates/shop.html",
+	)
 }
 
 func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
-
 	switch r.Method {
-
 	case http.MethodGet:
-
 		shops, err := h.shopService.GetShops()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -183,6 +236,7 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 		}
 
 		selectedID := 0
+
 		if shopID := r.URL.Query().Get("shop_id"); shopID != "" {
 			if id, err := strconv.Atoi(shopID); err == nil {
 				selectedID = id
@@ -197,41 +251,15 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 			SelectedShopID: selectedID,
 		}
 
-		// helper to safely read SelectedShopID from the root data without panicking
-		getSelectedShopID := func(root interface{}) int {
-			v := reflect.ValueOf(root)
-			if !v.IsValid() {
-				return 0
-			}
-			if v.Kind() == reflect.Ptr {
-				v = v.Elem()
-			}
-			if v.IsValid() && v.Kind() == reflect.Struct {
-				f := v.FieldByName("SelectedShopID")
-				if f.IsValid() && f.Kind() >= reflect.Int && f.Kind() <= reflect.Int64 {
-					return int(f.Int())
-				}
-			}
-			if v.IsValid() && v.Kind() == reflect.Map {
-				key := reflect.ValueOf("SelectedShopID")
-				val := v.MapIndex(key)
-				if val.IsValid() && val.Kind() >= reflect.Int && val.Kind() <= reflect.Int64 {
-					return int(val.Int())
-				}
-			}
-			return 0
-		}
-
-		funcMap := template.FuncMap{"selectedShopID": getSelectedShopID}
-
-		tmpl := template.Must(template.New("order.html").Funcs(funcMap).ParseFiles("web/templates/navbar.html", "web/templates/order.html"))
-
-		if err := tmpl.ExecuteTemplate(w, "order.html", data); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		renderTemplate(
+			w,
+			"order.html",
+			data,
+			"web/templates/navbar.html",
+			"web/templates/order.html",
+		)
 
 	case http.MethodPost:
-
 		userID, ok := middleware.GetCurrentUserID(r)
 		if !ok {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -244,24 +272,44 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		quantity, err := strconv.Atoi(r.FormValue("quantity"))
+		shop, err := h.shopService.GetShopByID(shopID)
 		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if shop.ID == 0 {
+			http.Error(w, "Shop not found", http.StatusNotFound)
+			return
+		}
+
+		quantity, err := strconv.Atoi(r.FormValue("quantity"))
+		if err != nil || quantity <= 0 {
 			http.Error(w, "Invalid quantity", http.StatusBadRequest)
 			return
 		}
 
 		cylinderSize := r.FormValue("cylinder_size")
-		price := 0.0
+
+		var price float64
 
 		switch cylinderSize {
 		case "6kg":
-			price = 1400
+			price = shop.Price6kg
+
 		case "13kg":
-			price = 2800
+			price = shop.Price13kg
+
 		case "45kg":
-			price = 6000
+			price = shop.Price45kg
+
 		default:
 			http.Error(w, "Invalid cylinder size", http.StatusBadRequest)
+			return
+		}
+
+		if price <= 0 {
+			http.Error(w, "Selected gas size is currently unavailable", http.StatusBadRequest)
 			return
 		}
 
@@ -271,34 +319,24 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 			CylinderSize:    cylinderSize,
 			Quantity:        quantity,
 			TotalPrice:      price * float64(quantity),
-			Status:          "On its way",
+			Status:          "Pending",
 			DeliveryAddress: r.FormValue("address"),
+			ShopName:        shop.Name,
 		}
 
-		placedOrder, err := h.orderService.CreateOrder(order)
-		if err != nil {
+		if _, err = h.orderService.CreateOrder(order); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		shop, err := h.shopService.GetShopByID(shopID)
-		if err == nil && shop.ID != 0 {
-			placedOrder.ShopName = shop.Name
-		}
-
-		tmpl := template.Must(template.ParseFiles("web/templates/navbar.html", "web/templates/order_confirmation.html"))
-		if err := tmpl.ExecuteTemplate(w, "order_confirmation.html", placedOrder); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+		http.Redirect(w, r, "/orders", http.StatusSeeOther)
 
 	default:
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
-// Orders page
 func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
-
 	userID, ok := middleware.GetCurrentUserID(r)
 	if !ok {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -306,7 +344,6 @@ func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	orders, err := h.orderService.GetOrdersByUserID(userID)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -318,15 +355,16 @@ func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
 		Orders: orders,
 	}
 
-	tmpl := template.Must(template.ParseFiles("web/templates/navbar.html", "web/templates/orders.html"))
-
-	if err := tmpl.ExecuteTemplate(w, "orders.html", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	renderTemplate(
+		w,
+		"orders.html",
+		data,
+		"web/templates/navbar.html",
+		"web/templates/orders.html",
+	)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-
 	session, err := middleware.Store.Get(r, "halisi-session")
 	if err != nil {
 		http.Error(w, "Failed to get session", http.StatusInternalServerError)
@@ -335,8 +373,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 
 	session.Options.MaxAge = -1
 
-	err = session.Save(r, w)
-	if err != nil {
+	if err := session.Save(r, w); err != nil {
 		http.Error(w, "Failed to logout", http.StatusInternalServerError)
 		return
 	}
@@ -345,55 +382,178 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ownerID, ok := middleware.GetCurrentUserID(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
 	id, err := strconv.Atoi(r.FormValue("id"))
 	if err != nil {
 		http.Error(w, "Invalid order ID", http.StatusBadRequest)
+		return
+	}
+
+	order, err := h.orderService.GetOrderByID(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if order.ID == 0 {
+		http.Error(w, "Order not found", http.StatusNotFound)
+		return
+	}
+
+	shop, err := h.shopService.GetShopByOwnerID(ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if shop.ID == 0 || order.ShopID != shop.ID {
+		http.Error(
+			w,
+			"You are not authorized to update this order",
+			http.StatusForbidden,
+		)
 		return
 	}
 
 	status := r.FormValue("status")
+	if status == "" {
+		http.Error(w, "Invalid order status", http.StatusBadRequest)
+		return
+	}
 
-	err = h.orderService.UpdateOrderStatus(id, status)
-	if err != nil {
+	if err := h.orderService.UpdateOrderStatus(id, status); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	http.Redirect(w, r, "/orders", http.StatusSeeOther)
+	http.Redirect(w, r, "/shop/orders", http.StatusSeeOther)
 }
 
 func (h *Handler) ShopOrders(w http.ResponseWriter, r *http.Request) {
-
-	shopID, err := strconv.Atoi(r.URL.Query().Get("shop_id"))
-	if err != nil {
-		http.Error(w, "Invalid shop ID", http.StatusBadRequest)
+	ownerID, ok := middleware.GetCurrentUserID(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
-	orders, err := h.orderService.GetOrdersByShopID(shopID)
+	shop, err := h.shopService.GetShopByOwnerID(ownerID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	tmpl := template.Must(template.ParseFiles("web/templates/shop_orders.html"))
+	if shop.ID == 0 {
+		http.Error(w, "No shop found for this owner", http.StatusNotFound)
+		return
+	}
 
-	err = tmpl.Execute(w, orders)
+	orders, err := h.orderService.GetOrdersByShopID(shop.ID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		Shop   models.Shop
+		Orders []models.Order
+	}{
+		Shop:   shop,
+		Orders: orders,
+	}
+
+	renderTemplate(
+		w,
+		"shop_orders.html",
+		data,
+		"web/templates/navbar.html",
+		"web/templates/shop_orders.html",
+	)
+}
+
+func (h *Handler) ManageShop(w http.ResponseWriter, r *http.Request) {
+	ownerID, ok := middleware.GetCurrentUserID(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	shop, err := h.shopService.GetShopByOwnerID(ownerID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if shop.ID == 0 {
+		http.Error(w, "No shop found for this owner", http.StatusNotFound)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		renderTemplate(
+			w,
+			"shop_manage.html",
+			shop,
+			"web/templates/shop_manage.html",
+		)
+
+	case http.MethodPost:
+		price6kg, err := strconv.ParseFloat(r.FormValue("price_6kg"), 64)
+		if err != nil || price6kg < 0 {
+			http.Error(w, "Invalid 6kg price", http.StatusBadRequest)
+			return
+		}
+
+		price13kg, err := strconv.ParseFloat(r.FormValue("price_13kg"), 64)
+		if err != nil || price13kg < 0 {
+			http.Error(w, "Invalid 13kg price", http.StatusBadRequest)
+			return
+		}
+
+		price45kg, err := strconv.ParseFloat(r.FormValue("price_45kg"), 64)
+		if err != nil || price45kg < 0 {
+			http.Error(w, "Invalid 45kg price", http.StatusBadRequest)
+			return
+		}
+
+		err = h.shopService.UpdateShopPrices(
+			shop.ID,
+			price6kg,
+			price13kg,
+			price45kg,
+		)
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		http.Redirect(w, r, "/shop/manage", http.StatusSeeOther)
+
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
 func (h *Handler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, ok := middleware.GetCurrentUserID(r)
+	if !ok {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
 
@@ -403,8 +563,27 @@ func (h *Handler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.orderService.DeleteOrder(id)
+	order, err := h.orderService.GetOrderByID(id)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if order.ID == 0 {
+		http.Error(w, "Order not found", http.StatusNotFound)
+		return
+	}
+
+	if order.UserID != userID {
+		http.Error(
+			w,
+			"You are not authorized to delete this order",
+			http.StatusForbidden,
+		)
+		return
+	}
+
+	if err := h.orderService.DeleteOrder(id); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -447,9 +626,10 @@ func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
 		TotalOrders: len(orders),
 	}
 
-	tmpl := template.Must(template.ParseFiles("web/templates/admin.html"))
-
-	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	renderTemplate(
+		w,
+		"admin.html",
+		data,
+		"web/templates/admin.html",
+	)
 }

@@ -1,25 +1,246 @@
 <!DOCTYPE html>
-<html>
+
+<html lang="en">
 <head>
-    <title>Shop Orders</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Incoming Orders | Halisi</title>
+
+<link rel="stylesheet" href="/static/css/style.css">
+
 </head>
+
 <body>
 
-<h1>Shop Orders</h1>
+{{template "navbar.html" .}}
 
-{{range .}}
-<div>
-    <p>Order #{{.ID}}</p>
-    <p>User: {{.UserID}}</p>
-    <p>Size: {{.CylinderSize}}</p>
-    <p>Quantity: {{.Quantity}}</p>
-    <p>Total: KES {{.TotalPrice}}</p>
-    <p>Status: {{.Status}}</p>
-    <hr>
-</div>
-{{else}}
-<p>No orders found.</p>
-{{end}}
+<main class="shop-orders-page">
+
+    <div class="shop-orders-container">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>{{.Shop.Name}}</h1>
+            <p>{{.Shop.Location}}</p>
+        </div>
+
+        <!-- Incoming Orders -->
+        <div class="section-title">
+            <h3>Incoming Orders</h3>
+            <p>Review customer orders and update their delivery status.</p>
+        </div>
+
+        {{range .Orders}}
+
+        <article class="order-card">
+
+            <!-- Order Header -->
+            <div class="order-card-header">
+
+                <div>
+                    <span class="eyebrow">
+                        Order #{{.ID}}
+                    </span>
+
+                    <h3>
+                        Customer #{{.UserID}}
+                    </h3>
+                </div>
+
+                <span class="status {{.Status}}">
+                    {{.Status}}
+                </span>
+
+            </div>
+
+            <!-- Order Details -->
+            <div class="order-details">
+
+                <div class="detail-box">
+                    <span class="detail-label">
+                        Customer
+                    </span>
+
+                    <span class="detail-value">
+                        #{{.UserID}}
+                    </span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">
+                        Gas
+                    </span>
+
+                    <span class="detail-value">
+                        {{.CylinderSize}}
+                    </span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">
+                        Quantity
+                    </span>
+
+                    <span class="detail-value">
+                        {{.Quantity}}
+                    </span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">
+                        Total
+                    </span>
+
+                    <span class="detail-value">
+                        KSh {{.TotalPrice}}
+                    </span>
+                </div>
+
+                <div class="detail-box">
+                    <span class="detail-label">
+                        Delivery Address
+                    </span>
+
+                    <span class="detail-value">
+                        {{.DeliveryAddress}}
+                    </span>
+                </div>
+
+            </div>
+
+            <!-- Status Update -->
+            <div class="status-section">
+
+                <div class="current-status">
+                    <strong>Current Status:</strong>
+
+                    <span class="status {{.Status}}">
+                        {{.Status}}
+                    </span>
+                </div>
+
+                <form
+                    method="POST"
+                    action="/orders/update"
+                    class="status-form"
+                >
+
+                    <input
+                        type="hidden"
+                        name="id"
+                        value="{{.ID}}"
+                    >
+
+                    <div class="status-field">
+
+                        <label for="status-{{.ID}}">
+                            Update Status
+                        </label>
+
+                        <select
+                            id="status-{{.ID}}"
+                            name="status"
+                            class="status-select"
+                            required
+                        >
+
+                            <option
+                                value="Pending"
+                                {{if eq .Status "Pending"}}selected{{end}}
+                            >
+                                Pending
+                            </option>
+
+                            <option
+                                value="Accepted"
+                                {{if eq .Status "Accepted"}}selected{{end}}
+                            >
+                                Accepted
+                            </option>
+
+                            <option
+                                value="Preparing"
+                                {{if eq .Status "Preparing"}}selected{{end}}
+                            >
+                                Preparing
+                            </option>
+
+                            <option
+                                value="Out for Delivery"
+                                {{if eq .Status "Out for Delivery"}}selected{{end}}
+                            >
+                                Out for Delivery
+                            </option>
+
+                            <option
+                                value="Delivered"
+                                {{if eq .Status "Delivered"}}selected{{end}}
+                            >
+                                Delivered
+                            </option>
+
+                            <option
+                                value="Rejected"
+                                {{if eq .Status "Rejected"}}selected{{end}}
+                            >
+                                Rejected
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        class="update-status-btn"
+                    >
+                        Update Status
+                    </button>
+
+                </form>
+
+            </div>
+
+        </article>
+
+        {{else}}
+
+        <div class="empty-orders">
+            <h3>No Incoming Orders</h3>
+            <p>
+                There are currently no customer orders for this shop.
+            </p>
+        </div>
+
+        {{end}}
+
+        <!-- Shop Actions -->
+        <div class="actions">
+
+            <a
+                href="/shop/manage"
+                class="action-btn manage-btn"
+            >
+                Manage Shop Prices
+            </a>
+
+            <a
+                href="/logout"
+                class="action-btn logout-btn"
+            >
+                Logout
+            </a>
+
+        </div>
+
+    </div>
+
+</main>
+
+<footer class="site-footer">
+    <p>© 2026 Halisi. All Rights Reserved.</p>
+</footer>
 
 </body>
 </html>

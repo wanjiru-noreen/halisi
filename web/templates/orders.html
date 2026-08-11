@@ -1,76 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HALISI - My Orders</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Page metadata -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Orders | Halisi</title>
+
+    <!-- Main stylesheet -->
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
 
-  {{template "navbar.html" .}}
+<!-- Authenticated navigation -->
+{{template "navbar.html" .}}
 
-  <main class="container">
+<!-- Orders page -->
+<main class="container">
+
+    <!-- Page heading -->
     <div class="page-header">
-      <h2>My Orders</h2>
-      <p>Track every gas order you've placed.</p>
+        <h2>My Orders</h2>
+        <p>Track your gas orders and delivery progress.</p>
     </div>
 
-    <div class="orders-grid">
-      {{range .Orders}}
-      <div class="order-card">
-        <div class="order-card-header">
-          <span class="cylinder-badge">📦 {{.CylinderSize}}</span>
-          <span class="status-pill">{{.Status}}</span>
-        </div>
-        
-        <div class="order-card-body">
-          <p><strong>Shop:</strong> {{if .ShopName}}{{.ShopName}}{{else}}Unknown shop{{end}}</p>
-          <p><strong>Delivery to:</strong> {{.DeliveryAddress}}</p>
-          <p><strong>Quantity:</strong> {{.Quantity}}</p>
-          <p><strong>Total:</strong> <span class="price">KSh {{.TotalPrice}}</span></p>
+    <!-- Customer orders -->
+    <section class="order-shop-grid">
+
+        {{range .Orders}}
+
+        <article class="order-card">
+
+            <!-- Order information -->
+            <div class="order-card-header">
+                <div>
+                    <p class="eyebrow">Order #{{.ID}}</p>
+                    <h3>{{.ShopName}}</h3>
+                </div>
+
+                <span class="status {{.Status}}">
+                    {{.Status}}
+                </span>
+            </div>
+
+            <!-- Order details -->
+            <div class="order-card-body">
+
+                <p>
+                    <strong>Cylinder:</strong>
+                    {{.CylinderSize}}
+                </p>
+
+                <p>
+                    <strong>Quantity:</strong>
+                    {{.Quantity}}
+                </p>
+
+                <p>
+                    <strong>Total:</strong>
+                    KSh {{.TotalPrice}}
+                </p>
+
+                <p>
+                    <strong>Delivery Address:</strong>
+                    {{.DeliveryAddress}}
+                </p>
+
+            </div>
+
+            <!-- Order actions -->
+            <div class="order-card-footer">
+
+                <a href="/shops" class="btn btn-primary">
+                    Order Again
+                </a>
+
+                {{if eq .Status "Pending"}}
+
+                <form action="/orders/delete" method="POST">
+                    <input
+                        type="hidden"
+                        name="id"
+                        value="{{.ID}}"
+                    >
+
+                    <button
+                        type="submit"
+                        class="btn btn-danger"
+                    >
+                        Delete Order
+                    </button>
+                </form>
+
+                {{end}}
+
+            </div>
+
+        </article>
+
+        {{else}}
+
+        <!-- Empty orders state -->
+        <div class="order-card">
+            <h3>No orders yet</h3>
+            <p class="subtle">
+                You haven't placed any gas orders yet.
+            </p>
+
+            <a href="/shops" class="btn btn-primary">
+                Find a Shop
+            </a>
         </div>
 
-        <div class="order-card-footer">
-          <button class="btn btn-secondary btn-sm">Track Order</button>
-        </div>
-      </div>
-      {{else}}
-      <!-- Fallback display when looping sample data -->
-      <div class="order-card">
-        <div class="order-card-header">
-          <span class="cylinder-badge">📦 6kg Cylinder</span>
-          <span class="status-pill status-pending">Pending</span>
-        </div>
-        <div class="order-card-body">
-          <p><strong>Quantity:</strong> 1</p>
-          <p><strong>Total:</strong> <span class="price">KSh 1000</span></p>
-        </div>
-        <div class="order-card-footer">
-          <button class="btn btn-secondary btn-sm">Track Order</button>
-        </div>
-      </div>
+        {{end}}
 
-      <div class="order-card">
-        <div class="order-card-header">
-          <span class="cylinder-badge">📦 13kg Cylinder</span>
-          <span class="status-pill status-pending">Pending</span>
-        </div>
-        <div class="order-card-body">
-          <p><strong>Quantity:</strong> 9</p>
-          <p><strong>Total:</strong> <span class="price">KSh 9000</span></p>
-        </div>
-        <div class="order-card-footer">
-          <button class="btn btn-secondary btn-sm">Track Order</button>
-        </div>
-      </div>
-      {{end}}
-    </div>
-  </main>
+    </section>
 
-  <footer class="site-footer">
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
     <p>© 2026 Halisi. All Rights Reserved.</p>
-  </footer>
+</footer>
 
 </body>
 </html>

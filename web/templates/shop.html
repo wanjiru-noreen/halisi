@@ -3,144 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>{{.Name}} | Halisi</title>
 
     <link rel="stylesheet" href="/static/css/style.css">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <style>
+        .shop-page {
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
 
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        .shop-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .shop-header {
+            margin-bottom: 30px;
+        }
+
+        .shop-header h1 {
+            margin-bottom: 8px;
+        }
+
+        .shop-header p {
+            color: #666;
+            margin: 0;
+        }
+
+        .shop-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .shop-info {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 25px;
+        }
+
+        .info-box {
+            background: #f7f7fb;
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .info-box span {
+            display: block;
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 6px;
+        }
+
+        .info-box strong {
+            font-size: 17px;
+        }
+
+        .price-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        .price-box {
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .price-box h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+        }
+
+        .price {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2E0A9B;
+        }
+
+        .unavailable {
+            color: #888;
+            font-size: 16px;
+        }
+
+        .order-btn {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 13px 22px;
+            background: #2E0A9B;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .order-btn:hover {
+            background: #24077a;
+        }
+
+        @media (max-width: 800px) {
+            .shop-info,
+            .price-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<header class="navbar">
+<div class="shop-page">
 
-    <div class="logo">
-        HALISI
+    <div class="shop-container">
+
+        <div class="shop-header">
+            <h1>{{.Name}}</h1>
+            <p>View available gas prices and place your order.</p>
+        </div>
+
+        <div class="shop-card">
+
+            <h2>Shop Information</h2>
+
+            <div class="shop-info">
+
+                <div class="info-box">
+                    <span>Location</span>
+                    <strong>{{.Location}}</strong>
+                </div>
+
+                <div class="info-box">
+                    <span>Phone</span>
+                    <strong>{{.Phone}}</strong>
+                </div>
+
+                <div class="info-box">
+                    <span>Status</span>
+                    <strong>Active</strong>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="shop-card">
+
+            <h2>Gas Prices</h2>
+
+            <div class="price-grid">
+
+                <div class="price-box">
+                    <h3>6kg</h3>
+
+                    {{if gt .Price6kg 0}}
+                        <div class="price">
+                            KSh {{.Price6kg}}
+                        </div>
+                    {{else}}
+                        <div class="unavailable">
+                            Currently unavailable
+                        </div>
+                    {{end}}
+                </div>
+
+                <div class="price-box">
+                    <h3>13kg</h3>
+
+                    {{if gt .Price13kg 0}}
+                        <div class="price">
+                            KSh {{.Price13kg}}
+                        </div>
+                    {{else}}
+                        <div class="unavailable">
+                            Currently unavailable
+                        </div>
+                    {{end}}
+                </div>
+
+                <div class="price-box">
+                    <h3>45kg</h3>
+
+                    {{if gt .Price45kg 0}}
+                        <div class="price">
+                            KSh {{.Price45kg}}
+                        </div>
+                    {{else}}
+                        <div class="unavailable">
+                            Currently unavailable
+                        </div>
+                    {{end}}
+                </div>
+
+            </div>
+
+            <a
+                href="/order?shop_id={{.ID}}"
+                class="order-btn"
+            >
+                Order Gas
+            </a>
+
+        </div>
+
     </div>
 
-    <nav>
-
-        <a href="/dashboard">Home</a>
-        <a href="/shops">Find Shop</a>
-        <a href="/order">Order Gas</a>
-        <a href="/orders">My Orders</a>
-        <a href="/logout">Logout</a>
-
-    </nav>
-
-</header>
-
-<main>
-
-    <a href="/shops" class="back-link">
-        ← Back to Shops
-    </a>
-
-    <section class="shop-banner">
-
-        <div class="shop-image-container">
-
-            <img
-                src="/static/images/shop-placeholder.jpg"
-                alt="{{.Name}}"
-                class="banner-image"
-            >
-
-        </div>
-
-        <div class="shop-info">
-
-            <h1>{{.Name}}</h1>
-
-            <p class="rating">⭐⭐⭐⭐⭐ 4.9</p>
-
-            <p>📍 {{.Location}}</p>
-
-            <p>📞 {{.Phone}}</p>
-
-            <span class="open">
-                ● Open Now
-            </span>
-
-        </div>
-
-    </section>
-
-    <section class="cylinder-section">
-
-        <h2>Available Cylinders</h2>
-
-        <div class="cylinder-grid">
-
-            <div class="cylinder-card">
-
-                <h3>6 KG</h3>
-
-                <p>KSh 950</p>
-
-                <a href="/order?shop_id={{.ID}}" class="btn-primary">
-                    Select
-                </a>
-
-            </div>
-
-            <div class="cylinder-card">
-
-                <h3>13 KG</h3>
-
-                <p>KSh 1,850</p>
-
-                <a href="/order?shop_id={{.ID}}" class="btn-primary">
-                    Select
-                </a>
-
-            </div>
-
-        </div>
-
-    </section>
-
-    <section class="shop-about">
-
-        <h2>About This Shop</h2>
-
-        <p>
-
-            {{.Name}} is a trusted LPG supplier serving
-            {{.Location}} with safe, affordable and reliable
-            gas delivery. Place your order and have your
-            cylinder delivered straight to your doorstep.
-
-        </p>
-
-    </section>
-
-    <section class="shop-cta">
-
-        <h2>Ready to Order?</h2>
-
-        <p>
-            Complete your order in less than two minutes.
-        </p>
-
-        <a href="/order?shop_id={{.ID}}" class="btn-primary">
-            Order From This Shop
-        </a>
-
-    </section>
-
-</main>
-
-<footer>
-
-    <p>
-        © 2026 Halisi. All Rights Reserved.
-    </p>
-
-</footer>
+</div>
 
 </body>
 </html>

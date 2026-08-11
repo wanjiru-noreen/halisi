@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
-	"os"
 
 	"halisi/internal/database"
 	"halisi/internal/handlers"
@@ -13,35 +12,29 @@ import (
 )
 
 func main() {
-
-	// Connect database
+	// Connect to database
 	database.ConnectDatabase()
 
-	// Initialize repositories
+	// Create repositories
 	userRepository := repository.NewUserRepository()
 	shopRepository := repository.NewShopRepository()
 	orderRepository := repository.NewOrderRepository()
 
-	// Initialize services
+	// Create services
 	userService := services.NewUserService(userRepository)
 	shopService := services.NewShopService(shopRepository)
 	orderService := services.NewOrderService(orderRepository)
 
-	// Initialize handlers
+	// Create handler
 	handler := handlers.NewHandler(
 		userService,
 		shopService,
 		orderService,
 	)
 
-	// Static files
-	http.Handle(
-		"/static/",
-		http.StripPrefix(
-			"/static/",
-			http.FileServer(http.Dir("web/static")),
-		),
-	)
+	// Serve static files
+	fs := http.FileServer(http.Dir("web/static"))
+	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	// ---------------- PUBLIC ROUTES ----------------
 
@@ -94,6 +87,11 @@ func main() {
 	)
 
 	http.HandleFunc(
+		"/shop/manage",
+		middleware.RequireRole("owner", handler.ManageShop),
+	)
+
+	http.HandleFunc(
 		"/orders/update",
 		middleware.RequireRole("owner", handler.UpdateOrderStatus),
 	)
@@ -105,16 +103,11 @@ func main() {
 		middleware.RequireRole("admin", handler.AdminDashboard),
 	)
 
-	port := "8080"
-	if envPort := os.Getenv("PORT"); envPort != "" {
-		port = envPort
-	}
+	// Start server
+	log.Println("🚀 Halisi server running on http://localhost:8080")
 
-	fmt.Printf("🚀 Halisi server running on http://localhost:%s\n", port)
-
-	err := http.ListenAndServe(":"+port, nil)
-
+	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }
