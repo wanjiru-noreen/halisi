@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Shop | Halisi</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Manage Shop</h1>
+
+    <h2>{{.Name}}</h2>
+    <p>{{.Location}}</p>
+    <p>{{.Phone}}</p>
+
+    <form action="/shop/manage" method="POST">
+
+        <label for="price_6kg">
+            6kg Gas Price
+        </label>
+
+        <input
+            type="number"
+            id="price_6kg"
+            name="price_6kg"
+            value="{{.Price6kg}}"
+            min="0"
+            step="0.01"
+            required
+        >
+
+        <label for="price_13kg">
+            13kg Gas Price
+        </label>
+
+        <input
+            type="number"
+            id="price_13kg"
+            name="price_13kg"
+            value="{{.Price13kg}}"
+            min="0"
+            step="0.01"
+            required
+        >
+
+        <button type="submit" class="btn btn-primary">
+            Update Prices
+        </button>
+
+    </form>
+
+    <br>
+
+    <a href="/shop/orders">
+        View Orders
+    </a>
+
+    <br>
+
+    <a href="/logout">
+        Logout
+    </a>
+
+</div>
+
+</body>
+</html>

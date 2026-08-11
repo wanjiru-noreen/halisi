@@ -1,25 +1,129 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Shop Orders</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop Orders | Halisi</title>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
 
-<h1>Shop Orders</h1>
+<div class="container">
 
-{{range .}}
-<div>
-    <p>Order #{{.ID}}</p>
-    <p>User: {{.UserID}}</p>
-    <p>Size: {{.CylinderSize}}</p>
-    <p>Quantity: {{.Quantity}}</p>
-    <p>Total: KES {{.TotalPrice}}</p>
-    <p>Status: {{.Status}}</p>
-    <hr>
+    <h1>{{.Shop.Name}}</h1>
+    <p>{{.Shop.Location}}</p>
+
+    <h2>Incoming Orders</h2>
+
+    {{range .Orders}}
+
+    <div class="order-card">
+
+        <h3>Order #{{.ID}}</h3>
+
+        <p>
+            <strong>Customer:</strong>
+            {{.UserID}}
+        </p>
+
+        <p>
+            <strong>Gas:</strong>
+            {{.CylinderSize}}
+        </p>
+
+        <p>
+            <strong>Quantity:</strong>
+            {{.Quantity}}
+        </p>
+
+        <p>
+            <strong>Total:</strong>
+            KES {{.TotalPrice}}
+        </p>
+
+        <p>
+            <strong>Delivery Address:</strong>
+            {{.DeliveryAddress}}
+        </p>
+
+        <p>
+            <strong>Status:</strong>
+            {{.Status}}
+        </p>
+
+        <form action="/orders/update" method="POST">
+
+            <input
+                type="hidden"
+                name="id"
+                value="{{.ID}}"
+            >
+
+            <label for="status-{{.ID}}">
+                Update Status
+            </label>
+
+            <select
+                id="status-{{.ID}}"
+                name="status"
+            >
+                <option value="Pending"
+                    {{if eq .Status "Pending"}}selected{{end}}>
+                    Pending
+                </option>
+
+                <option value="Accepted"
+                    {{if eq .Status "Accepted"}}selected{{end}}>
+                    Accepted
+                </option>
+
+                <option value="Preparing"
+                    {{if eq .Status "Preparing"}}selected{{end}}>
+                    Preparing
+                </option>
+
+                <option value="Out for Delivery"
+                    {{if eq .Status "Out for Delivery"}}selected{{end}}>
+                    Out for Delivery
+                </option>
+
+                <option value="Delivered"
+                    {{if eq .Status "Delivered"}}selected{{end}}>
+                    Delivered
+                </option>
+
+                <option value="Rejected"
+                    {{if eq .Status "Rejected"}}selected{{end}}>
+                    Rejected
+                </option>
+            </select>
+
+            <button type="submit" class="btn btn-primary">
+                Update Status
+            </button>
+
+        </form>
+
+        <hr>
+
+    </div>
+
+    {{else}}
+
+    <p>No orders found.</p>
+
+    {{end}}
+
+    <p>
+        <a href="/shop/manage">Manage Shop Prices</a>
+    </p>
+
+    <p>
+        <a href="/logout">Logout</a>
+    </p>
+
 </div>
-{{else}}
-<p>No orders found.</p>
-{{end}}
 
 </body>
 </html>

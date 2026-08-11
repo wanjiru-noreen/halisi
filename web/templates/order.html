@@ -6,74 +6,222 @@
   <title>HALISI - Complete Your Order</title>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
 
-  <!-- Navbar -->
   {{template "navbar.html" .}}
 
   <main class="container">
+
     <div class="page-header">
       <h2>Complete Your Order</h2>
       <p>Choose a trusted shop and place your order for fast delivery.</p>
     </div>
 
-    <!-- Removed shop tap grid - using dropdown only -->
+    <section class="order-section">
 
-    <div class="card form-card">
       <form action="/order" method="POST" class="order-form">
-        <div class="form-grid">
-          
-          <div class="form-group full-width">
-            <label for="shop">Select Shop</label>
-            <select id="shop" name="shop_id" class="input-field" required>
-              {{range .Shops}}
-              <option value="{{.ID}}" {{if eq .ID (selectedShopID $)}}selected{{end}}>{{.Name}} - {{.Location}}</option>
-              {{else}}
-              <option value="1">Shell Gas - Kisumu CBD</option>
-              <option value="2">Rubis Gas - Kondele</option>
-              <option value="3">TotalEnergies - Milimani</option>
-              {{end}}
-            </select>
-          </div>
+
+        <!-- Shop selection -->
+        <div class="form-group">
+          <label for="shop_id">Select Shop</label>
+
+          <select
+            id="shop_id"
+            name="shop_id"
+            required
+            onchange="updatePrices()"
+          >
+            <option value="">Select a shop</option>
+
+            {{range .Shops}}
+            <option
+              value="{{.ID}}"
+              data-price-6kg="{{.Price6kg}}"
+              data-price-13kg="{{.Price13kg}}"
+              data-price-45kg="6000"
+              {{if eq .ID $.SelectedShopID}}selected{{end}}
+            >
+              {{.Name}} - {{.Location}}
+            </option>
+            {{end}}
+
+          </select>
+        </div>
+
+        <!-- Cylinder size -->
+        <div class="form-row">
 
           <div class="form-group">
-            <label for="cylinder">Cylinder Size</label>
-            <select id="cylinder" name="cylinder_size" class="input-field" required>
-              <option value="6kg">6 KG — KSh 1400</option>
-              <option value="13kg">13 KG — KSh 2800</option>
-              <option value="45kg">45 KG — KSh 6000</option>
+            <label for="cylinder_size">Cylinder Size</label>
+
+            <select
+              id="cylinder_size"
+              name="cylinder_size"
+              required
+              onchange="updateTotal()"
+            >
+              <option value="">Select cylinder size</option>
+              <option value="6kg" id="option-6kg">
+                6 KG
+              </option>
+              <option value="13kg" id="option-13kg">
+                13 KG
+              </option>
+              <option value="45kg" id="option-45kg">
+                45 KG — KSh 6000
+              </option>
             </select>
           </div>
 
+          <!-- Quantity -->
           <div class="form-group">
             <label for="quantity">Quantity</label>
-            <input type="number" id="quantity" name="quantity" value="1" min="1" class="input-field" required>
-          </div>
 
-          <div class="form-group">
-            <label for="address">Delivery Address</label>
-            <input type="text" id="address" name="address" placeholder="Enter your location (e.g. Milimani, House #4)" class="input-field" required>
-          </div>
-
-          <div class="form-group full-width">
-            <label for="phone">Phone Number</label>
-            <input type="tel" id="phone" name="phone" placeholder="07XXXXXXXX" class="input-field" required>
+            <input
+              type="number"
+              id="quantity"
+              name="quantity"
+              min="1"
+              value="1"
+              required
+              onchange="updateTotal()"
+              oninput="updateTotal()"
+            >
           </div>
 
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block">Confirm Order</button>
+        <!-- Delivery address -->
+        <div class="form-group">
+          <label for="address">Delivery Address</label>
+
+          <input
+            type="text"
+            id="address"
+            name="address"
+            placeholder="Enter your location (e.g. Milimani, House #4)"
+            required
+          >
+        </div>
+
+        <!-- Phone number -->
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+
+          <input
+            type="tel"
+            id="phone"
+            name="phone"
+            placeholder="07XXXXXXXX"
+            required
+          >
+        </div>
+
+        <!-- Total -->
+        <div class="order-total">
+          <span>Total Price</span>
+          <strong id="total-price">KSh 0</strong>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          Confirm Order
+        </button>
+
       </form>
-    </div>
+
+    </section>
+
   </main>
 
   <footer class="site-footer">
     <p>© 2026 Halisi. All Rights Reserved.</p>
   </footer>
 
-  <footer class="site-footer">
-    <p>© 2026 Halisi. All Rights Reserved.</p>
-  </footer>
+  <script>
+    function updatePrices() {
+      const shopSelect = document.getElementById("shop_id");
+      const selectedOption =
+        shopSelect.options[shopSelect.selectedIndex];
+
+      if (!selectedOption || !selectedOption.value) {
+        document.getElementById("option-6kg").textContent =
+          "6 KG";
+
+        document.getElementById("option-13kg").textContent =
+          "13 KG";
+
+        updateTotal();
+        return;
+      }
+
+      const price6kg =
+        parseFloat(selectedOption.dataset.price6kg) || 0;
+
+      const price13kg =
+        parseFloat(selectedOption.dataset.price13kg) || 0;
+
+      document.getElementById("option-6kg").textContent =
+        price6kg > 0
+          ? "6 KG — KSh " + price6kg
+          : "6 KG — Unavailable";
+
+      document.getElementById("option-13kg").textContent =
+        price13kg > 0
+          ? "13 KG — KSh " + price13kg
+          : "13 KG — Unavailable";
+
+      updateTotal();
+    }
+
+    function updateTotal() {
+      const shopSelect = document.getElementById("shop_id");
+      const cylinderSelect =
+        document.getElementById("cylinder_size");
+      const quantityInput =
+        document.getElementById("quantity");
+
+      const selectedShop =
+        shopSelect.options[shopSelect.selectedIndex];
+
+      if (!selectedShop || !selectedShop.value) {
+        document.getElementById("total-price").textContent =
+          "KSh 0";
+        return;
+      }
+
+      const cylinderSize = cylinderSelect.value;
+      const quantity =
+        parseInt(quantityInput.value, 10) || 0;
+
+      let price = 0;
+
+      if (cylinderSize === "6kg") {
+        price =
+          parseFloat(selectedShop.dataset.price6kg) || 0;
+      }
+
+      if (cylinderSize === "13kg") {
+        price =
+          parseFloat(selectedShop.dataset.price13kg) || 0;
+      }
+
+      if (cylinderSize === "45kg") {
+        price =
+          parseFloat(selectedShop.dataset.price45kg) || 6000;
+      }
+
+      const total = price * quantity;
+
+      document.getElementById("total-price").textContent =
+        "KSh " + total;
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      updatePrices();
+      updateTotal();
+    });
+  </script>
 
 </body>
 </html>

@@ -20,7 +20,6 @@ func NewUserService(repo *repository.UserRepository) *UserService {
 }
 
 func (s *UserService) RegisterUser(user models.User) (models.User, error) {
-
 	hashedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(user.Password),
 		bcrypt.DefaultCost,
@@ -40,7 +39,6 @@ func (s *UserService) GetAllUsers() ([]models.User, error) {
 }
 
 func (s *UserService) LoginUser(email, password string) (models.User, error) {
-
 	user, err := s.repo.GetUserByEmail(email)
 
 	if err != nil {
@@ -63,7 +61,6 @@ func (s *UserService) LoginUser(email, password string) (models.User, error) {
 	return user, nil
 }
 
-
 // ---------------- SHOP SERVICE ----------------
 
 type ShopService struct {
@@ -76,10 +73,26 @@ func NewShopService(repo *repository.ShopRepository) *ShopService {
 	}
 }
 
+func (s *ShopService) CreateShop(shop models.Shop) (models.Shop, error) {
+	return s.repo.CreateShop(shop)
+}
+
 func (s *ShopService) GetShops() ([]models.Shop, error) {
 	return s.repo.GetShops()
 }
 
 func (s *ShopService) GetShopByID(id int) (models.Shop, error) {
 	return s.repo.GetShopByID(id)
+}
+
+func (s *ShopService) GetShopByOwnerID(ownerID int) (models.Shop, error) {
+	return s.repo.GetShopByOwnerID(ownerID)
+}
+
+func (s *ShopService) UpdateShopPrices(
+	id int,
+	price6kg float64,
+	price13kg float64,
+) error {
+	return s.repo.UpdateShopPrices(id, price6kg, price13kg)
 }

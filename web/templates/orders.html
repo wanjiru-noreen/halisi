@@ -1,76 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HALISI - My Orders</title>
-  <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
+<div class="status-tracker">
 
-  {{template "navbar.html" .}}
-
-  <main class="container">
-    <div class="page-header">
-      <h2>My Orders</h2>
-      <p>Track every gas order you've placed.</p>
+    <div class="status-step {{if or (eq .Status "Pending") (eq .Status "Accepted") (eq .Status "Preparing") (eq .Status "Out for Delivery") (eq .Status "Delivered")}}active{{end}}">
+        <span>1</span>
+        <p>Pending</p>
     </div>
 
-    <div class="orders-grid">
-      {{range .Orders}}
-      <div class="order-card">
-        <div class="order-card-header">
-          <span class="cylinder-badge">📦 {{.CylinderSize}}</span>
-          <span class="status-pill">{{.Status}}</span>
-        </div>
-        
-        <div class="order-card-body">
-          <p><strong>Shop:</strong> {{if .ShopName}}{{.ShopName}}{{else}}Unknown shop{{end}}</p>
-          <p><strong>Delivery to:</strong> {{.DeliveryAddress}}</p>
-          <p><strong>Quantity:</strong> {{.Quantity}}</p>
-          <p><strong>Total:</strong> <span class="price">KSh {{.TotalPrice}}</span></p>
-        </div>
-
-        <div class="order-card-footer">
-          <button class="btn btn-secondary btn-sm">Track Order</button>
-        </div>
-      </div>
-      {{else}}
-      <!-- Fallback display when looping sample data -->
-      <div class="order-card">
-        <div class="order-card-header">
-          <span class="cylinder-badge">📦 6kg Cylinder</span>
-          <span class="status-pill status-pending">Pending</span>
-        </div>
-        <div class="order-card-body">
-          <p><strong>Quantity:</strong> 1</p>
-          <p><strong>Total:</strong> <span class="price">KSh 1000</span></p>
-        </div>
-        <div class="order-card-footer">
-          <button class="btn btn-secondary btn-sm">Track Order</button>
-        </div>
-      </div>
-
-      <div class="order-card">
-        <div class="order-card-header">
-          <span class="cylinder-badge">📦 13kg Cylinder</span>
-          <span class="status-pill status-pending">Pending</span>
-        </div>
-        <div class="order-card-body">
-          <p><strong>Quantity:</strong> 9</p>
-          <p><strong>Total:</strong> <span class="price">KSh 9000</span></p>
-        </div>
-        <div class="order-card-footer">
-          <button class="btn btn-secondary btn-sm">Track Order</button>
-        </div>
-      </div>
-      {{end}}
+    <div class="status-step {{if or (eq .Status "Accepted") (eq .Status "Preparing") (eq .Status "Out for Delivery") (eq .Status "Delivered")}}active{{end}}">
+        <span>2</span>
+        <p>Accepted</p>
     </div>
-  </main>
 
-  <footer class="site-footer">
-    <p>© 2026 Halisi. All Rights Reserved.</p>
-  </footer>
+    <div class="status-step {{if or (eq .Status "Preparing") (eq .Status "Out for Delivery") (eq .Status "Delivered")}}active{{end}}">
+        <span>3</span>
+        <p>Preparing</p>
+    </div>
 
-</body>
-</html>
+    <div class="status-step {{if or (eq .Status "Out for Delivery") (eq .Status "Delivered")}}active{{end}}">
+        <span>4</span>
+        <p>Out for Delivery</p>
+    </div>
+
+    <div class="status-step {{if eq .Status "Delivered"}}active{{end}}">
+        <span>5</span>
+        <p>Delivered</p>
+    </div>
+
+</div>

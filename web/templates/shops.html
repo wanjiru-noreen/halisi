@@ -6,11 +6,13 @@
   <title>HALISI - Find a Shop</title>
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
 
   {{template "navbar.html" .}}
 
   <main class="container">
+
     <div class="page-header">
       <h2>Find a Trusted Gas Supplier</h2>
       <p>Browse verified gas suppliers near you and order from your preferred shop.</p>
@@ -22,59 +24,59 @@
     </section>
 
     <div class="shops-grid">
+
       {{range .Shops}}
+
       <article class="shop-card">
+
         <div class="shop-card-header">
           <div>
             <h3>{{.Name}}</h3>
-            <p class="subtle">{{.Location}} · {{.Phone}}</p>
+            <p class="subtle">
+              {{.Location}} · {{.Phone}}
+            </p>
           </div>
+
           <span class="badge badge-open">Open</span>
         </div>
 
         <div class="shop-card-body">
-          <p>Fast delivery from this shop directly to your address.</p>
-          <p class="shop-price">6KG — KSh 1400 · 13KG — KSh 2800 · 45KG — KSh 6000</p>
+
+          <p>
+            Fast delivery from this shop directly to your address.
+          </p>
+
+          <p class="shop-price">
+            6KG — KSh {{.Price6kg}}
+            ·
+            13KG — KSh {{.Price13kg}}
+            ·
+            45KG — KSh 6000
+          </p>
+
         </div>
 
         <div class="order-card-footer">
-          <a href="/order?shop_id={{.ID}}" class="btn btn-primary">Order from this shop</a>
+          <a
+            href="/order?shop_id={{.ID}}"
+            class="btn btn-primary"
+          >
+            Order from this shop
+          </a>
         </div>
+
       </article>
+
       {{else}}
-      <div class="shop-card">
-        <div class="shop-info">
-          <div class="shop-avatar">🏬</div>
-          <div class="shop-details">
-            <h3>Shell Gas</h3>
-            <div class="shop-meta">
-              <span class="rating">⭐⭐⭐⭐⭐</span>
-              <span>📍 Kisumu CBD</span>
-              <span>📞 0712345678</span>
-              <span class="badge badge-open">● Open</span>
-            </div>
-          </div>
-        </div>
-        <a href="/order?shop_id=1" class="btn btn-secondary">View Shop</a>
-      </div>
 
       <div class="shop-card">
-        <div class="shop-info">
-          <div class="shop-avatar">🏬</div>
-          <div class="shop-details">
-            <h3>Rubis Gas</h3>
-            <div class="shop-meta">
-              <span class="rating">⭐⭐⭐⭐⭐</span>
-              <span>📍 Kondele</span>
-              <span>📞 0723456789</span>
-              <span class="badge badge-open">● Open</span>
-            </div>
-          </div>
-        </div>
-        <a href="/order?shop_id=2" class="btn btn-secondary">View Shop</a>
+        <p>No shops available at the moment.</p>
       </div>
+
       {{end}}
+
     </div>
+
   </main>
 
   <footer class="site-footer">
