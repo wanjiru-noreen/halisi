@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"halisi/internal/middleware"
 	"halisi/internal/models"
@@ -84,23 +85,43 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 		registeredUser, err := h.userService.RegisterUser(user)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
+		// Create a shop automatically for shop owners.
 		if role == "owner" {
 			ownerID := registeredUser.ID
 
+			shopName := strings.TrimSpace(r.FormValue("shop_name"))
+			location := strings.TrimSpace(r.FormValue("location"))
+			phone := strings.TrimSpace(r.FormValue("phone"))
+
+			if shopName == "" {
+				http.Error(w, "Shop name is required", http.StatusBadRequest)
+				return
+			}
+
+			if location == "" {
+				http.Error(w, "Shop location is required", http.StatusBadRequest)
+				return
+			}
+
+			if phone == "" {
+				http.Error(w, "Shop phone number is required", http.StatusBadRequest)
+				return
+			}
+
 			shop := models.Shop{
-				Name:     r.FormValue("shop_name"),
-				Location: r.FormValue("location"),
-				Phone:    r.FormValue("phone"),
+				Name:     shopName,
+				Location: location,
+				Phone:    phone,
 				OwnerID:  &ownerID,
 			}
 
 			_, err := h.shopService.CreateShop(shop)
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, "Failed to create shop", http.StatusInternalServerError)
 				return
 			}
 		}

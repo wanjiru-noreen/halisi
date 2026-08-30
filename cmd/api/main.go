@@ -36,64 +36,36 @@ func main() {
 	fs := http.FileServer(http.Dir("web/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	// ---------------- PUBLIC ROUTES ----------------
-
-	http.HandleFunc("/", handler.Home)
-	http.HandleFunc("/register", handler.Register)
-	http.HandleFunc("/login", handler.Login)
-
 	// ---------------- CUSTOMER ROUTES ----------------
 
 	http.HandleFunc(
 		"/dashboard",
-		middleware.RequireAuth(handler.Dashboard),
+		middleware.RequireRole("customer", handler.Dashboard),
 	)
 
 	http.HandleFunc(
 		"/shops",
-		middleware.RequireAuth(handler.Shops),
+		middleware.RequireRole("customer", handler.Shops),
 	)
 
 	http.HandleFunc(
 		"/shop",
-		middleware.RequireAuth(handler.Shop),
+		middleware.RequireRole("customer", handler.Shop),
 	)
 
 	http.HandleFunc(
 		"/order",
-		middleware.RequireAuth(handler.Order),
+		middleware.RequireRole("customer", handler.Order),
 	)
 
 	http.HandleFunc(
 		"/orders",
-		middleware.RequireAuth(handler.Orders),
+		middleware.RequireRole("customer", handler.Orders),
 	)
 
 	http.HandleFunc(
 		"/orders/delete",
-		middleware.RequireAuth(handler.DeleteOrder),
-	)
-
-	http.HandleFunc(
-		"/logout",
-		middleware.RequireAuth(handler.Logout),
-	)
-
-	// ---------------- SHOP OWNER ROUTES ----------------
-
-	http.HandleFunc(
-		"/shop/orders",
-		middleware.RequireRole("owner", handler.ShopOrders),
-	)
-
-	http.HandleFunc(
-		"/shop/manage",
-		middleware.RequireRole("owner", handler.ManageShop),
-	)
-
-	http.HandleFunc(
-		"/orders/update",
-		middleware.RequireRole("owner", handler.UpdateOrderStatus),
+		middleware.RequireRole("customer", handler.DeleteOrder),
 	)
 
 	// ---------------- ADMIN ROUTES ----------------
