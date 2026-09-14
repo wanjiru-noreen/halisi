@@ -80,7 +80,7 @@
 
                 <div class="illustration-card">
                     <img
-                        src="/static/images/gas-delivery-rider.png"
+                        src="/static/images/halibike.png"
                         alt="Gas delivery rider transporting a gas cylinder"
                         class="delivery-rider"
                     >
@@ -91,6 +91,7 @@
         </div>
     </section>
 
+    <!-- Overlapping Stats Section -->
     <section class="stats container">
 
         <article class="stat-card">
@@ -277,16 +278,68 @@
 </footer>
 
 <style>
+/* Page Polish & Overlap Enhancements */
+body {
+    background-color: #f8fafc;
+}
+
+.hero {
+    padding-bottom: 70px;
+}
+
+/* Pull the stats section up to overlap the bottom of the hero */
+section.stats {
+    position: relative;
+    margin-top: -50px;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+.stat-card {
+    background: white;
+    padding: 28px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(30, 45, 90, 0.08);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    text-align: center;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 35px rgba(30, 45, 90, 0.12);
+}
+
+.stat-card i {
+    font-size: 24px;
+    color: var(--primary, #4f46e5);
+    margin-bottom: 10px;
+}
+
+.stat-card h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 4px;
+}
+
+.stat-card p {
+    color: #64748b;
+    font-size: 0.85rem;
+}
 
 .illustration-card {
     position: relative;
     width: 560px;
     max-width: 560px;
-    height: 500px;
+    height: 450px;
     margin-left: auto;
-    margin-right: -650px;
+    margin-right: -40px;
     overflow: hidden;
-    border-radius: 32px;
+    border-radius: 24px;
 }
 
 .delivery-rider {
@@ -298,7 +351,7 @@
 }
 
 .how-it-works {
-    padding: 70px 0;
+    padding: 60px 0;
 }
 
 .how-it-works .section-heading {
@@ -309,10 +362,11 @@
 .how-it-works .section-heading h2 {
     font-size: 2rem;
     margin-bottom: 8px;
+    color: #1e293b;
 }
 
 .how-it-works .section-heading p {
-    color: var(--muted);
+    color: #64748b;
     font-size: 0.9rem;
 }
 
@@ -326,17 +380,17 @@
 .step-card {
     position: relative;
     background: white;
-    border: 1px solid var(--border);
+    border: 1px solid rgba(226, 232, 240, 0.8);
     border-radius: 20px;
     padding: 35px 28px 30px;
     text-align: center;
-    box-shadow: 0 8px 25px rgba(30, 45, 90, 0.06);
+    box-shadow: 0 8px 25px rgba(30, 45, 90, 0.04);
     transition: 0.25s ease;
 }
 
 .step-card:hover {
     transform: translateY(-6px);
-    box-shadow: var(--shadow-hover);
+    box-shadow: 0 12px 30px rgba(30, 45, 90, 0.08);
 }
 
 .step-icon {
@@ -344,8 +398,8 @@
     height: 65px;
     margin: 0 auto 20px;
     border-radius: 18px;
-    background: var(--primary-light);
-    color: var(--primary);
+    background: rgba(79, 70, 229, 0.1);
+    color: var(--primary, #4f46e5);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -359,7 +413,7 @@
     width: 29px;
     height: 29px;
     border-radius: 50%;
-    background: var(--primary);
+    background: var(--primary, #4f46e5);
     color: white;
     display: flex;
     align-items: center;
@@ -371,54 +425,34 @@
 .step-card h3 {
     font-size: 1rem;
     margin-bottom: 8px;
-    color: var(--text);
+    color: #1e293b;
 }
 
 .step-card p {
-    color: var(--muted);
+    color: #64748b;
     font-size: 0.85rem;
     line-height: 1.6;
 }
 
-@media (max-width: 1200px) {
-
-    .illustration-card {
-        margin-right: -80px;
-    }
-
-}
-
 @media (max-width: 900px) {
-
+    section.stats {
+        grid-template-columns: 1fr;
+        margin-top: -20px;
+    }
     .illustration-card {
         width: 100%;
-        max-width: 560px;
+        max-width: 100%;
         margin: 0 auto;
+        height: 350px;
     }
-
 }
 
 @media (max-width: 700px) {
-
     .steps-row {
         grid-template-columns: 1fr;
         gap: 18px;
     }
-
-    .step-card {
-        padding: 30px 22px;
-    }
-
 }
-
-@media (max-width: 600px) {
-
-    .illustration-card {
-        height: 380px;
-    }
-
-}
-
 </style>
 
 </body>

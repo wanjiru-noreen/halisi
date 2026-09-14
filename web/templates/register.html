@@ -3,168 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Register | Halisi</title>
-
-    <!-- Google Font -->
+    <title>HALISI | Register</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
-        rel="stylesheet"
-    >
-
-    <!-- Main stylesheet -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+<body class="auth-body">
 
-<body>
-
-<div class="auth-page">
-
-    <!-- Minimal authentication navbar -->
-    <header class="auth-navbar">
-
-        <!-- Halisi logo -->
-        <a href="/" class="auth-logo-link">
-            <span class="auth-logo">🔥</span>
-            <span class="auth-logo-text">HALISI</span>
-        </a>
-
-        <!-- Authentication navigation -->
-        <div class="auth-nav-links">
-            <a href="/login">Login</a>
-            <a href="/register" class="active">Register</a>
-        </div>
-
-    </header>
-
-    <!-- Registration card -->
+<div class="auth-container">
     <div class="auth-card">
-
-        <!-- Registration heading -->
         <div class="auth-header">
-            <h1>HALISI</h1>
-            <p>Gas refill, made simpler.</p>
-        </div>
-
-        <div class="auth-header">
+            <a href="/" class="logo">
+                <span class="logo-icon">🔥</span>
+                <span>HALISI</span>
+            </a>
             <h2>Create your account</h2>
             <p>Join Halisi and order gas from verified shops in your area.</p>
         </div>
 
-        <!-- Registration form -->
         <form action="/register" method="POST" class="auth-form">
-
-            <!-- Full name -->
-            <label for="name">Full Name</label>
-            <input
-                type="text"
-                id="name"
-                name="name"
-                placeholder="Enter your full name"
-                required
-            >
-
-            <!-- Email -->
-            <label for="email">Email</label>
-            <input
-                type="email"
-                id="email"
-                name="email"
-                placeholder="Enter your email"
-                required
-            >
-
-            <!-- Password -->
-            <label for="password">Password</label>
-            <input
-                type="password"
-                id="password"
-                name="password"
-                placeholder="Create a password"
-                required
-            >
-
-            <!-- Account type -->
-            <label for="role">Account Type</label>
-            <select id="role" name="role" required onchange="toggleShopFields()">
-                <option value="customer">Customer</option>
-                <option value="owner">Shop Owner</option>
-            </select>
-
-            <!-- Shop owner fields -->
-            <div id="shop-fields" style="display: none;">
-
-                <!-- Shop name -->
-                <label for="shop_name">Shop Name</label>
-                <input
-                    type="text"
-                    id="shop_name"
-                    name="shop_name"
-                    placeholder="Enter your shop name"
-                >
-
-                <!-- Shop location -->
-                <label for="location">Shop Location</label>
-                <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    placeholder="Enter your shop location"
-                >
-
-                <!-- Shop phone -->
-                <label for="phone">Shop Phone Number</label>
-                <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    placeholder="Enter your shop phone number"
-                >
-
+            <div class="form-group">
+                <label for="fullname">Full Name</label>
+                <div class="input-with-icon">
+                    <i class="fa-solid fa-user"></i>
+                    <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" required>
+                </div>
             </div>
 
-            <!-- Register button -->
-            <button type="submit" class="btn btn-primary">
-                Register
-            </button>
+            <div class="form-group">
+                <label for="email">Email address</label>
+                <div class="input-with-icon">
+                    <i class="fa-solid fa-envelope"></i>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                </div>
+            </div>
 
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-with-icon">
+                    <i class="fa-solid fa-lock"></i>
+                    <input type="password" id="password" name="password" placeholder="Create a password" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="account_type">Account Type</label>
+                <div class="input-with-icon">
+                    <i class="fa-solid fa-id-badge"></i>
+                    <select id="account_type" name="account_type" required>
+                        <option value="customer">Customer</option>
+                        <option value="vendor">Gas Shop Vendor</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="shop-fields" hidden>
+                <div class="form-group">
+                    <label for="shop_name">Shop Name</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-store"></i>
+                        <input type="text" id="shop_name" name="shop_name" placeholder="Enter your shop name">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="location">Shop Location</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <input type="text" id="location" name="location" placeholder="Enter your shop location">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Shop Phone</label>
+                    <div class="input-with-icon">
+                        <i class="fa-solid fa-phone"></i>
+                        <input type="tel" id="phone" name="phone" placeholder="Enter your shop phone">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">Register</button>
         </form>
 
-        <!-- Login link -->
-        <p class="auth-footer">
-            Already have an account?
-            <a href="/login">Login</a>
-        </p>
-
+        <div class="auth-footer">
+            <p>Already have an account? <a href="/login">Login</a></p>
+        </div>
     </div>
-
 </div>
 
 <script>
-function toggleShopFields() {
-    const role = document.getElementById("role").value;
-    const shopFields = document.getElementById("shop-fields");
+const accountType = document.getElementById('account_type');
+const shopFields = document.getElementById('shop-fields');
+const shopInputs = shopFields.querySelectorAll('input');
 
-    // Show shop fields for shop owners
-    if (role === "owner") {
-        shopFields.style.display = "block";
-
-        document.getElementById("shop_name").required = true;
-        document.getElementById("location").required = true;
-        document.getElementById("phone").required = true;
-    } else {
-        // Hide shop fields for customers
-        shopFields.style.display = "none";
-
-        document.getElementById("shop_name").required = false;
-        document.getElementById("location").required = false;
-        document.getElementById("phone").required = false;
-    }
+function updateShopFields() {
+    const isVendor = accountType.value === 'vendor';
+    shopFields.hidden = !isVendor;
+    shopInputs.forEach((input) => input.required = isVendor);
 }
+
+accountType.addEventListener('change', updateShopFields);
+updateShopFields();
 </script>
+
+<style>
+.auth-body {
+    background: radial-gradient(circle at 20% 30%, #2e1065 0%, #171138 60%, #0f0c24 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Poppins', sans-serif;
+    color: #1e293b;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 440px;
+    padding: 20px;
+}
+
+.auth-card {
+    background: white;
+    padding: 40px 32px;
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.auth-header .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: #0f172a;
+    font-weight: 700;
+    font-size: 1.5rem;
+    margin-bottom: 16px;
+}
+
+.auth-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 6px;
+}
+
+.auth-header p {
+    color: #64748b;
+    font-size: 0.85rem;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+}
+
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon i {
+    position: absolute;
+    left: 14px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    z-index: 2;
+}
+
+.input-with-icon input,
+.input-with-icon select {
+    width: 100%;
+    padding: 12px 14px 12px 42px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    font-size: 0.90rem;
+    font-family: 'Poppins', sans-serif;
+    outline: none;
+    transition: 0.2s ease;
+    background: #f8fafc;
+    color: #1e293b;
+}
+
+.input-with-icon select {
+    appearance: none;
+    cursor: pointer;
+}
+
+.input-with-icon input:focus,
+.input-with-icon select:focus {
+    border-color: var(--primary, #4f46e5);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+.btn-full {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary, #4f46e5);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: 0.2s ease;
+    margin-top: 6px;
+}
+
+.btn-full:hover {
+    background: #4338ca;
+    transform: translateY(-1px);
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.auth-footer a {
+    color: var(--primary, #4f46e5);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+</style>
 
 </body>
 </html>

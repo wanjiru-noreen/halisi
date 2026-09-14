@@ -26,15 +26,17 @@ func main() {
 	orderService := services.NewOrderService(orderRepository)
 
 	// Create handler
-	handler := handlers.NewHandler(
-		userService,
-		shopService,
-		orderService,
-	)
+	handler := handlers.NewHandler(userService, shopService, orderService)
 
 	// Serve static files
 	fs := http.FileServer(http.Dir("web/static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
+
+	// Public routes
+	http.HandleFunc("/", handler.Home)
+	http.HandleFunc("/login", handler.Login)
+	http.HandleFunc("/register", handler.Register)
+	http.HandleFunc("/logout", handler.Logout)
 
 	// ---------------- CUSTOMER ROUTES ----------------
 
@@ -67,12 +69,30 @@ func main() {
 		"/orders/delete",
 		middleware.RequireRole("customer", handler.DeleteOrder),
 	)
+	http.HandleFunc(
+		"/orders/confirmation",
+		middleware.RequireRole("customer", handler.OrderConfirmation),
+	)
 
 	// ---------------- ADMIN ROUTES ----------------
 
 	http.HandleFunc(
 		"/admin",
 		middleware.RequireRole("admin", handler.AdminDashboard),
+	)
+
+	// Shop owner routes
+	http.HandleFunc(
+		"/shop/orders",
+		middleware.RequireRole("owner", handler.ShopOrders),
+	)
+	http.HandleFunc(
+		"/shop/manage",
+		middleware.RequireRole("owner", handler.ShopManage),
+	)
+	http.HandleFunc(
+		"/orders/update",
+		middleware.RequireRole("owner", handler.UpdateOrderStatus),
 	)
 
 	// Start server

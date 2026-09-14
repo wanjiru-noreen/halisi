@@ -1,89 +1,314 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HALISI - Order Confirmed</title>
-    <link rel="stylesheet" href="/static/css/style.css" />
-  </head>
-  <body>
-    {{template "navbar.html" .}}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmed | Halisi</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/static/css/style.css">
 
-    <main class="container">
-      <div class="page-header">
-        <h2>Order Confirmed</h2>
-        <p>Your gas order is on its way. Here are the details:</p>
-      </div>
+    <style>
+        .confirmation-page {
+            background-color: #f7f6ff;
+            min-height: 85vh;
+            padding: 40px 0 80px;
+        }
 
-      <div class="order-card">
-        <div class="order-card-header">
-          <span class="cylinder-badge">📦 {{.CylinderSize}}</span>
-          <span class="status-pill">{{.Status}}</span>
+        .confirmation-container {
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        .success-banner {
+            background: linear-gradient(135deg, #2E0A9B 0%, #4815c2 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(46, 10, 155, 0.15);
+        }
+
+        .success-icon {
+            width: 60px;
+            height: 60px;
+            background: #FFD84D;
+            color: #2E0A9B;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .success-text h1 {
+            margin: 0 0 6px;
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .success-text p {
+            margin: 0;
+            color: #eeeaff;
+            font-size: 15px;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .card-box {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid #eceaf5;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.03);
+        }
+
+        .card-box h3 {
+            margin: 0 0 16px;
+            font-size: 16px;
+            color: #2E0A9B;
+            font-weight: 700;
+            border-bottom: 2px solid #f7f6ff;
+            padding-bottom: 10px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .detail-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-label {
+            color: #777;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #1a1a1a;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .status-pill {
+            display: inline-block;
+            background: #fff8df;
+            color: #b38600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .route-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid #eceaf5;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.03);
+            margin-bottom: 30px;
+        }
+
+        .route-card h3 {
+            margin: 0 0 15px;
+            font-size: 16px;
+            color: #2E0A9B;
+            font-weight: 700;
+        }
+
+        .visual-route {
+            background: #f7f6ff;
+            border-radius: 14px;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .route-point {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .route-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #2E0A9B;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .route-point.destination .route-dot {
+            background: #16834d;
+        }
+
+        .route-point span {
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+        }
+
+        .route-line {
+            position: absolute;
+            top: 42px;
+            left: 20%;
+            right: 20%;
+            height: 3px;
+            background: #d8d3ee;
+            border-radius: 2px;
+            z-index: 1;
+        }
+
+        .action-container {
+            text-align: center;
+        }
+
+        .btn-dashboard {
+            display: inline-block;
+            background: #FFD84D;
+            color: #2E0A9B;
+            font-weight: 700;
+            padding: 14px 30px;
+            border-radius: 14px;
+            text-decoration: none;
+            box-shadow: 0 4px 15px rgba(255, 216, 77, 0.3);
+            transition: background 0.2s;
+        }
+
+        .btn-dashboard:hover {
+            background: #ffcf31;
+        }
+
+        @media (max-width: 768px) {
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+            .success-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+{{template "navbar.html" .}}
+
+<main class="confirmation-page">
+    <div class="container">
+        <div class="confirmation-container">
+            
+            <div class="success-banner">
+                <div class="success-icon">✓</div>
+                <div class="success-text">
+                    <h1>Order Confirmed!</h1>
+                    <p>Your gas order is on its way. Here are the tracking details.</p>
+                </div>
+            </div>
+
+            <div class="details-grid">
+                <!-- Order Summary Card -->
+                <div class="card-box">
+                    <h3>Order Summary</h3>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value"><span class="status-pill">{{.Status}}</span></span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Shop</span>
+                        <span class="detail-value">{{.ShopName}}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Cylinder Size</span>
+                        <span class="detail-value">{{.CylinderSize}}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Quantity</span>
+                        <span class="detail-value">{{.Quantity}}</span>
+                    </div>
+                    <div class="detail-item" style="margin-top: 12px; border-top: 1px dashed #eeeaf5; padding-top: 12px;">
+                        <span class="detail-label" style="font-weight: 700; color: #2E0A9B;">Total Amount</span>
+                        <span class="detail-value" style="color: #2E0A9B; font-size: 16px;">KSh {{.TotalPrice}}</span>
+                    </div>
+                </div>
+
+                <!-- Delivery Destination Card -->
+                <div class="card-box">
+                    <h3>Delivery Location</h3>
+                    
+                    <div class="detail-item">
+                        <span class="detail-label">Recipient</span>
+                        <span class="detail-value">Wanjiru Noreen</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Delivery Address</span>
+                        <span class="detail-value">{{.DeliveryAddress}}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Estimated Time</span>
+                        <span class="detail-value">~30 mins</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Route Visualizer -->
+            <div class="route-card">
+                <h3>Live Delivery Route</h3>
+                <div class="visual-route">
+                    <div class="route-line"></div>
+                    <div class="route-point">
+                        <div class="route-dot">📍</div>
+                        <span>{{.ShopName}} (Shop)</span>
+                    </div>
+                    <div class="route-point destination">
+                        <div class="route-dot">🏠</div>
+                        <span>{{.DeliveryAddress}}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-container">
+                <a href="/dashboard" class="btn-dashboard">Return to Dashboard</a>
+            </div>
+
         </div>
+    </div>
+</main>
 
-        <div class="order-card-body">
-          <p>
-            <strong>Shop:</strong> {{if .ShopName}}{{.ShopName}}{{else}}Selected
-            shop{{end}}
-          </p>
-          <p><strong>Delivery address:</strong> {{.DeliveryAddress}}</p>
-          <p><strong>Cylinder size:</strong> {{.CylinderSize}}</p>
-          <p><strong>Quantity:</strong> {{.Quantity}}</p>
-          <p>
-            <strong>Total amount:</strong>
-            <span class="price">KSh {{.TotalPrice}}</span>
-          </p>
-        </div>
+<footer>
+    <div class="container" style="text-align: center; padding: 20px 0; color: #777; font-size: 14px;">
+        <p>© 2026 Halisi. All Rights Reserved.</p>
+    </div>
+</footer>
 
-        <div class="map-card">
-          <h4 class="map-title">Delivery route</h4>
-          <svg
-            class="map-svg"
-            viewBox="0 0 300 120"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <rect
-              x="0"
-              y="0"
-              width="300"
-              height="120"
-              rx="10"
-              fill="#f8fafc"
-              stroke="#e9e9ff"
-            />
-            <path
-              d="M30 90 C110 60, 190 60, 270 30"
-              fill="none"
-              stroke="#7c5dff"
-              stroke-width="3"
-              stroke-dasharray="6 6"
-            />
-            <g transform="translate(30,90)">
-              <circle r="8" fill="#fff" />
-              <circle r="12" fill="#4f46e5" />
-              <text x="20" y="6" font-size="10" fill="#374151">Pickup</text>
-            </g>
-            <g transform="translate(270,30)">
-              <circle r="8" fill="#fff" />
-              <circle r="12" fill="#10b981" />
-              <text x="-60" y="-10" font-size="10" fill="#374151">
-                Destination
-              </text>
-            </g>
-          </svg>
-          <p class="map-dest"><strong>To:</strong> {{.DeliveryAddress}}</p>
-        </div>
-
-        <div class="order-card-footer">
-          <a href="/dashboard" class="btn btn-primary">Return to Dashboard</a>
-          <a href="/orders" class="btn btn-secondary">View All Orders</a>
-        </div>
-      </div>
-    </main>
-
-    <footer class="site-footer">
-      <p>© 2026 Halisi. All Rights Reserved.</p>
-    </footer>
-  </body>
+</body>
 </html>
