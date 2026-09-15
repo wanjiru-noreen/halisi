@@ -21,6 +21,10 @@
             padding-bottom: 60px;
         }
 
+        /* ==========================================
+           HERO
+           ========================================== */
+
         .hero {
             position: relative;
             overflow: hidden;
@@ -140,6 +144,10 @@
             background: rgba(255, 255, 255, 0.15);
         }
 
+        /* ==========================================
+           STATS
+           ========================================== */
+
         .stats-section {
             background: white;
             padding: 35px 0;
@@ -171,6 +179,10 @@
             color: #777;
             font-size: 14px;
         }
+
+        /* ==========================================
+           FEATURES
+           ========================================== */
 
         .features-section {
             background: #f7f6ff;
@@ -210,6 +222,10 @@
             margin: 0;
             color: #777;
         }
+
+        /* ==========================================
+           HOW IT WORKS
+           ========================================== */
 
         .how-section {
             padding: 70px 0;
@@ -261,6 +277,10 @@
             font-size: 16px;
         }
 
+        /* ==========================================
+           TESTIMONIAL
+           ========================================== */
+
         .testimonial-section {
             padding: 0 0 70px;
             background: white;
@@ -295,6 +315,10 @@
             font-style: normal;
             font-size: 14px;
         }
+
+        /* ==========================================
+           SHOPS
+           ========================================== */
 
         .shops-section {
             padding: 70px 0;
@@ -381,6 +405,10 @@
             flex-shrink: 0;
         }
 
+        /* ==========================================
+           CLOSING CTA
+           ========================================== */
+
         .closing-cta {
             padding: 70px 0;
             background: white;
@@ -409,7 +437,12 @@
             color: #2E0A9B;
         }
 
+        /* ==========================================
+           RESPONSIVE
+           ========================================== */
+
         @media (max-width: 800px) {
+
             .hero {
                 padding: 60px 0;
             }
@@ -466,6 +499,7 @@
         }
 
         @media (max-width: 500px) {
+
             .hero h1 {
                 font-size: 42px;
             }
@@ -500,40 +534,84 @@
 
 <body>
 
-{{template "navbar.html" .}}
+<header>
+    <div class="navbar container">
+
+        <a href="/dashboard" class="logo">
+            <span class="logo-icon">🔥</span>
+            <span>HALISI</span>
+        </a>
+
+        <nav class="nav-links">
+            <a href="/dashboard" class="nav-item">Home</a>
+            <a href="/order" class="nav-item">Order Gas</a>
+            <a href="/shops" class="nav-item">Find Shop</a>
+            <a href="/orders" class="nav-item">Orders</a>
+            <a href="/logout" class="nav-item">Logout</a>
+        </nav>
+
+    </div>
+</header>
 
 <main class="dashboard-main">
 
+    <!-- HERO -->
     <section class="hero">
         <div class="container">
-            <div class="hero-content">
-                <span class="hero-badge">Trusted by 120+ homes</span>
 
-                <h1>Never run out of<br>cooking gas</h1>
+            <div class="hero-content">
+
+                <span class="hero-badge">
+                    Trusted by 120+ homes
+                </span>
+
+                <h1>
+                    Never run out of<br>
+                    cooking gas
+                </h1>
 
                 <p>
                     Fast, safe and reliable gas delivery to your doorstep.
                 </p>
 
                 <div class="hero-actions">
-                    <a href="/order" class="btn btn-primary">Order gas</a>
-                    <a href="/shops" class="btn btn-outline">Find shops</a>
+                    <a href="/order" class="btn btn-primary">
+                        Order gas
+                    </a>
+
+                    <a href="/shops" class="btn btn-outline">
+                        Find shops
+                    </a>
                 </div>
+
             </div>
 
             <div class="hero-illustration">
+
                 <div style="position: relative;">
-                    <img src="/static/images/gas.jpg" alt="Halisi Gas Cylinder">
+
+                    <img
+                        src="/static/images/gas.jpg"
+                        alt="Halisi Gas Cylinder"
+                    >
+
                     <span class="floating-dot dot-1"></span>
                     <span class="floating-dot dot-2"></span>
+
                 </div>
+
             </div>
+
         </div>
     </section>
 
+    <!-- STATS -->
     <section class="stats-section">
+
         <div class="container">
+
             <div class="stats-grid">
+
                 <div class="stat">
                     <strong>500+</strong>
                     <span>Happy customers</span>
@@ -548,138 +626,275 @@
                     <strong>2,000+</strong>
                     <span>Gas deliveries</span>
                 </div>
+
             </div>
+
         </div>
+
     </section>
 
+    <!-- FEATURES -->
     <section class="features-section">
+
         <div class="container">
+
             <div class="features-grid">
 
                 <div class="feature-card">
-                    <div class="feature-icon">🚚</div>
-                    <h3>Fast delivery</h3>
-                    <p>Get your gas delivered quickly.</p>
+
+                    <div class="feature-icon">
+                        🚚
+                    </div>
+
+                    <h3>
+                        Fast delivery
+                    </h3>
+
+                    <p>
+                        Get your gas delivered quickly.
+                    </p>
+
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-icon">🛡️</div>
-                    <h3>Safe and trusted</h3>
-                    <p>Verified suppliers you can rely on.</p>
+
+                    <div class="feature-icon">
+                        🛡️
+                    </div>
+
+                    <h3>
+                        Safe and trusted
+                    </h3>
+
+                    <p>
+                        Verified suppliers you can rely on.
+                    </p>
+
                 </div>
 
                 <div class="feature-card">
-                    <div class="feature-icon">🏠</div>
-                    <h3>Home convenience</h3>
-                    <p>Order without leaving your house.</p>
+
+                    <div class="feature-icon">
+                        🏠
+                    </div>
+
+                    <h3>
+                        Home convenience
+                    </h3>
+
+                    <p>
+                        Order without leaving your house.
+                    </p>
+
                 </div>
 
             </div>
+
         </div>
+
     </section>
 
+    <!-- HOW IT WORKS -->
     <section class="how-section">
+
         <div class="container">
-            <h2>How it works</h2>
+
+            <h2>
+                How it works
+            </h2>
 
             <div class="steps">
 
                 <div class="step">
-                    <div class="step-number">1</div>
-                    <h3>Find a nearby shop</h3>
+
+                    <div class="step-number">
+                        1
+                    </div>
+
+                    <h3>
+                        Find a nearby shop
+                    </h3>
+
                 </div>
 
                 <div class="step">
-                    <div class="step-number">2</div>
-                    <h3>Choose your cylinder</h3>
+
+                    <div class="step-number">
+                        2
+                    </div>
+
+                    <h3>
+                        Choose your cylinder
+                    </h3>
+
                 </div>
 
                 <div class="step">
-                    <div class="step-number">3</div>
-                    <h3>Delivered to your home</h3>
+
+                    <div class="step-number">
+                        3
+                    </div>
+
+                    <h3>
+                        Delivered to your home
+                    </h3>
+
                 </div>
 
             </div>
+
         </div>
+
     </section>
 
+    <!-- TESTIMONIAL -->
     <section class="testimonial-section">
+
         <div class="container">
+
             <div class="testimonial">
-                <div class="stars">★★★★★</div>
+
+                <div class="stars">
+                    ★★★★★
+                </div>
 
                 <blockquote>
-                    "Halisi delivered my gas in under 30 minutes. The ordering
-                    process was simple and the rider was professional."
+                    "Halisi delivered my gas in under 30 minutes.
+                    The ordering process was simple and the rider
+                    was professional."
                 </blockquote>
 
-                <cite>Mary W. · Kisumu</cite>
+                <cite>
+                    Mary W. · Kisumu
+                </cite>
+
             </div>
+
         </div>
+
     </section>
 
+    <!-- NEARBY SHOPS -->
     <section class="shops-section">
+
         <div class="container">
-            <h2>Nearby shops</h2>
+
+            <h2>
+                Nearby shops
+            </h2>
 
             <p class="shops-intro">
                 Choose a shop below to place your order quickly and safely.
             </p>
 
             <div class="shop-card">
+
                 <div class="shop-details">
-                    <div class="shop-icon">🔥</div>
+
+                    <div class="shop-icon">
+                        🔥
+                    </div>
 
                     <div>
-                        <h3>Blue Flame gas</h3>
+
+                        <h3>
+                            Blue Flame gas
+                        </h3>
 
                         <div class="shop-rating">
-                            ★★★★★ <span>(4.9)</span>
+                            ★★★★★
+                            <span>
+                                (4.9)
+                            </span>
                         </div>
 
                         <p class="shop-location">
                             Kisumu CBD ·
-                            <span class="shop-open">Open until 8pm</span>
+                            <span class="shop-open">
+                                Open until 8pm
+                            </span>
                         </p>
 
-                        <p class="shop-delivery">Same-day delivery</p>
+                        <p class="shop-delivery">
+                            Same-day delivery
+                        </p>
+
                     </div>
+
                 </div>
 
-                <a href="/shops" class="btn btn-outline">View shop</a>
+                <a href="/shops" class="btn btn-outline">
+                    View shop
+                </a>
+
             </div>
+
         </div>
+
     </section>
 
+    <!-- CLOSING CTA -->
     <section class="closing-cta">
+
         <div class="container">
+
             <div class="cta-inner">
-                <h2>Ready to order?</h2>
+
+                <h2>
+                    Ready to order?
+                </h2>
 
                 <p>
                     Never run out of cooking gas again.
                 </p>
 
-                <a href="/order" class="btn btn-primary">Order gas</a>
+                <a href="/order" class="btn btn-primary">
+                    Order gas
+                </a>
+
             </div>
+
         </div>
+
     </section>
 
 </main>
 
+<!-- FOOTER -->
 <footer>
+
     <div class="container">
+
         <div class="footer-content">
+
             <div class="footer-links">
-                <a href="#">About</a>
-                <a href="#">Contact</a>
-                <a href="#">Support</a>
-                <a href="#">Privacy policy</a>
+
+                <a href="#">
+                    About
+                </a>
+
+                <a href="#">
+                    Contact
+                </a>
+
+                <a href="#">
+                    Support
+                </a>
+
+                <a href="#">
+                    Privacy policy
+                </a>
+
             </div>
 
-            <p>© 2026 Halisi</p>
+            <p>
+                © 2026 Halisi
+            </p>
+
         </div>
+
     </div>
+
 </footer>
 
 </body>

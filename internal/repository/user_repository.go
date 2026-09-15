@@ -19,7 +19,7 @@ func NewUserRepository() *UserRepository {
 // CreateUser inserts a new user record into the SQLite database, including their role
 func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 	query := `INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`
-	
+
 	result, err := r.db.Exec(query, user.Name, user.Email, user.Password, user.Role)
 	if err != nil {
 		return models.User{}, fmt.Errorf("failed to insert user: %w", err)
@@ -37,7 +37,7 @@ func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 // GetUserByEmail retrieves a user by their email address for authentication
 func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
 	query := `SELECT id, name, email, password, role FROM users WHERE email = ?`
-	
+
 	user := models.User{}
 	err := r.db.QueryRow(query, email).Scan(
 		&user.ID,

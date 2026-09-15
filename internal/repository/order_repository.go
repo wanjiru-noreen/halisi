@@ -63,11 +63,13 @@ func (r *OrderRepository) GetOrders() ([]models.Order, error) {
 			o.total_price,
 			o.status,
 			o.delivery_address,
-			s.name
-		FROM orders o
-		LEFT JOIN shops s ON o.shop_id = s.id
-		ORDER BY o.id DESC
-	`)
+s.name,
+COALESCE(u.name, '')
+FROM orders o
+LEFT JOIN shops s ON o.shop_id = s.id
+LEFT JOIN users u ON o.user_id = u.id
+			ORDER BY o.id DESC
+		`)
 
 	if err != nil {
 		return nil, err
@@ -90,6 +92,7 @@ func (r *OrderRepository) GetOrders() ([]models.Order, error) {
 			&order.Status,
 			&order.DeliveryAddress,
 			&order.ShopName,
+			&order.RecipientName,
 		)
 
 		if err != nil {
@@ -120,9 +123,11 @@ func (r *OrderRepository) GetOrderByID(id int) (models.Order, error) {
 			o.total_price,
 			o.status,
 			o.delivery_address,
-			s.name
+			s.name,
+			COALESCE(u.name, '')
 		FROM orders o
 		LEFT JOIN shops s ON o.shop_id = s.id
+		LEFT JOIN users u ON o.user_id = u.id
 		WHERE o.id = ?
 	`
 
@@ -136,6 +141,7 @@ func (r *OrderRepository) GetOrderByID(id int) (models.Order, error) {
 		&order.Status,
 		&order.DeliveryAddress,
 		&order.ShopName,
+		&order.RecipientName,
 	)
 
 	if err != nil {
