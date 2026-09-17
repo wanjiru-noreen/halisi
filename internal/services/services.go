@@ -119,12 +119,19 @@ func NewShopService(repo *repository.ShopRepository) *ShopService {
 
 // CreateShop creates a new gas shop.
 func (s *ShopService) CreateShop(shop models.Shop) (models.Shop, error) {
+	shop.VerificationStatus = "pending"
+
 	return s.repo.CreateShop(shop)
 }
 
 // GetShops returns all shops.
 func (s *ShopService) GetShops() ([]models.Shop, error) {
 	return s.repo.GetShops()
+}
+
+// GetVerifiedShops returns only approved shops.
+func (s *ShopService) GetVerifiedShops() ([]models.Shop, error) {
+	return s.repo.GetVerifiedShops()
 }
 
 // GetShopByID returns a shop by its ID.
@@ -150,4 +157,16 @@ func (s *ShopService) UpdateShopPrices(
 		price13kg,
 		price45kg,
 	)
+}
+
+// UpdateShopVerificationStatus approves or rejects a shop.
+func (s *ShopService) UpdateShopVerificationStatus(
+	id int,
+	status string,
+) error {
+	if status != "approved" && status != "rejected" {
+		return errors.New("invalid verification status")
+	}
+
+	return s.repo.UpdateShopVerificationStatus(id, status)
 }

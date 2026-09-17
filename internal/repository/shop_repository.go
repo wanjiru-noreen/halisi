@@ -23,9 +23,15 @@ func (r *ShopRepository) CreateShop(shop models.Shop) (models.Shop, error) {
 			price_6kg,
 			price_13kg,
 			price_45kg,
-			owner_id
+			owner_id,
+			latitude,
+			longitude,
+			business_registration_number,
+			kra_pin,
+			license_number,
+			verification_status
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`,
 		shop.Name,
 		shop.Location,
@@ -34,6 +40,12 @@ func (r *ShopRepository) CreateShop(shop models.Shop) (models.Shop, error) {
 		shop.Price13kg,
 		shop.Price45kg,
 		shop.OwnerID,
+		shop.Latitude,
+		shop.Longitude,
+		shop.BusinessRegistrationNumber,
+		shop.KRAPin,
+		shop.LicenseNumber,
+		shop.VerificationStatus,
 	)
 
 	if err != nil {
@@ -85,7 +97,13 @@ func (r *ShopRepository) GetShops() ([]models.Shop, error) {
 			price_6kg,
 			price_13kg,
 			price_45kg,
-			owner_id
+			owner_id,
+			latitude,
+			longitude,
+			business_registration_number,
+			kra_pin,
+			license_number,
+			verification_status
 		FROM shops
 	`)
 
@@ -109,6 +127,76 @@ func (r *ShopRepository) GetShops() ([]models.Shop, error) {
 			&shop.Price13kg,
 			&shop.Price45kg,
 			&shop.OwnerID,
+			&shop.Latitude,
+			&shop.Longitude,
+			&shop.BusinessRegistrationNumber,
+			&shop.KRAPin,
+			&shop.LicenseNumber,
+			&shop.VerificationStatus,
+		)
+
+		if err != nil {
+			return nil, err
+		}
+
+		shops = append(shops, shop)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return shops, nil
+}
+
+// Get only verified shops
+func (r *ShopRepository) GetVerifiedShops() ([]models.Shop, error) {
+	rows, err := database.DB.Query(`
+		SELECT
+			id,
+			name,
+			location,
+			phone,
+			price_6kg,
+			price_13kg,
+			price_45kg,
+			owner_id,
+			latitude,
+			longitude,
+			business_registration_number,
+			kra_pin,
+			license_number,
+			verification_status
+		FROM shops
+		WHERE verification_status = 'approved'
+	`)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var shops []models.Shop
+
+	for rows.Next() {
+		var shop models.Shop
+
+		err := rows.Scan(
+			&shop.ID,
+			&shop.Name,
+			&shop.Location,
+			&shop.Phone,
+			&shop.Price6kg,
+			&shop.Price13kg,
+			&shop.Price45kg,
+			&shop.OwnerID,
+			&shop.Latitude,
+			&shop.Longitude,
+			&shop.BusinessRegistrationNumber,
+			&shop.KRAPin,
+			&shop.LicenseNumber,
+			&shop.VerificationStatus,
 		)
 
 		if err != nil {
@@ -138,7 +226,13 @@ func (r *ShopRepository) GetShopByID(id int) (models.Shop, error) {
 			price_6kg,
 			price_13kg,
 			price_45kg,
-			owner_id
+			owner_id,
+			latitude,
+			longitude,
+			business_registration_number,
+			kra_pin,
+			license_number,
+			verification_status
 		FROM shops
 		WHERE id = ?
 	`
@@ -152,6 +246,12 @@ func (r *ShopRepository) GetShopByID(id int) (models.Shop, error) {
 		&shop.Price13kg,
 		&shop.Price45kg,
 		&shop.OwnerID,
+		&shop.Latitude,
+		&shop.Longitude,
+		&shop.BusinessRegistrationNumber,
+		&shop.KRAPin,
+		&shop.LicenseNumber,
+		&shop.VerificationStatus,
 	)
 
 	if err != nil {
@@ -178,7 +278,13 @@ func (r *ShopRepository) GetShopByOwnerID(ownerID int) (models.Shop, error) {
 			price_6kg,
 			price_13kg,
 			price_45kg,
-			owner_id
+			owner_id,
+			latitude,
+			longitude,
+			business_registration_number,
+			kra_pin,
+			license_number,
+			verification_status
 		FROM shops
 		WHERE owner_id = ?
 	`
@@ -192,6 +298,12 @@ func (r *ShopRepository) GetShopByOwnerID(ownerID int) (models.Shop, error) {
 		&shop.Price13kg,
 		&shop.Price45kg,
 		&shop.OwnerID,
+		&shop.Latitude,
+		&shop.Longitude,
+		&shop.BusinessRegistrationNumber,
+		&shop.KRAPin,
+		&shop.LicenseNumber,
+		&shop.VerificationStatus,
 	)
 
 	if err != nil {
@@ -203,4 +315,21 @@ func (r *ShopRepository) GetShopByOwnerID(ownerID int) (models.Shop, error) {
 	}
 
 	return shop, nil
+}
+
+// Update shop verification status
+func (r *ShopRepository) UpdateShopVerificationStatus(
+	id int,
+	status string,
+) error {
+	_, err := database.DB.Exec(`
+		UPDATE shops
+		SET verification_status = ?
+		WHERE id = ?
+	`,
+		status,
+		id,
+	)
+
+	return err
 }

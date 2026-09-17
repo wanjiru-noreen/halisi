@@ -23,7 +23,6 @@ func ConnectDatabase() {
 	}
 
 	createTables()
-	seedShops()
 
 	log.Println("Database connected successfully")
 }
@@ -48,7 +47,13 @@ func createTables() {
 		price_6kg REAL NOT NULL DEFAULT 0,
 		price_13kg REAL NOT NULL DEFAULT 0,
 		price_45kg REAL NOT NULL DEFAULT 0,
-		owner_id INTEGER
+		owner_id INTEGER,
+		latitude REAL DEFAULT 0,
+		longitude REAL DEFAULT 0,
+		business_registration_number TEXT DEFAULT '',
+		kra_pin TEXT DEFAULT '',
+		license_number TEXT DEFAULT '',
+		verification_status TEXT NOT NULL DEFAULT 'pending'
 	);
 	`
 
@@ -204,86 +209,66 @@ func ensureShopColumns() {
 		}
 	}
 
-	// Set default 45kg prices for existing shops
-	// that were created before the 45kg column existed.
-	_, err = DB.Exec(`
-		UPDATE shops
-		SET price_45kg = 12000
-		WHERE price_45kg = 0
-	`)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func seedShops() {
-	shops := []struct {
-		name     string
-		location string
-		phone    string
-		price6   float64
-		price13  float64
-		price45  float64
-	}{
-		{
-			"Shell Gas",
-			"Kisumu CBD",
-			"0712345678",
-			1400,
-			2800,
-			12000,
-		},
-		{
-			"Rubis Gas",
-			"Kondele",
-			"0723456789",
-			1450,
-			2900,
-			12000,
-		},
-		{
-			"TotalEnergies",
-			"Milimani",
-			"0734567890",
-			1500,
-			3000,
-			12000,
-		},
-	}
-
-	for _, shop := range shops {
-		var count int
-
-		err := DB.QueryRow(
-			"SELECT COUNT(*) FROM shops WHERE name = ?",
-			shop.name,
-		).Scan(&count)
+	if !columns["latitude"] {
+		_, err := DB.Exec(`
+			ALTER TABLE shops
+			ADD COLUMN latitude REAL DEFAULT 0
+		`)
 
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
 
-		if count > 0 {
-			continue
+	if !columns["longitude"] {
+		_, err := DB.Exec(`
+			ALTER TABLE shops
+			ADD COLUMN longitude REAL DEFAULT 0
+		`)
+
+		if err != nil {
+			log.Fatal(err)
 		}
+	}
 
-		_, err = DB.Exec(
-			`INSERT INTO shops (
-				name,
-				location,
-				phone,
-				price_6kg,
-				price_13kg,
-				price_45kg
-			)
-			VALUES (?, ?, ?, ?, ?, ?)`,
-			shop.name,
-			shop.location,
-			shop.phone,
-			shop.price6,
-			shop.price13,
-			shop.price45,
-		)
+	if !columns["business_registration_number"] {
+		_, err := DB.Exec(`
+			ALTER TABLE shops
+			ADD COLUMN business_registration_number TEXT DEFAULT ''
+		`)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if !columns["kra_pin"] {
+		_, err := DB.Exec(`
+			ALTER TABLE shops
+			ADD COLUMN kra_pin TEXT DEFAULT ''
+		`)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if !columns["license_number"] {
+		_, err := DB.Exec(`
+			ALTER TABLE shops
+			ADD COLUMN license_number TEXT DEFAULT ''
+		`)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if !columns["verification_status"] {
+		_, err := DB.Exec(`
+			ALTER TABLE shops
+			ADD COLUMN verification_status TEXT NOT NULL DEFAULT 'pending'
+		`)
 
 		if err != nil {
 			log.Fatal(err)

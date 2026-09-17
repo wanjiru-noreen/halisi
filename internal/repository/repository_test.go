@@ -37,7 +37,13 @@ func setupTestDB(t *testing.T) {
 			price_6kg REAL NOT NULL DEFAULT 0,
 			price_13kg REAL NOT NULL DEFAULT 0,
 			price_45kg REAL NOT NULL DEFAULT 0,
-			owner_id INTEGER
+			owner_id INTEGER,
+			latitude REAL DEFAULT 0,
+			longitude REAL DEFAULT 0,
+			business_registration_number TEXT DEFAULT '',
+			kra_pin TEXT DEFAULT '',
+			license_number TEXT DEFAULT '',
+			verification_status TEXT NOT NULL DEFAULT 'pending'
 		);
 
 		CREATE TABLE orders (
@@ -75,7 +81,6 @@ func TestUserRepository(t *testing.T) {
 	repo := NewUserRepository()
 
 	t.Run("CreateUser", func(t *testing.T) {
-
 		user := models.User{
 			Name:     "John Doe",
 			Email:    "john@example.com",
@@ -93,14 +98,16 @@ func TestUserRepository(t *testing.T) {
 		}
 
 		if created.Name != user.Name {
-			t.Errorf("expected name %q, got %q",
+			t.Errorf(
+				"expected name %q, got %q",
 				user.Name,
 				created.Name,
 			)
 		}
 
 		if created.Email != user.Email {
-			t.Errorf("expected email %q, got %q",
+			t.Errorf(
+				"expected email %q, got %q",
 				user.Email,
 				created.Email,
 			)
@@ -108,7 +115,6 @@ func TestUserRepository(t *testing.T) {
 	})
 
 	t.Run("GetUserByEmail", func(t *testing.T) {
-
 		user, err := repo.GetUserByEmail("john@example.com")
 		if err != nil {
 			t.Fatalf("GetUserByEmail() error = %v", err)
@@ -124,7 +130,6 @@ func TestUserRepository(t *testing.T) {
 	})
 
 	t.Run("GetUserByEmailNotFound", func(t *testing.T) {
-
 		user, err := repo.GetUserByEmail("missing@example.com")
 		if err != nil {
 			t.Fatalf("GetUserByEmail() error = %v", err)
@@ -136,7 +141,6 @@ func TestUserRepository(t *testing.T) {
 	})
 
 	t.Run("GetUsers", func(t *testing.T) {
-
 		_, err := repo.CreateUser(models.User{
 			Name:     "Jane Doe",
 			Email:    "jane@example.com",
@@ -172,7 +176,6 @@ func TestShopRepository(t *testing.T) {
 	ownerID := 10
 
 	t.Run("CreateShop", func(t *testing.T) {
-
 		shop := models.Shop{
 			Name:      "Test Gas",
 			Location:  "Kisumu CBD",
@@ -198,7 +201,6 @@ func TestShopRepository(t *testing.T) {
 	})
 
 	t.Run("GetShopByID", func(t *testing.T) {
-
 		shop, err := repo.GetShopByID(1)
 		if err != nil {
 			t.Fatalf("GetShopByID() error = %v", err)
@@ -209,27 +211,34 @@ func TestShopRepository(t *testing.T) {
 		}
 
 		if shop.Price6kg != 1400 {
-			t.Errorf("expected price 1400, got %f", shop.Price6kg)
+			t.Errorf(
+				"expected price 1400, got %f",
+				shop.Price6kg,
+			)
 		}
 	})
 
 	t.Run("GetShopByIDNotFound", func(t *testing.T) {
-
 		shop, err := repo.GetShopByID(999)
 		if err != nil {
 			t.Fatalf("GetShopByID() error = %v", err)
 		}
 
 		if shop.ID != 0 {
-			t.Errorf("expected empty shop, got ID %d", shop.ID)
+			t.Errorf(
+				"expected empty shop, got ID %d",
+				shop.ID,
+			)
 		}
 	})
 
 	t.Run("GetShopByOwnerID", func(t *testing.T) {
-
 		shop, err := repo.GetShopByOwnerID(ownerID)
 		if err != nil {
-			t.Fatalf("GetShopByOwnerID() error = %v", err)
+			t.Fatalf(
+				"GetShopByOwnerID() error = %v",
+				err,
+			)
 		}
 
 		if shop.ID == 0 {
@@ -250,7 +259,6 @@ func TestShopRepository(t *testing.T) {
 	})
 
 	t.Run("UpdateShopPrices", func(t *testing.T) {
-
 		err := repo.UpdateShopPrices(
 			1,
 			1500,
@@ -259,7 +267,10 @@ func TestShopRepository(t *testing.T) {
 		)
 
 		if err != nil {
-			t.Fatalf("UpdateShopPrices() error = %v", err)
+			t.Fatalf(
+				"UpdateShopPrices() error = %v",
+				err,
+			)
 		}
 
 		shop, err := repo.GetShopByID(1)
@@ -268,27 +279,41 @@ func TestShopRepository(t *testing.T) {
 		}
 
 		if shop.Price6kg != 1500 {
-			t.Errorf("expected 1500, got %f", shop.Price6kg)
+			t.Errorf(
+				"expected 1500, got %f",
+				shop.Price6kg,
+			)
 		}
 
 		if shop.Price13kg != 3000 {
-			t.Errorf("expected 3000, got %f", shop.Price13kg)
+			t.Errorf(
+				"expected 3000, got %f",
+				shop.Price13kg,
+			)
 		}
 
 		if shop.Price45kg != 12500 {
-			t.Errorf("expected 12500, got %f", shop.Price45kg)
+			t.Errorf(
+				"expected 12500, got %f",
+				shop.Price45kg,
+			)
 		}
 	})
 
 	t.Run("GetShops", func(t *testing.T) {
-
 		shops, err := repo.GetShops()
 		if err != nil {
-			t.Fatalf("GetShops() error = %v", err)
+			t.Fatalf(
+				"GetShops() error = %v",
+				err,
+			)
 		}
 
 		if len(shops) != 1 {
-			t.Fatalf("expected 1 shop, got %d", len(shops))
+			t.Fatalf(
+				"expected 1 shop, got %d",
+				len(shops),
+			)
 		}
 	})
 }
@@ -327,7 +352,6 @@ func TestOrderRepository(t *testing.T) {
 	}
 
 	t.Run("CreateOrder", func(t *testing.T) {
-
 		order := models.Order{
 			UserID:          1,
 			ShopID:          1,
@@ -340,7 +364,10 @@ func TestOrderRepository(t *testing.T) {
 
 		created, err := repo.CreateOrder(order)
 		if err != nil {
-			t.Fatalf("CreateOrder() error = %v", err)
+			t.Fatalf(
+				"CreateOrder() error = %v",
+				err,
+			)
 		}
 
 		if created.ID == 0 {
@@ -348,19 +375,27 @@ func TestOrderRepository(t *testing.T) {
 		}
 
 		if created.Quantity != 2 {
-			t.Errorf("expected quantity 2, got %d", created.Quantity)
+			t.Errorf(
+				"expected quantity 2, got %d",
+				created.Quantity,
+			)
 		}
 	})
 
 	t.Run("GetOrderByID", func(t *testing.T) {
-
 		order, err := repo.GetOrderByID(1)
 		if err != nil {
-			t.Fatalf("GetOrderByID() error = %v", err)
+			t.Fatalf(
+				"GetOrderByID() error = %v",
+				err,
+			)
 		}
 
 		if order.ID != 1 {
-			t.Errorf("expected ID 1, got %d", order.ID)
+			t.Errorf(
+				"expected ID 1, got %d",
+				order.ID,
+			)
 		}
 
 		if order.ShopName != "Shell Gas" {
@@ -372,19 +407,23 @@ func TestOrderRepository(t *testing.T) {
 	})
 
 	t.Run("GetOrders", func(t *testing.T) {
-
 		orders, err := repo.GetOrders()
 		if err != nil {
-			t.Fatalf("GetOrders() error = %v", err)
+			t.Fatalf(
+				"GetOrders() error = %v",
+				err,
+			)
 		}
 
 		if len(orders) != 1 {
-			t.Fatalf("expected 1 order, got %d", len(orders))
+			t.Fatalf(
+				"expected 1 order, got %d",
+				len(orders),
+			)
 		}
 	})
 
 	t.Run("GetOrdersByUserID", func(t *testing.T) {
-
 		orders, err := repo.GetOrdersByUserID(1)
 		if err != nil {
 			t.Fatalf(
@@ -394,12 +433,14 @@ func TestOrderRepository(t *testing.T) {
 		}
 
 		if len(orders) != 1 {
-			t.Fatalf("expected 1 order, got %d", len(orders))
+			t.Fatalf(
+				"expected 1 order, got %d",
+				len(orders),
+			)
 		}
 	})
 
 	t.Run("GetOrdersByShopID", func(t *testing.T) {
-
 		orders, err := repo.GetOrdersByShopID(1)
 		if err != nil {
 			t.Fatalf(
@@ -409,12 +450,14 @@ func TestOrderRepository(t *testing.T) {
 		}
 
 		if len(orders) != 1 {
-			t.Fatalf("expected 1 order, got %d", len(orders))
+			t.Fatalf(
+				"expected 1 order, got %d",
+				len(orders),
+			)
 		}
 	})
 
 	t.Run("UpdateOrderStatus", func(t *testing.T) {
-
 		err := repo.UpdateOrderStatus(1, "Accepted")
 		if err != nil {
 			t.Fatalf(
@@ -437,7 +480,6 @@ func TestOrderRepository(t *testing.T) {
 	})
 
 	t.Run("DeletePendingOrder", func(t *testing.T) {
-
 		_, err := repo.CreateOrder(models.Order{
 			UserID:          2,
 			ShopID:          1,

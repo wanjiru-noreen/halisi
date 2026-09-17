@@ -21,7 +21,11 @@ type Handler struct {
 	Store        *sessions.CookieStore
 }
 
-func NewHandler(userService *services.UserService, shopService *services.ShopService, orderService *services.OrderService) *Handler {
+func NewHandler(
+	userService *services.UserService,
+	shopService *services.ShopService,
+	orderService *services.OrderService,
+) *Handler {
 	return &Handler{
 		OrderService: orderService,
 		ShopService:  shopService,
@@ -30,65 +34,120 @@ func NewHandler(userService *services.UserService, shopService *services.ShopSer
 	}
 }
 
-func renderTemplate(w http.ResponseWriter, name string, data interface{}, files ...string) {
+func renderTemplate(
+	w http.ResponseWriter,
+	name string,
+	data interface{},
+	files ...string,
+) {
 	tmpl, err := template.ParseFiles(files...)
 	if err != nil {
-		http.Error(w, "Failed to load page: "+err.Error(), http.StatusInternalServerError)
+		http.Error(
+			w,
+			"Failed to load page: "+err.Error(),
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
 	var output bytes.Buffer
-	if err := tmpl.ExecuteTemplate(&output, name, data); err != nil {
-		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+
+	if err := tmpl.ExecuteTemplate(
+		&output,
+		name,
+		data,
+	); err != nil {
+		http.Error(
+			w,
+			"Failed to render page: "+err.Error(),
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set(
+		"Content-Type",
+		"text/html; charset=utf-8",
+	)
+
 	_, _ = w.Write(output.Bytes())
 }
 
 // Register handles user registration form submission
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		renderTemplate(w, "register.html", nil, "web/templates/register.html")
+		renderTemplate(
+			w,
+			"register.html",
+			nil,
+			"web/templates/register.html",
+		)
 		return
 	}
 
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		http.Error(
+			w,
+			"Method Not Allowed",
+			http.StatusMethodNotAllowed,
+		)
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		http.Error(
+			w,
+			"Bad Request",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
 	fullName := r.FormValue("fullname")
+
 	if fullName == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
+		http.Error(
+			w,
+			"name is required",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
 	email := r.FormValue("email")
+
 	if email == "" {
-		http.Error(w, "email is required", http.StatusBadRequest)
+		http.Error(
+			w,
+			"email is required",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
 	password := r.FormValue("password")
+
 	if password == "" {
-		http.Error(w, "password is required", http.StatusBadRequest)
+		http.Error(
+			w,
+			"password is required",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
 	role := r.FormValue("account_type")
+
 	if role == "vendor" {
 		role = "owner"
 	}
 
 	if role != "customer" && role != "owner" {
-		http.Error(w, "Invalid account type", http.StatusBadRequest)
+		http.Error(
+			w,
+			"Invalid account type",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
@@ -96,8 +155,13 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	location := r.FormValue("location")
 	phone := r.FormValue("phone")
 
-	if role == "owner" && (shopName == "" || location == "" || phone == "") {
-		http.Error(w, "Shop name, location, and phone are required", http.StatusBadRequest)
+	if role == "owner" &&
+		(shopName == "" || location == "" || phone == "") {
+		http.Error(
+			w,
+			"Shop name, location, and phone are required",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
@@ -109,36 +173,74 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	registeredUser, err := h.UserService.RegisterUser(user)
+
 	if err != nil {
-		log.Printf("Error registering user: %v", err)
-		http.Error(w, "Failed to register user", http.StatusInternalServerError)
+		log.Printf(
+			"Error registering user: %v",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Failed to register user: "+err.Error(),
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
 	if role == "owner" {
 		ownerID := registeredUser.ID
 
-		if _, err := h.ShopService.CreateShop(models.Shop{
-			Name:     shopName,
-			Location: location,
-			Phone:    phone,
-			OwnerID:  &ownerID,
-		}); err != nil {
-			log.Printf("Error creating shop: %v", err)
-			http.Error(w, "Failed to create shop", http.StatusInternalServerError)
+		_, err := h.ShopService.CreateShop(
+			models.Shop{
+				Name:     shopName,
+				Location: location,
+				Phone:    phone,
+				OwnerID:  &ownerID,
+			},
+		)
+
+		if err != nil {
+			log.Printf(
+				"Error creating shop: %v",
+				err,
+			)
+
+			http.Error(
+				w,
+				"Failed to create shop: "+err.Error(),
+				http.StatusInternalServerError,
+			)
 			return
 		}
 	}
 
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
+	http.Redirect(
+		w,
+		r,
+		"/login",
+		http.StatusSeeOther,
+	)
 }
 
-// RenderOrderPage handles displaying the order form with available shops
-func (h *Handler) RenderOrderPage(w http.ResponseWriter, r *http.Request) {
-	shops, err := h.ShopService.GetShops()
+// RenderOrderPage handles displaying the order form with verified shops
+func (h *Handler) RenderOrderPage(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	shops, err := h.ShopService.GetVerifiedShops()
+
 	if err != nil {
-		log.Printf("Error fetching shops: %v", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		log.Printf(
+			"Error fetching verified shops: %v",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Internal Server Error",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -147,7 +249,9 @@ func (h *Handler) RenderOrderPage(w http.ResponseWriter, r *http.Request) {
 	var selectedShopID int
 
 	if selectedShopIDStr != "" {
-		selectedShopID, _ = strconv.Atoi(selectedShopIDStr)
+		selectedShopID, _ = strconv.Atoi(
+			selectedShopIDStr,
+		)
 	}
 
 	data := struct {
@@ -168,26 +272,52 @@ func (h *Handler) RenderOrderPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // CreateOrder handles POST requests from the order form
-func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) CreateOrder(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/order", http.StatusSeeOther)
+		http.Redirect(
+			w,
+			r,
+			"/order",
+			http.StatusSeeOther,
+		)
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		http.Error(
+			w,
+			"Bad Request",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
-	shopID, err := strconv.Atoi(r.FormValue("shop_id"))
+	shopID, err := strconv.Atoi(
+		r.FormValue("shop_id"),
+	)
+
 	if err != nil || shopID <= 0 {
-		http.Error(w, "Invalid shop", http.StatusBadRequest)
+		http.Error(
+			w,
+			"Invalid shop",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
-	quantity, err := strconv.Atoi(r.FormValue("quantity"))
+	quantity, err := strconv.Atoi(
+		r.FormValue("quantity"),
+	)
+
 	if err != nil || quantity <= 0 {
-		http.Error(w, "Invalid quantity", http.StatusBadRequest)
+		http.Error(
+			w,
+			"Invalid quantity",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
@@ -195,8 +325,23 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	address := r.FormValue("address")
 
 	shop, err := h.ShopService.GetShopByID(shopID)
+
 	if err != nil || shop.ID == 0 {
-		http.Error(w, "Shop not found", http.StatusBadRequest)
+		http.Error(
+			w,
+			"Shop not found",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	// Only approved shops can receive orders.
+	if shop.VerificationStatus != "approved" {
+		http.Error(
+			w,
+			"Shop is not verified",
+			http.StatusForbidden,
+		)
 		return
 	}
 
@@ -207,15 +352,28 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}[cylinderSize]
 
 	if price <= 0 {
-		http.Error(w, "Invalid cylinder size or unavailable price", http.StatusBadRequest)
+		http.Error(
+			w,
+			"Invalid cylinder size or unavailable price",
+			http.StatusBadRequest,
+		)
 		return
 	}
 
-	session, _ := h.Store.Get(r, "halisi-session")
+	session, _ := h.Store.Get(
+		r,
+		"halisi-session",
+	)
 
 	userID, ok := session.Values["user_id"].(int)
+
 	if !ok {
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Redirect(
+			w,
+			r,
+			"/login",
+			http.StatusSeeOther,
+		)
 		return
 	}
 
@@ -229,10 +387,21 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		Status:          "Pending",
 	}
 
-	createdOrder, err := h.OrderService.CreateOrder(*order)
+	createdOrder, err := h.OrderService.CreateOrder(
+		*order,
+	)
+
 	if err != nil {
-		log.Printf("Error creating order: %v", err)
-		http.Error(w, "Failed to create order", http.StatusInternalServerError)
+		log.Printf(
+			"Error creating order: %v",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Failed to create order",
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -244,7 +413,10 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Home(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	renderTemplate(
 		w,
 		"index.html",
@@ -253,7 +425,10 @@ func (h *Handler) Home(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Login(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	if r.Method == http.MethodGet {
 		renderTemplate(
 			w,
@@ -278,7 +453,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := h.Store.Get(r, "halisi-session")
+	session, err := h.Store.Get(
+		r,
+		"halisi-session",
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -300,6 +479,18 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Admins go to the admin dashboard.
+	if user.Role == "admin" {
+		http.Redirect(
+			w,
+			r,
+			"/admin",
+			http.StatusSeeOther,
+		)
+		return
+	}
+
+	// Shop owners go to their shop orders.
 	if user.Role == "owner" {
 		http.Redirect(
 			w,
@@ -310,6 +501,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Customers go to the customer dashboard.
 	http.Redirect(
 		w,
 		r,
@@ -318,7 +510,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Dashboard(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	renderTemplate(
 		w,
 		"dashboard.html",
@@ -327,8 +522,12 @@ func (h *Handler) Dashboard(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
-	shops, err := h.ShopService.GetShops()
+func (h *Handler) Shops(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	shops, err := h.ShopService.GetVerifiedShops()
+
 	if err != nil {
 		http.Error(
 			w,
@@ -351,8 +550,14 @@ func (h *Handler) Shops(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) Shop(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+func (h *Handler) Shop(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	id, err := strconv.Atoi(
+		r.URL.Query().Get("id"),
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -363,11 +568,31 @@ func (h *Handler) Shop(w http.ResponseWriter, r *http.Request) {
 	}
 
 	shop, err := h.ShopService.GetShopByID(id)
+
 	if err != nil {
 		http.Error(
 			w,
 			err.Error(),
 			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	if shop.ID == 0 {
+		http.Error(
+			w,
+			"Shop not found",
+			http.StatusNotFound,
+		)
+		return
+	}
+
+	// Customers can only view approved shops.
+	if shop.VerificationStatus != "approved" {
+		http.Error(
+			w,
+			"Shop is not verified",
+			http.StatusForbidden,
 		)
 		return
 	}
@@ -381,7 +606,10 @@ func (h *Handler) Shop(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Order(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	if r.Method == http.MethodPost {
 		h.CreateOrder(w, r)
 		return
@@ -390,12 +618,21 @@ func (h *Handler) Order(w http.ResponseWriter, r *http.Request) {
 	h.RenderOrderPage(w, r)
 }
 
-func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
-	session, _ := h.Store.Get(r, "halisi-session")
+func (h *Handler) Orders(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	session, _ := h.Store.Get(
+		r,
+		"halisi-session",
+	)
 
 	userID, _ := session.Values["user_id"].(int)
 
-	orders, err := h.OrderService.GetOrdersByUserID(userID)
+	orders, err := h.OrderService.GetOrdersByUserID(
+		userID,
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -418,8 +655,14 @@ func (h *Handler) Orders(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) OrderConfirmation(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+func (h *Handler) OrderConfirmation(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	id, err := strconv.Atoi(
+		r.URL.Query().Get("id"),
+	)
+
 	if err != nil || id <= 0 {
 		http.Error(
 			w,
@@ -430,6 +673,7 @@ func (h *Handler) OrderConfirmation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	order, err := h.OrderService.GetOrderByID(id)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -448,8 +692,14 @@ func (h *Handler) OrderConfirmation(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(r.URL.Query().Get("id"))
+func (h *Handler) DeleteOrder(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	id, err := strconv.Atoi(
+		r.URL.Query().Get("id"),
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -476,18 +726,121 @@ func (h *Handler) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) AdminDashboard(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AdminDashboard(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	users, err := h.UserService.GetAllUsers()
+
+	if err != nil {
+		http.Error(
+			w,
+			"Failed to load users",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	shops, err := h.ShopService.GetShops()
+
+	if err != nil {
+		http.Error(
+			w,
+			"Failed to load shops",
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	data := struct {
+		TotalUsers  int
+		TotalShops  int
+		TotalOrders int
+		Users       []models.User
+		Shops       []models.Shop
+		Orders      []models.Order
+	}{
+		TotalUsers: len(users),
+		TotalShops: len(shops),
+		Users:      users,
+		Shops:      shops,
+	}
+
 	renderTemplate(
 		w,
 		"admin.html",
-		nil,
-		"web/templates/navbar.html",
+		data,
 		"web/templates/admin.html",
 	)
 }
 
-func (h *Handler) ShopOrders(w http.ResponseWriter, r *http.Request) {
-	session, err := h.Store.Get(r, "halisi-session")
+// AdminVerifyShop approves or rejects a shop.
+func (h *Handler) AdminVerifyShop(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	if r.Method != http.MethodPost {
+		http.Error(
+			w,
+			"Method Not Allowed",
+			http.StatusMethodNotAllowed,
+		)
+		return
+	}
+
+	id, err := strconv.Atoi(
+		r.FormValue("shop_id"),
+	)
+
+	if err != nil || id <= 0 {
+		http.Error(
+			w,
+			"Invalid shop ID",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	status := r.FormValue("status")
+
+	if status != "approved" && status != "rejected" {
+		http.Error(
+			w,
+			"Invalid verification status",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	if err := h.ShopService.UpdateShopVerificationStatus(
+		id,
+		status,
+	); err != nil {
+		http.Error(
+			w,
+			err.Error(),
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	http.Redirect(
+		w,
+		r,
+		"/admin",
+		http.StatusSeeOther,
+	)
+}
+
+func (h *Handler) ShopOrders(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	session, err := h.Store.Get(
+		r,
+		"halisi-session",
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -498,6 +851,7 @@ func (h *Handler) ShopOrders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ownerID, ok := session.Values["user_id"].(int)
+
 	if !ok || ownerID == 0 {
 		http.Redirect(
 			w,
@@ -508,7 +862,10 @@ func (h *Handler) ShopOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shop, err := h.ShopService.GetShopByOwnerID(ownerID)
+	shop, err := h.ShopService.GetShopByOwnerID(
+		ownerID,
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -518,7 +875,10 @@ func (h *Handler) ShopOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orders, err := h.OrderService.GetOrdersByShopID(shop.ID)
+	orders, err := h.OrderService.GetOrdersByShopID(
+		shop.ID,
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -545,8 +905,15 @@ func (h *Handler) ShopOrders(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) ShopManage(w http.ResponseWriter, r *http.Request) {
-	session, err := h.Store.Get(r, "halisi-session")
+func (h *Handler) ShopManage(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	session, err := h.Store.Get(
+		r,
+		"halisi-session",
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -557,6 +924,7 @@ func (h *Handler) ShopManage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ownerID, ok := session.Values["user_id"].(int)
+
 	if !ok || ownerID == 0 {
 		http.Redirect(
 			w,
@@ -567,7 +935,10 @@ func (h *Handler) ShopManage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shop, err := h.ShopService.GetShopByOwnerID(ownerID)
+	shop, err := h.ShopService.GetShopByOwnerID(
+		ownerID,
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -648,7 +1019,10 @@ func (h *Handler) ShopManage(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) UpdateOrderStatus(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	if r.Method != http.MethodPost {
 		http.Error(
 			w,
@@ -658,7 +1032,10 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := strconv.Atoi(r.FormValue("id"))
+	id, err := strconv.Atoi(
+		r.FormValue("id"),
+	)
+
 	if err != nil {
 		http.Error(
 			w,
@@ -688,8 +1065,14 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	session, err := h.Store.Get(r, "halisi-session")
+func (h *Handler) Logout(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	session, err := h.Store.Get(
+		r,
+		"halisi-session",
+	)
 
 	if err == nil {
 		session.Options.MaxAge = -1
