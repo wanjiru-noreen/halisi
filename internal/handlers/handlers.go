@@ -17,20 +17,23 @@ import (
 type Handler struct {
 	OrderService *services.OrderService
 	ShopService  *services.ShopService
-	UserService  *services.UserService
-	Store        *sessions.CookieStore
+	UserService       *services.UserService
+	KYCDocumentService *services.KYCDocumentService
+	Store              *sessions.CookieStore
 }
 
 func NewHandler(
 	userService *services.UserService,
 	shopService *services.ShopService,
 	orderService *services.OrderService,
+	kycDocumentService *services.KYCDocumentService,
 ) *Handler {
 	return &Handler{
-		OrderService: orderService,
-		ShopService:  shopService,
-		UserService:  userService,
-		Store:        middleware.Store,
+		OrderService:       orderService,
+		ShopService:        shopService,
+		UserService:        userService,
+		KYCDocumentService: kycDocumentService,
+		Store:              middleware.Store,
 	}
 }
 

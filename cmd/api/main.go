@@ -19,17 +19,22 @@ func main() {
 	userRepository := repository.NewUserRepository()
 	shopRepository := repository.NewShopRepository()
 	orderRepository := repository.NewOrderRepository()
+	kycDocumentRepository := repository.NewKYCDocumentRepository()
 
 	// Create services
 	userService := services.NewUserService(userRepository)
 	shopService := services.NewShopService(shopRepository)
 	orderService := services.NewOrderService(orderRepository)
+	kycDocumentService := services.NewKYCDocumentService(
+		kycDocumentRepository,
+	)
 
 	// Create handler
 	handler := handlers.NewHandler(
 		userService,
 		shopService,
 		orderService,
+		kycDocumentService,
 	)
 
 	// Serve static files
@@ -121,6 +126,30 @@ func main() {
 		),
 	)
 
+	http.HandleFunc(
+		"/admin/kyc",
+		middleware.RequireRole(
+			"admin",
+			handler.GetPendingKYCDocuments,
+		),
+	)
+
+	http.HandleFunc(
+		"/admin/kyc/review",
+		middleware.RequireRole(
+			"admin",
+			handler.ReviewKYCDocument,
+		),
+	)
+
+	http.HandleFunc(
+		"/admin/kyc/document",
+		middleware.RequireRole(
+			"admin",
+			handler.ViewKYCDocument,
+		),
+	)
+
 	// ---------------- SHOP OWNER ROUTES ----------------
 
 	http.HandleFunc(
@@ -136,6 +165,22 @@ func main() {
 		middleware.RequireRole(
 			"owner",
 			handler.ShopManage,
+		),
+	)
+
+	http.HandleFunc(
+		"/shop/kyc",
+		middleware.RequireRole(
+			"owner",
+			handler.GetKYCDocuments,
+		),
+	)
+
+	http.HandleFunc(
+		"/shop/kyc/upload",
+		middleware.RequireRole(
+			"owner",
+			handler.UploadKYCDocument,
 		),
 	)
 

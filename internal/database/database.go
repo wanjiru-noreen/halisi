@@ -70,6 +70,19 @@ func createTables() {
 	);
 	`
 
+	kycDocumentTable := `
+	CREATE TABLE IF NOT EXISTS kyc_documents (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		shop_id INTEGER NOT NULL,
+		document_type TEXT NOT NULL,
+		file_path TEXT NOT NULL,
+		status TEXT NOT NULL DEFAULT 'pending',
+		rejection_reason TEXT DEFAULT '',
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		reviewed_at DATETIME
+	);
+	`
+
 	_, err := DB.Exec(userTable)
 	if err != nil {
 		log.Fatal(err)
@@ -85,193 +98,72 @@ func createTables() {
 		log.Fatal(err)
 	}
 
+	_, err = DB.Exec(kycDocumentTable)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	ensureOrderColumns()
 	ensureShopColumns()
 }
 
 func ensureOrderColumns() {
-	rows, err := DB.Query("PRAGMA table_info(orders)")
-	if err != nil {
-		log.Fatal(err)
+	columns := map[string]string{
+		"delivery_address": "TEXT NOT NULL DEFAULT ''",
 	}
 
-	defer rows.Close()
+	for column, definition := range columns {
+		var count int
 
-	columns := map[string]bool{}
-
-	for rows.Next() {
-		var cid int
-		var name string
-		var ctype string
-		var notnull int
-		var dfltValue sql.NullString
-		var pk int
-
-		if err := rows.Scan(
-			&cid,
-			&name,
-			&ctype,
-			&notnull,
-			&dfltValue,
-			&pk,
-		); err != nil {
-			log.Fatal(err)
-		}
-
-		columns[name] = true
-	}
-
-	if !columns["delivery_address"] {
-		_, err := DB.Exec(`
-			ALTER TABLE orders
-			ADD COLUMN delivery_address TEXT NOT NULL DEFAULT ''
-		`)
+		err := DB.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info('orders') WHERE name = ?`,
+			column,
+		).Scan(&count)
 
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		if count == 0 {
+			_, err := DB.Exec(
+				"ALTER TABLE orders ADD COLUMN " + column + " " + definition,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
 
 func ensureShopColumns() {
-	rows, err := DB.Query("PRAGMA table_info(shops)")
-	if err != nil {
-		log.Fatal(err)
+	columns := map[string]string{
+		"latitude":                     "REAL DEFAULT 0",
+		"longitude":                    "REAL DEFAULT 0",
+		"business_registration_number": "TEXT DEFAULT ''",
+		"kra_pin":                      "TEXT DEFAULT ''",
+		"license_number":               "TEXT DEFAULT ''",
+		"verification_status":          "TEXT NOT NULL DEFAULT 'pending'",
 	}
 
-	defer rows.Close()
+	for column, definition := range columns {
+		var count int
 
-	columns := map[string]bool{}
-
-	for rows.Next() {
-		var cid int
-		var name string
-		var ctype string
-		var notnull int
-		var dfltValue sql.NullString
-		var pk int
-
-		if err := rows.Scan(
-			&cid,
-			&name,
-			&ctype,
-			&notnull,
-			&dfltValue,
-			&pk,
-		); err != nil {
-			log.Fatal(err)
-		}
-
-		columns[name] = true
-	}
-
-	if !columns["price_6kg"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN price_6kg REAL NOT NULL DEFAULT 0
-		`)
+		err := DB.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info('shops') WHERE name = ?`,
+			column,
+		).Scan(&count)
 
 		if err != nil {
 			log.Fatal(err)
 		}
-	}
 
-	if !columns["price_13kg"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN price_13kg REAL NOT NULL DEFAULT 0
-		`)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if !columns["price_45kg"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN price_45kg REAL NOT NULL DEFAULT 0
-		`)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if !columns["owner_id"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN owner_id INTEGER
-		`)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if !columns["latitude"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN latitude REAL DEFAULT 0
-		`)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if !columns["longitude"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN longitude REAL DEFAULT 0
-		`)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if !columns["business_registration_number"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN business_registration_number TEXT DEFAULT ''
-		`)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if !columns["kra_pin"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN kra_pin TEXT DEFAULT ''
-		`)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if !columns["license_number"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN license_number TEXT DEFAULT ''
-		`)
-
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if !columns["verification_status"] {
-		_, err := DB.Exec(`
-			ALTER TABLE shops
-			ADD COLUMN verification_status TEXT NOT NULL DEFAULT 'pending'
-		`)
-
-		if err != nil {
-			log.Fatal(err)
+		if count == 0 {
+			_, err := DB.Exec(
+				"ALTER TABLE shops ADD COLUMN " + column + " " + definition,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
