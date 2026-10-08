@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"halisi/internal/email"
 	"halisi/internal/middleware"
 	"halisi/internal/models"
 	"halisi/internal/services"
@@ -117,9 +118,9 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := r.FormValue("email")
+	emailAddress := r.FormValue("email")
 
-	if email == "" {
+	if emailAddress == "" {
 		http.Error(
 			w,
 			"email is required",
@@ -170,7 +171,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	user := models.User{
 		Name:     fullName,
-		Email:    email,
+		Email:    emailAddress,
 		Password: password,
 		Role:     role,
 	}
@@ -186,6 +187,26 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(
 			w,
 			"Failed to register user: "+err.Error(),
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	// Send email verification link.
+	err = email.SendVerificationEmail(
+		registeredUser.Email,
+		registeredUser.VerificationToken,
+	)
+
+	if err != nil {
+		log.Printf(
+			"Error sending verification email: %v",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Failed to send verification email",
 			http.StatusInternalServerError,
 		)
 		return
@@ -216,6 +237,30 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 			)
 			return
 		}
+	}
+
+	http.Redirect(
+		w,
+		r,
+		"/login",
+		http.StatusSeeOther,
+	)
+}
+
+// VerifyEmail verifies a user's email address using the token from the email link.
+func (h *Handler) VerifyEmail(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	token := r.URL.Query().Get("token")
+
+	if err := h.UserService.VerifyEmail(token); err != nil {
+		http.Error(
+			w,
+			"Email verification failed: "+err.Error(),
+			http.StatusBadRequest,
+		)
+		return
 	}
 
 	http.Redirect(

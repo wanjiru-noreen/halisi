@@ -48,6 +48,7 @@ func main() {
 	http.HandleFunc("/", handler.Home)
 	http.HandleFunc("/login", handler.Login)
 	http.HandleFunc("/register", handler.Register)
+	http.HandleFunc("/verify-email", handler.VerifyEmail)
 	http.HandleFunc("/logout", handler.Logout)
 
 	// ---------------- CUSTOMER ROUTES ----------------
