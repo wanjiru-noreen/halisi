@@ -16,11 +16,30 @@ func NewUserRepository() *UserRepository {
 	return &UserRepository{db: database.DB}
 }
 
-// CreateUser inserts a new user record into the SQLite database, including their role
+// CreateUser inserts a new user record into the SQLite database,
+// including their role and email verification information.
 func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
-	query := `INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)`
+	query := `
+		INSERT INTO users (
+			name,
+			email,
+			password,
+			role,
+			email_verified,
+			verification_token
+		)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`
 
-	result, err := r.db.Exec(query, user.Name, user.Email, user.Password, user.Role)
+	result, err := r.db.Exec(
+		query,
+		user.Name,
+		user.Email,
+		user.Password,
+		user.Role,
+		user.EmailVerified,
+		user.VerificationToken,
+	)
 	if err != nil {
 		return models.User{}, fmt.Errorf("failed to insert user: %w", err)
 	}
@@ -34,24 +53,42 @@ func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 	return user, nil
 }
 
-// GetUserByEmail retrieves a user by their email address for authentication
+// GetUserByEmail retrieves a user by their email address for authentication.
 func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
-	query := `SELECT id, name, email, password, role FROM users WHERE email = ?`
+	query := `
+		SELECT
+			id,
+			name,
+			email,
+			password,
+			role,
+			email_verified,
+			verification_token
+		FROM users
+		WHERE email = ?
+	`
 
 	user := models.User{}
+
 	err := r.db.QueryRow(query, email).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
 		&user.Password,
 		&user.Role,
+		&user.EmailVerified,
+		&user.VerificationToken,
 	)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, nil
 		}
-		return models.User{}, fmt.Errorf("failed to query user by email: %w", err)
+
+		return models.User{}, fmt.Errorf(
+			"failed to query user by email: %w",
+			err,
+		)
 	}
 
 	return user, nil
@@ -59,18 +96,40 @@ func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
 
 // GetUsers returns all registered users.
 func (r *UserRepository) GetUsers() ([]models.User, error) {
-	rows, err := r.db.Query(`SELECT id, name, email, password, role FROM users ORDER BY id`)
+	rows, err := r.db.Query(`
+		SELECT
+			id,
+			name,
+			email,
+			password,
+			role,
+			email_verified,
+			verification_token
+		FROM users
+		ORDER BY id
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query users: %w", err)
 	}
 	defer rows.Close()
 
 	users := []models.User{}
+
 	for rows.Next() {
 		var user models.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Password, &user.Role); err != nil {
+
+		if err := rows.Scan(
+			&user.ID,
+			&user.Name,
+			&user.Email,
+			&user.Password,
+			&user.Role,
+			&user.EmailVerified,
+			&user.VerificationToken,
+		); err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
+
 		users = append(users, user)
 	}
 

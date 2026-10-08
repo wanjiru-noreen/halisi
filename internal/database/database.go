@@ -34,7 +34,9 @@ func createTables() {
 		name TEXT NOT NULL,
 		email TEXT NOT NULL UNIQUE,
 		password TEXT NOT NULL,
-		role TEXT NOT NULL
+		role TEXT NOT NULL,
+		email_verified INTEGER NOT NULL DEFAULT 0,
+		verification_token TEXT DEFAULT ''
 	);
 	`
 
@@ -103,8 +105,38 @@ func createTables() {
 		log.Fatal(err)
 	}
 
+	ensureUserColumns()
 	ensureOrderColumns()
 	ensureShopColumns()
+}
+
+func ensureUserColumns() {
+	columns := map[string]string{
+		"email_verified":     "INTEGER NOT NULL DEFAULT 0",
+		"verification_token": "TEXT DEFAULT ''",
+	}
+
+	for column, definition := range columns {
+		var count int
+
+		err := DB.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info('users') WHERE name = ?`,
+			column,
+		).Scan(&count)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if count == 0 {
+			_, err := DB.Exec(
+				"ALTER TABLE users ADD COLUMN " + column + " " + definition,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
 }
 
 func ensureOrderColumns() {

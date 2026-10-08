@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Find Trusted Gas Suppliers | Halisi</title>
-    
+    <title>Verified Gas Suppliers | Halisi</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
+
     <link rel="stylesheet" href="/static/css/style.css">
 
     <style>
@@ -51,12 +51,6 @@
             grid-template-columns: 2fr 3fr auto;
             gap: 25px;
             align-items: center;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .shop-card-modern:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 14px 35px rgba(46, 10, 155, 0.08);
         }
 
         .shop-info h3 {
@@ -68,7 +62,7 @@
 
         .shop-meta {
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
             gap: 15px;
             color: #666;
             font-size: 14px;
@@ -83,9 +77,6 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
-        }
-
-        .status-badge.open {
             background: #e6f4ea;
             color: #137333;
         }
@@ -131,7 +122,6 @@
             display: flex;
             flex-direction: column;
             align-items: flex-end;
-            gap: 10px;
         }
 
         .btn-order-shop {
@@ -143,14 +133,30 @@
             border: none;
             cursor: pointer;
             text-decoration: none;
-            transition: background 0.2s;
-            box-shadow: 0 4px 12px rgba(255, 216, 77, 0.3);
             text-align: center;
             white-space: nowrap;
         }
 
         .btn-order-shop:hover {
             background: #ffcf31;
+        }
+
+        .empty-state {
+            background: white;
+            border: 1px solid #eceaf5;
+            border-radius: 20px;
+            padding: 50px 25px;
+            text-align: center;
+        }
+
+        .empty-state h2 {
+            color: #2E0A9B;
+            margin: 0 0 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+            margin: 0;
         }
 
         @media (max-width: 900px) {
@@ -162,109 +168,85 @@
             .shop-action {
                 align-items: stretch;
             }
-
-            .btn-order-shop {
-                text-align: center;
-            }
         }
     </style>
 </head>
+
 <body>
 
 {{template "navbar.html" .}}
 
 <main class="shops-page">
     <div class="container">
-        
+
         <div class="shops-header">
-            <h1>Find a Trusted Gas Supplier</h1>
-            <p>Browse verified gas suppliers near you and order from your preferred shop.</p>
+            <h1>Verified Gas Suppliers</h1>
+            <p>Choose from gas suppliers that have been verified by Halisi.</p>
         </div>
 
+        {{if .Shops}}
         <div class="shops-grid">
 
-            <!-- Shell Gas Card -->
+            {{range .Shops}}
             <div class="shop-card-modern">
+
                 <div class="shop-info">
-                    <h3>Shell Gas</h3>
+                    <h3>{{.Name}}</h3>
+
                     <div class="shop-meta">
-                        <span>📍 Kisumu CBD</span>
-                        <span>📞 0712345678</span>
+                        <span>📍 {{.Location}}</span>
+                        <span>📞 {{.Phone}}</span>
                     </div>
-                    <span class="status-badge open">
-                        ● Open Now
+
+                    <span class="status-badge">
+                        ● Verified
                     </span>
                 </div>
 
                 <div class="pricing-section">
-                    <div class="pricing-title">Cylinder Prices & Sizes</div>
+                    <div class="pricing-title">
+                        Cylinder Prices & Sizes
+                    </div>
+
                     <div class="price-chips">
-                        <div class="price-chip">6KG <span>KSh 1400</span></div>
-                        <div class="price-chip">13KG <span>KSh 2800</span></div>
-                        <div class="price-chip">45KG <span>KSh 6000</span></div>
+                        <div class="price-chip">
+                            6KG <span>KSh {{.Price6kg}}</span>
+                        </div>
+
+                        <div class="price-chip">
+                            13KG <span>KSh {{.Price13kg}}</span>
+                        </div>
+
+                        <div class="price-chip">
+                            45KG <span>KSh {{.Price45kg}}</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="shop-action">
-                    <a href="/order" class="btn-order-shop">Order from this shop</a>
+                    <a
+                        href="/order?shop_id={{.ID}}"
+                        class="btn-order-shop"
+                    >
+                        Order from this shop
+                    </a>
                 </div>
+
             </div>
-
-            <!-- Rubis Gas Card -->
-            <div class="shop-card-modern">
-                <div class="shop-info">
-                    <h3>Rubis Gas</h3>
-                    <div class="shop-meta">
-                        <span>📍 Kondele</span>
-                        <span>📞 0723456789</span>
-                    </div>
-                    <span class="status-badge open">
-                        ● Open Now
-                    </span>
-                </div>
-
-                <div class="pricing-section">
-                    <div class="pricing-title">Cylinder Prices & Sizes</div>
-                    <div class="price-chips">
-                        <div class="price-chip">6KG <span>KSh 1450</span></div>
-                        <div class="price-chip">13KG <span>KSh 2900</span></div>
-                        <div class="price-chip">45KG <span>KSh 6000</span></div>
-                    </div>
-                </div>
-
-                <div class="shop-action">
-                    <a href="/order" class="btn-order-shop">Order from this shop</a>
-                </div>
-            </div>
-
-            <!-- TotalEnergies Card -->
-            <div class="shop-card-modern">
-                <div class="shop-info">
-                    <h3>TotalEnergies</h3>
-                    <div class="shop-meta">
-                        <span>📍 Milimani</span>
-                        <span>📞 0734567890</span>
-                    </div>
-                    <span class="status-badge open">
-                        ● Open Now
-                    </span>
-                </div>
-
-                <div class="pricing-section">
-                    <div class="pricing-title">Cylinder Prices & Sizes</div>
-                    <div class="price-chips">
-                        <div class="price-chip">6KG <span>KSh 1500</span></div>
-                        <div class="price-chip">13KG <span>KSh 3000</span></div>
-                        <div class="price-chip">45KG <span>KSh 6000</span></div>
-                    </div>
-                </div>
-
-                <div class="shop-action">
-                    <a href="/order" class="btn-order-shop">Order from this shop</a>
-                </div>
-            </div>
+            {{end}}
 
         </div>
+        {{else}}
+
+        <div class="empty-state">
+            <h2>No verified shops yet</h2>
+            <p>
+                There are currently no approved gas suppliers available.
+                Please check again later.
+            </p>
+        </div>
+
+        {{end}}
 
     </div>
 </main>

@@ -1,7 +1,10 @@
 package services
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"net/mail"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -38,6 +41,11 @@ func (s *UserService) RegisterUser(user models.User) (models.User, error) {
 		return models.User{}, errors.New("email is required")
 	}
 
+	_, err := mail.ParseAddress(user.Email)
+	if err != nil {
+		return models.User{}, errors.New("invalid email address")
+	}
+
 	// Validate password
 	if user.Password == "" {
 		return models.User{}, errors.New("password is required")
@@ -68,6 +76,17 @@ func (s *UserService) RegisterUser(user models.User) (models.User, error) {
 	}
 
 	user.Password = string(hashedPassword)
+
+	// Generate email verification token
+	tokenBytes := make([]byte, 32)
+
+	_, err = rand.Read(tokenBytes)
+	if err != nil {
+		return models.User{}, errors.New("failed to generate verification token")
+	}
+
+	user.EmailVerified = false
+	user.VerificationToken = hex.EncodeToString(tokenBytes)
 
 	// Save user
 	return s.repo.CreateUser(user)
@@ -100,6 +119,11 @@ func (s *UserService) LoginUser(email, password string) (models.User, error) {
 
 	if err != nil {
 		return models.User{}, nil
+	}
+
+	// Email must be verified before login
+	if !user.EmailVerified {
+		return models.User{}, errors.New("email address is not verified")
 	}
 
 	return user, nil

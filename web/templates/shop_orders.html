@@ -1,19 +1,16 @@
 <!DOCTYPE html>
-
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Incoming Orders | Halisi</title>
-
-<link rel="stylesheet" href="/static/css/style.css">
-
+    <title>Incoming Orders | Halisi</title>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
 <body>
 
-{{template "navbar.html" .}}
+{{template "vendor_navbar.html" .}}
 
 <main class="shop-orders-page">
 
@@ -207,10 +204,13 @@
         {{else}}
 
         <div class="empty-orders">
+
             <h3>No Incoming Orders</h3>
+
             <p>
                 There are currently no customer orders for this shop.
             </p>
+
         </div>
 
         {{end}}
