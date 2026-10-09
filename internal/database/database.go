@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"log"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -12,7 +13,12 @@ var DB *sql.DB
 func ConnectDatabase() {
 	var err error
 
-	DB, err = sql.Open("sqlite3", "halisi.db")
+	dbPath := os.Getenv("DATABASE_PATH")
+	if dbPath == "" {
+		dbPath = "halisi.db"
+	}
+
+	DB, err = sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -114,7 +120,7 @@ func ensureUserColumns() {
 	columns := map[string]string{
 		"email_verified":     "INTEGER NOT NULL DEFAULT 0",
 		"verification_token": "TEXT DEFAULT ''",
-		"google_id": "TEXT NOT NULL DEFAULT ''",
+		"google_id":          "TEXT NOT NULL DEFAULT ''",
 	}
 
 	for column, definition := range columns {
