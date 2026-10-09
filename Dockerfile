@@ -1,4 +1,4 @@
-FROM golang:1.24
+FROM golang:1.26
 
 RUN apt-get update && apt-get install -y gcc libc6-dev sqlite3 libsqlite3-dev
 
