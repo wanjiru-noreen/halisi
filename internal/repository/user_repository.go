@@ -16,8 +16,7 @@ func NewUserRepository() *UserRepository {
 	return &UserRepository{db: database.DB}
 }
 
-// CreateUser inserts a new user record into the SQLite database,
-// including their role and email verification information.
+// CreateUser inserts a new user record.
 func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 	query := `
 		INSERT INTO users (
@@ -26,9 +25,10 @@ func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 			password,
 			role,
 			email_verified,
-			verification_token
+			verification_token,
+			google_id
 		)
-		VALUES (?, ?, ?, ?, ?, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
 
 	result, err := r.db.Exec(
@@ -39,12 +39,10 @@ func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 		user.Role,
 		user.EmailVerified,
 		user.VerificationToken,
+		user.GoogleID,
 	)
 	if err != nil {
-		return models.User{}, fmt.Errorf(
-			"failed to insert user: %w",
-			err,
-		)
+		return models.User{}, fmt.Errorf("failed to insert user: %w", err)
 	}
 
 	id, err := result.LastInsertId()
@@ -59,8 +57,7 @@ func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 	return user, nil
 }
 
-// UpdateUnverifiedUser updates an existing unverified user's
-// details and generates a new verification token.
+// UpdateUnverifiedUser updates an existing unverified user's details.
 func (r *UserRepository) UpdateUnverifiedUser(user models.User) error {
 	_, err := r.db.Exec(`
 		UPDATE users
@@ -79,18 +76,14 @@ func (r *UserRepository) UpdateUnverifiedUser(user models.User) error {
 		user.VerificationToken,
 		user.ID,
 	)
-
 	if err != nil {
-		return fmt.Errorf(
-			"failed to update unverified user: %w",
-			err,
-		)
+		return fmt.Errorf("failed to update unverified user: %w", err)
 	}
 
 	return nil
 }
 
-// GetUserByEmail retrieves a user by their email address for authentication.
+// GetUserByEmail retrieves a user by email.
 func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
 	query := `
 		SELECT
@@ -100,12 +93,13 @@ func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
 			password,
 			role,
 			email_verified,
-			verification_token
+			verification_token,
+			google_id
 		FROM users
 		WHERE email = ?
 	`
 
-	user := models.User{}
+	var user models.User
 
 	err := r.db.QueryRow(query, email).Scan(
 		&user.ID,
@@ -115,24 +109,20 @@ func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
 		&user.Role,
 		&user.EmailVerified,
 		&user.VerificationToken,
+		&user.GoogleID,
 	)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, nil
 		}
 
-		return models.User{}, fmt.Errorf(
-			"failed to query user by email: %w",
-			err,
-		)
+		return models.User{}, fmt.Errorf("failed to query user by email: %w", err)
 	}
 
 	return user, nil
 }
 
-// GetUserByVerificationToken retrieves a user using their email
-// verification token.
+// GetUserByVerificationToken retrieves a user by verification token.
 func (r *UserRepository) GetUserByVerificationToken(
 	token string,
 ) (models.User, error) {
@@ -144,12 +134,13 @@ func (r *UserRepository) GetUserByVerificationToken(
 			password,
 			role,
 			email_verified,
-			verification_token
+			verification_token,
+			google_id
 		FROM users
 		WHERE verification_token = ?
 	`
 
-	user := models.User{}
+	var user models.User
 
 	err := r.db.QueryRow(query, token).Scan(
 		&user.ID,
@@ -159,8 +150,8 @@ func (r *UserRepository) GetUserByVerificationToken(
 		&user.Role,
 		&user.EmailVerified,
 		&user.VerificationToken,
+		&user.GoogleID,
 	)
-
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, nil
@@ -175,8 +166,7 @@ func (r *UserRepository) GetUserByVerificationToken(
 	return user, nil
 }
 
-// VerifyUserEmail marks a user's email as verified and clears
-// the verification token so it cannot be reused.
+// VerifyUserEmail marks a user's email as verified and clears the token.
 func (r *UserRepository) VerifyUserEmail(userID int) error {
 	_, err := r.db.Exec(`
 		UPDATE users
@@ -185,12 +175,8 @@ func (r *UserRepository) VerifyUserEmail(userID int) error {
 			verification_token = ''
 		WHERE id = ?
 	`, userID)
-
 	if err != nil {
-		return fmt.Errorf(
-			"failed to verify user email: %w",
-			err,
-		)
+		return fmt.Errorf("failed to verify user email: %w", err)
 	}
 
 	return nil
@@ -206,15 +192,13 @@ func (r *UserRepository) GetUsers() ([]models.User, error) {
 			password,
 			role,
 			email_verified,
-			verification_token
+			verification_token,
+			google_id
 		FROM users
 		ORDER BY id
 	`)
 	if err != nil {
-		return nil, fmt.Errorf(
-			"failed to query users: %w",
-			err,
-		)
+		return nil, fmt.Errorf("failed to query users: %w", err)
 	}
 	defer rows.Close()
 
@@ -231,22 +215,91 @@ func (r *UserRepository) GetUsers() ([]models.User, error) {
 			&user.Role,
 			&user.EmailVerified,
 			&user.VerificationToken,
+			&user.GoogleID,
 		); err != nil {
-			return nil, fmt.Errorf(
-				"failed to scan user: %w",
-				err,
-			)
+			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 
 		users = append(users, user)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf(
-			"failed to iterate users: %w",
+		return nil, fmt.Errorf("failed to iterate users: %w", err)
+	}
+
+	return users, nil
+}
+
+// GetUserByGoogleID retrieves a user by their Google account ID.
+func (r *UserRepository) GetUserByGoogleID(
+	googleID string,
+) (models.User, error) {
+	query := `
+		SELECT
+			id,
+			name,
+			email,
+			password,
+			role,
+			email_verified,
+			verification_token,
+			google_id
+		FROM users
+		WHERE google_id = ?
+	`
+
+	var user models.User
+
+	err := r.db.QueryRow(query, googleID).Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+		&user.Password,
+		&user.Role,
+		&user.EmailVerified,
+		&user.VerificationToken,
+		&user.GoogleID,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.User{}, nil
+		}
+
+		return models.User{}, fmt.Errorf(
+			"failed to query user by Google ID: %w",
 			err,
 		)
 	}
 
-	return users, nil
+	return user, nil
+}
+
+// LinkGoogleID links a Google account to an existing verified user.
+func (r *UserRepository) LinkGoogleID(
+	userID int,
+	googleID string,
+) error {
+	result, err := r.db.Exec(`
+		UPDATE users
+		SET google_id = ?
+		WHERE id = ?
+		  AND email_verified = 1
+		  AND google_id = ''
+	`, googleID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to link Google account: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to check Google account link: %w", err)
+	}
+
+	if rows != 1 {
+		return fmt.Errorf(
+			"Google account could not be linked: user is unverified or already linked",
+		)
+	}
+
+	return nil
 }

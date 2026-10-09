@@ -114,6 +114,7 @@ func ensureUserColumns() {
 	columns := map[string]string{
 		"email_verified":     "INTEGER NOT NULL DEFAULT 0",
 		"verification_token": "TEXT DEFAULT ''",
+		"google_id": "TEXT NOT NULL DEFAULT ''",
 	}
 
 	for column, definition := range columns {

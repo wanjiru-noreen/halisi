@@ -1,9 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HALISI | Register</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,6 +16,7 @@
 
 <div class="auth-container">
     <div class="auth-card">
+
         <div class="auth-header">
             <a href="/" class="logo">
                 <span class="logo-icon">🔥</span>
@@ -23,12 +26,30 @@
             <p>Join Halisi and order gas from verified shops in your area.</p>
         </div>
 
+        <!-- Google registration -->
+        <a href="/auth/google" class="google-btn">
+            <img
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                alt=""
+                width="20"
+                height="20"
+            >
+            <span>Continue with Google</span>
+        </a>
+
+        <div class="auth-divider">
+            <span>OR REGISTER WITH EMAIL</span>
+        </div>
+
+        <!-- Email registration -->
         <form action="/register" method="POST" class="auth-form">
+
             <div class="form-group">
                 <label for="fullname">Full Name</label>
                 <div class="input-with-icon">
                     <i class="fa-solid fa-user"></i>
-                    <input type="text" id="fullname" name="fullname" placeholder="Enter your full name" required>
+                    <input type="text" id="fullname" name="fullname"
+                           placeholder="Enter your full name" required>
                 </div>
             </div>
 
@@ -36,7 +57,9 @@
                 <label for="email">Email address</label>
                 <div class="input-with-icon">
                     <i class="fa-solid fa-envelope"></i>
-                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    <input type="email" id="email" name="email"
+                           placeholder="Enter your email"
+                           autocomplete="email" required>
                 </div>
             </div>
 
@@ -44,7 +67,9 @@
                 <label for="password">Password</label>
                 <div class="input-with-icon">
                     <i class="fa-solid fa-lock"></i>
-                    <input type="password" id="password" name="password" placeholder="Create a password" required>
+                    <input type="password" id="password" name="password"
+                           placeholder="Create a password"
+                           autocomplete="new-password" required>
                 </div>
             </div>
 
@@ -64,31 +89,39 @@
                     <label for="shop_name">Shop Name</label>
                     <div class="input-with-icon">
                         <i class="fa-solid fa-store"></i>
-                        <input type="text" id="shop_name" name="shop_name" placeholder="Enter your shop name">
+                        <input type="text" id="shop_name" name="shop_name"
+                               placeholder="Enter your shop name">
                     </div>
                 </div>
+
                 <div class="form-group">
                     <label for="location">Shop Location</label>
                     <div class="input-with-icon">
                         <i class="fa-solid fa-location-dot"></i>
-                        <input type="text" id="location" name="location" placeholder="Enter your shop location">
+                        <input type="text" id="location" name="location"
+                               placeholder="Enter your shop location">
                     </div>
                 </div>
+
                 <div class="form-group">
                     <label for="phone">Shop Phone</label>
                     <div class="input-with-icon">
                         <i class="fa-solid fa-phone"></i>
-                        <input type="tel" id="phone" name="phone" placeholder="Enter your shop phone">
+                        <input type="tel" id="phone" name="phone"
+                               placeholder="Enter your shop phone">
                     </div>
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-full">Register</button>
+            <button type="submit" class="btn btn-primary btn-full">
+                Register
+            </button>
         </form>
 
         <div class="auth-footer">
             <p>Already have an account? <a href="/login">Login</a></p>
         </div>
+
     </div>
 </div>
 
@@ -100,7 +133,10 @@ const shopInputs = shopFields.querySelectorAll('input');
 function updateShopFields() {
     const isVendor = accountType.value === 'vendor';
     shopFields.hidden = !isVendor;
-    shopInputs.forEach((input) => input.required = isVendor);
+
+    shopInputs.forEach(input => {
+        input.required = isVendor;
+    });
 }
 
 accountType.addEventListener('change', updateShopFields);
@@ -116,12 +152,14 @@ updateShopFields();
     justify-content: center;
     font-family: 'Poppins', sans-serif;
     color: #1e293b;
+    margin: 0;
 }
 
 .auth-container {
     width: 100%;
     max-width: 440px;
     padding: 20px;
+    box-sizing: border-box;
 }
 
 .auth-card {
@@ -192,12 +230,13 @@ updateShopFields();
     padding: 12px 14px 12px 42px;
     border: 1px solid #cbd5e1;
     border-radius: 12px;
-    font-size: 0.90rem;
+    font-size: 0.9rem;
     font-family: 'Poppins', sans-serif;
     outline: none;
     transition: 0.2s ease;
     background: #f8fafc;
     color: #1e293b;
+    box-sizing: border-box;
 }
 
 .input-with-icon select {
@@ -224,11 +263,52 @@ updateShopFields();
     cursor: pointer;
     transition: 0.2s ease;
     margin-top: 6px;
+    font-family: 'Poppins', sans-serif;
 }
 
 .btn-full:hover {
     background: #4338ca;
     transform: translateY(-1px);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 22px 0;
+    color: #94a3b8;
+    font-size: 0.72rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: white;
+    color: #334155;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    box-sizing: border-box;
+}
+
+.google-btn:hover {
+    background: #f8fafc;
 }
 
 .auth-footer {
@@ -246,6 +326,12 @@ updateShopFields();
 
 .auth-footer a:hover {
     text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 32px 22px;
+    }
 }
 </style>
 

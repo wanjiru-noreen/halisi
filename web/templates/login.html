@@ -4,67 +4,115 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HALISI | Login</title>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body class="auth-body">
 
 <div class="auth-container">
     <div class="auth-card">
+
         <div class="auth-header">
             <a href="/" class="logo">
                 <span class="logo-icon">🔥</span>
                 <span>HALISI</span>
             </a>
+
             <h2>Welcome back</h2>
             <p>Sign in to continue ordering safe and reliable gas delivery.</p>
         </div>
 
+        <!-- Email and password login -->
         <form action="/login" method="POST" class="auth-form">
+
             <div class="form-group">
                 <label for="email">Email address</label>
+
                 <div class="input-with-icon">
                     <i class="fa-solid fa-envelope"></i>
-                    <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="Enter your email"
+                        autocomplete="email"
+                        required
+                    >
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="password">Password</label>
+
                 <div class="input-with-icon">
                     <i class="fa-solid fa-lock"></i>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                    >
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+            <button type="submit" class="btn btn-primary btn-full">
+                Sign In
+            </button>
         </form>
 
+        <!-- Divider -->
+        <div class="auth-divider">
+            <span>OR</span>
+        </div>
+
+        <!-- Google sign-in -->
+        <a href="/auth/google" class="google-btn">
+            <img
+                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                alt=""
+                width="20"
+                height="20"
+            >
+            <span>Continue with Google</span>
+        </a>
+
+        <!-- Registration link -->
         <div class="auth-footer">
             <p>Don't have an account? <a href="/register">Register</a></p>
         </div>
+
     </div>
 </div>
 
 <style>
-/* Auth Page Specific Styles */
 .auth-body {
-    background: radial-gradient(circle at 20% 30%, #2e1065 0%, #171138 60%, #0f0c24 100%);
+    background: radial-gradient(
+        circle at 20% 30%,
+        #2e1065 0%,
+        #171138 60%,
+        #0f0c24 100%
+    );
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Poppins', sans-serif;
     color: #1e293b;
+    margin: 0;
 }
 
 .auth-container {
     width: 100%;
     max-width: 440px;
     padding: 20px;
+    box-sizing: border-box;
 }
 
 .auth-card {
@@ -138,6 +186,7 @@
     outline: none;
     transition: 0.2s ease;
     background: #f8fafc;
+    box-sizing: border-box;
 }
 
 .input-with-icon input:focus {
@@ -158,11 +207,52 @@
     cursor: pointer;
     transition: 0.2s ease;
     margin-top: 10px;
+    font-family: 'Poppins', sans-serif;
 }
 
 .btn-full:hover {
     background: #4338ca;
     transform: translateY(-1px);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 22px 0;
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+}
+
+.google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    background: white;
+    color: #334155;
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.2s ease;
+    box-sizing: border-box;
+}
+
+.google-btn:hover {
+    background: #f8fafc;
 }
 
 .auth-footer {
@@ -180,6 +270,12 @@
 
 .auth-footer a:hover {
     text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 32px 22px;
+    }
 }
 </style>
 

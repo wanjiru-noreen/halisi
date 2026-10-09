@@ -8,4 +8,5 @@ type User struct {
 	Role              string
 	EmailVerified     bool
 	VerificationToken string
+	GoogleID          string
 }

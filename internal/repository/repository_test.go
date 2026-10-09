@@ -28,7 +28,8 @@ func setupTestDB(t *testing.T) {
 			password TEXT NOT NULL,
 			role TEXT NOT NULL,
 			email_verified INTEGER NOT NULL DEFAULT 0,
-			verification_token TEXT DEFAULT ''
+			verification_token TEXT DEFAULT '',
+			google_id TEXT NOT NULL DEFAULT ''
 		);
 
 		CREATE TABLE shops (

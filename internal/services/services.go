@@ -33,8 +33,7 @@ func (s *UserService) RegisterUser(user models.User) (models.User, error) {
 		return models.User{}, errors.New("email is required")
 	}
 
-	_, err := mail.ParseAddress(user.Email)
-	if err != nil {
+	if _, err := mail.ParseAddress(user.Email); err != nil {
 		return models.User{}, errors.New("invalid email address")
 	}
 
@@ -66,9 +65,7 @@ func (s *UserService) RegisterUser(user models.User) (models.User, error) {
 	user.Password = string(hashedPassword)
 
 	tokenBytes := make([]byte, 32)
-
-	_, err = rand.Read(tokenBytes)
-	if err != nil {
+	if _, err := rand.Read(tokenBytes); err != nil {
 		return models.User{}, errors.New(
 			"failed to generate verification token",
 		)
@@ -80,12 +77,67 @@ func (s *UserService) RegisterUser(user models.User) (models.User, error) {
 	if existingUser.ID != 0 {
 		user.ID = existingUser.ID
 
-		err = s.repo.UpdateUnverifiedUser(user)
-		if err != nil {
+		if err := s.repo.UpdateUnverifiedUser(user); err != nil {
 			return models.User{}, err
 		}
 
 		return user, nil
+	}
+
+	return s.repo.CreateUser(user)
+}
+
+func (s *UserService) RegisterGoogleUser(
+	name, email, googleID string,
+) (models.User, error) {
+	name = strings.TrimSpace(name)
+	email = strings.TrimSpace(strings.ToLower(email))
+	googleID = strings.TrimSpace(googleID)
+
+	if email == "" || googleID == "" {
+		return models.User{}, errors.New(
+			"Google account information is incomplete",
+		)
+	}
+
+	if _, err := mail.ParseAddress(email); err != nil {
+		return models.User{}, errors.New("invalid email address")
+	}
+
+	if name == "" {
+		name = strings.SplitN(email, "@", 2)[0]
+	}
+
+	existingUser, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	if existingUser.ID != 0 {
+		if existingUser.GoogleID == googleID {
+			return existingUser, nil
+		}
+
+		return models.User{}, errors.New(
+			"an account with this email already exists; sign in using your existing method",
+		)
+	}
+
+	existingGoogleUser, err := s.repo.GetUserByGoogleID(googleID)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	if existingGoogleUser.ID != 0 {
+		return existingGoogleUser, nil
+	}
+
+	user := models.User{
+		Name:          name,
+		Email:         email,
+		Role:          "customer",
+		EmailVerified: true,
+		GoogleID:      googleID,
 	}
 
 	return s.repo.CreateUser(user)
@@ -104,6 +156,10 @@ func (s *UserService) LoginUser(email, password string) (models.User, error) {
 	}
 
 	if user.ID == 0 {
+		return models.User{}, nil
+	}
+
+	if user.Password == "" {
 		return models.User{}, nil
 	}
 
@@ -152,7 +208,6 @@ type ShopService struct {
 func NewShopService(repo *repository.ShopRepository) *ShopService {
 	return &ShopService{repo: repo}
 }
-
 func (s *ShopService) CreateShop(shop models.Shop) (models.Shop, error) {
 	shop.Name = strings.TrimSpace(shop.Name)
 	shop.Location = strings.TrimSpace(shop.Location)
