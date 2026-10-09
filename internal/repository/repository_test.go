@@ -26,7 +26,9 @@ func setupTestDB(t *testing.T) {
 			name TEXT NOT NULL,
 			email TEXT NOT NULL UNIQUE,
 			password TEXT NOT NULL,
-			role TEXT NOT NULL
+			role TEXT NOT NULL,
+			email_verified INTEGER NOT NULL DEFAULT 0,
+			verification_token TEXT DEFAULT ''
 		);
 
 		CREATE TABLE shops (
@@ -82,10 +84,12 @@ func TestUserRepository(t *testing.T) {
 
 	t.Run("CreateUser", func(t *testing.T) {
 		user := models.User{
-			Name:     "John Doe",
-			Email:    "john@example.com",
-			Password: "hashed-password",
-			Role:     "customer",
+			Name:              "John Doe",
+			Email:             "john@example.com",
+			Password:          "hashed-password",
+			Role:              "customer",
+			EmailVerified:     false,
+			VerificationToken: "test-token",
 		}
 
 		created, err := repo.CreateUser(user)
@@ -112,6 +116,18 @@ func TestUserRepository(t *testing.T) {
 				created.Email,
 			)
 		}
+
+		if created.EmailVerified {
+			t.Error("expected email to be unverified")
+		}
+
+		if created.VerificationToken != user.VerificationToken {
+			t.Errorf(
+				"expected verification token %q, got %q",
+				user.VerificationToken,
+				created.VerificationToken,
+			)
+		}
 	})
 
 	t.Run("GetUserByEmail", func(t *testing.T) {
@@ -127,6 +143,17 @@ func TestUserRepository(t *testing.T) {
 		if user.Name != "John Doe" {
 			t.Errorf("expected John Doe, got %q", user.Name)
 		}
+
+		if user.EmailVerified {
+			t.Error("expected email to be unverified")
+		}
+
+		if user.VerificationToken != "test-token" {
+			t.Errorf(
+				"expected token test-token, got %q",
+				user.VerificationToken,
+			)
+		}
 	})
 
 	t.Run("GetUserByEmailNotFound", func(t *testing.T) {
@@ -140,12 +167,60 @@ func TestUserRepository(t *testing.T) {
 		}
 	})
 
+	t.Run("GetUserByVerificationToken", func(t *testing.T) {
+		user, err := repo.GetUserByVerificationToken("test-token")
+		if err != nil {
+			t.Fatalf(
+				"GetUserByVerificationToken() error = %v",
+				err,
+			)
+		}
+
+		if user.ID == 0 {
+			t.Fatal("expected user to be found")
+		}
+
+		if user.Email != "john@example.com" {
+			t.Errorf(
+				"expected john@example.com, got %q",
+				user.Email,
+			)
+		}
+	})
+
+	t.Run("VerifyUserEmail", func(t *testing.T) {
+		user, err := repo.GetUserByVerificationToken("test-token")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = repo.VerifyUserEmail(user.ID)
+		if err != nil {
+			t.Fatalf("VerifyUserEmail() error = %v", err)
+		}
+
+		verifiedUser, err := repo.GetUserByEmail("john@example.com")
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if !verifiedUser.EmailVerified {
+			t.Error("expected email to be verified")
+		}
+
+		if verifiedUser.VerificationToken != "" {
+			t.Error("expected verification token to be cleared")
+		}
+	})
+
 	t.Run("GetUsers", func(t *testing.T) {
 		_, err := repo.CreateUser(models.User{
-			Name:     "Jane Doe",
-			Email:    "jane@example.com",
-			Password: "password",
-			Role:     "owner",
+			Name:              "Jane Doe",
+			Email:             "jane@example.com",
+			Password:          "password",
+			Role:              "owner",
+			EmailVerified:     false,
+			VerificationToken: "jane-token",
 		})
 
 		if err != nil {

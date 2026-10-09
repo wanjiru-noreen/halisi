@@ -1,7 +1,10 @@
 package services
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"net/mail"
 	"strings"
 
 	"golang.org/x/crypto/bcrypt"
@@ -10,55 +13,48 @@ import (
 	"halisi/internal/repository"
 )
 
-// ---------------- USER SERVICE ----------------
-
 type UserService struct {
 	repo *repository.UserRepository
 }
 
 func NewUserService(repo *repository.UserRepository) *UserService {
-	return &UserService{
-		repo: repo,
-	}
+	return &UserService{repo: repo}
 }
 
-// RegisterUser creates a new customer or shop owner.
 func (s *UserService) RegisterUser(user models.User) (models.User, error) {
-	// Clean user input
 	user.Name = strings.TrimSpace(user.Name)
 	user.Email = strings.TrimSpace(strings.ToLower(user.Email))
 
-	// Validate name
 	if user.Name == "" {
 		return models.User{}, errors.New("name is required")
 	}
 
-	// Validate email
 	if user.Email == "" {
 		return models.User{}, errors.New("email is required")
 	}
 
-	// Validate password
+	_, err := mail.ParseAddress(user.Email)
+	if err != nil {
+		return models.User{}, errors.New("invalid email address")
+	}
+
 	if user.Password == "" {
 		return models.User{}, errors.New("password is required")
 	}
 
-	// Validate account type
 	if user.Role != "customer" && user.Role != "owner" {
 		return models.User{}, errors.New("invalid account type")
 	}
 
-	// Check if email already exists
 	existingUser, err := s.repo.GetUserByEmail(user.Email)
 	if err != nil {
 		return models.User{}, err
 	}
 
-	if existingUser.ID != 0 {
+	if existingUser.ID != 0 && existingUser.EmailVerified {
 		return models.User{}, errors.New("email is already registered")
 	}
 
-	// Hash password before storing it
 	hashedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(user.Password),
 		bcrypt.DefaultCost,
@@ -69,16 +65,36 @@ func (s *UserService) RegisterUser(user models.User) (models.User, error) {
 
 	user.Password = string(hashedPassword)
 
-	// Save user
+	tokenBytes := make([]byte, 32)
+
+	_, err = rand.Read(tokenBytes)
+	if err != nil {
+		return models.User{}, errors.New(
+			"failed to generate verification token",
+		)
+	}
+
+	user.EmailVerified = false
+	user.VerificationToken = hex.EncodeToString(tokenBytes)
+
+	if existingUser.ID != 0 {
+		user.ID = existingUser.ID
+
+		err = s.repo.UpdateUnverifiedUser(user)
+		if err != nil {
+			return models.User{}, err
+		}
+
+		return user, nil
+	}
+
 	return s.repo.CreateUser(user)
 }
 
-// GetAllUsers returns all registered users.
 func (s *UserService) GetAllUsers() ([]models.User, error) {
 	return s.repo.GetUsers()
 }
 
-// LoginUser authenticates a user using email and password.
 func (s *UserService) LoginUser(email, password string) (models.User, error) {
 	email = strings.TrimSpace(strings.ToLower(email))
 
@@ -87,70 +103,126 @@ func (s *UserService) LoginUser(email, password string) (models.User, error) {
 		return models.User{}, err
 	}
 
-	// User does not exist
 	if user.ID == 0 {
 		return models.User{}, nil
 	}
 
-	// Compare entered password with hashed password
 	err = bcrypt.CompareHashAndPassword(
 		[]byte(user.Password),
 		[]byte(password),
 	)
-
 	if err != nil {
 		return models.User{}, nil
+	}
+
+	if !user.EmailVerified {
+		return models.User{}, errors.New("email address is not verified")
 	}
 
 	return user, nil
 }
 
-// ---------------- SHOP SERVICE ----------------
+func (s *UserService) VerifyEmail(token string) error {
+	token = strings.TrimSpace(token)
+
+	if token == "" {
+		return errors.New("verification token is required")
+	}
+
+	user, err := s.repo.GetUserByVerificationToken(token)
+	if err != nil {
+		return err
+	}
+
+	if user.ID == 0 {
+		return errors.New("invalid or expired verification token")
+	}
+
+	if user.EmailVerified {
+		return errors.New("email is already verified")
+	}
+
+	return s.repo.VerifyUserEmail(user.ID)
+}
 
 type ShopService struct {
 	repo *repository.ShopRepository
 }
 
 func NewShopService(repo *repository.ShopRepository) *ShopService {
-	return &ShopService{
-		repo: repo,
-	}
+	return &ShopService{repo: repo}
 }
 
-// CreateShop creates a new gas shop.
 func (s *ShopService) CreateShop(shop models.Shop) (models.Shop, error) {
-	shop.VerificationStatus = "pending"
+	shop.Name = strings.TrimSpace(shop.Name)
+	shop.Location = strings.TrimSpace(shop.Location)
+	shop.Phone = strings.TrimSpace(shop.Phone)
+
+	if shop.Name == "" {
+		return models.Shop{}, errors.New("shop name is required")
+	}
+
+	if shop.Location == "" {
+		return models.Shop{}, errors.New("shop location is required")
+	}
+
+	if shop.Phone == "" {
+		return models.Shop{}, errors.New("shop phone is required")
+	}
+
+	if shop.OwnerID == nil || *shop.OwnerID <= 0 {
+		return models.Shop{}, errors.New("shop owner is required")
+	}
+
+	if shop.VerificationStatus == "" {
+		shop.VerificationStatus = "pending"
+	}
 
 	return s.repo.CreateShop(shop)
 }
 
-// GetShops returns all shops.
 func (s *ShopService) GetShops() ([]models.Shop, error) {
 	return s.repo.GetShops()
 }
 
-// GetVerifiedShops returns only approved shops.
+func (s *ShopService) GetAllShops() ([]models.Shop, error) {
+	return s.repo.GetShops()
+}
+
 func (s *ShopService) GetVerifiedShops() ([]models.Shop, error) {
 	return s.repo.GetVerifiedShops()
 }
 
-// GetShopByID returns a shop by its ID.
 func (s *ShopService) GetShopByID(id int) (models.Shop, error) {
+	if id <= 0 {
+		return models.Shop{}, errors.New("invalid shop ID")
+	}
+
 	return s.repo.GetShopByID(id)
 }
 
-// GetShopByOwnerID returns the shop belonging to an owner.
 func (s *ShopService) GetShopByOwnerID(ownerID int) (models.Shop, error) {
+	if ownerID <= 0 {
+		return models.Shop{}, errors.New("invalid owner ID")
+	}
+
 	return s.repo.GetShopByOwnerID(ownerID)
 }
 
-// UpdateShopPrices updates all gas cylinder prices for a shop.
 func (s *ShopService) UpdateShopPrices(
 	id int,
 	price6kg float64,
 	price13kg float64,
 	price45kg float64,
 ) error {
+	if id <= 0 {
+		return errors.New("invalid shop ID")
+	}
+
+	if price6kg < 0 || price13kg < 0 || price45kg < 0 {
+		return errors.New("prices cannot be negative")
+	}
+
 	return s.repo.UpdateShopPrices(
 		id,
 		price6kg,
@@ -159,12 +231,19 @@ func (s *ShopService) UpdateShopPrices(
 	)
 }
 
-// UpdateShopVerificationStatus approves or rejects a shop.
 func (s *ShopService) UpdateShopVerificationStatus(
 	id int,
 	status string,
 ) error {
-	if status != "approved" && status != "rejected" {
+	if id <= 0 {
+		return errors.New("invalid shop ID")
+	}
+
+	status = strings.TrimSpace(strings.ToLower(status))
+
+	if status != "pending" &&
+		status != "approved" &&
+		status != "rejected" {
 		return errors.New("invalid verification status")
 	}
 

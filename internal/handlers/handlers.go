@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"halisi/internal/email"
 	"halisi/internal/middleware"
 	"halisi/internal/models"
 	"halisi/internal/services"
@@ -15,9 +16,9 @@ import (
 )
 
 type Handler struct {
-	OrderService *services.OrderService
-	ShopService  *services.ShopService
-	UserService       *services.UserService
+	OrderService       *services.OrderService
+	ShopService        *services.ShopService
+	UserService        *services.UserService
 	KYCDocumentService *services.KYCDocumentService
 	Store              *sessions.CookieStore
 }
@@ -76,7 +77,7 @@ func renderTemplate(
 	_, _ = w.Write(output.Bytes())
 }
 
-// Register handles user registration form submission
+// Register handles user registration form submission.
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
 		renderTemplate(
@@ -117,9 +118,9 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	email := r.FormValue("email")
+	emailAddress := r.FormValue("email")
 
-	if email == "" {
+	if emailAddress == "" {
 		http.Error(
 			w,
 			"email is required",
@@ -170,7 +171,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 	user := models.User{
 		Name:     fullName,
-		Email:    email,
+		Email:    emailAddress,
 		Password: password,
 		Role:     role,
 	}
@@ -186,6 +187,26 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		http.Error(
 			w,
 			"Failed to register user: "+err.Error(),
+			http.StatusInternalServerError,
+		)
+		return
+	}
+
+	// Send email verification link.
+	err = email.SendVerificationEmail(
+		registeredUser.Email,
+		registeredUser.VerificationToken,
+	)
+
+	if err != nil {
+		log.Printf(
+			"Error sending verification email: %v",
+			err,
+		)
+
+		http.Error(
+			w,
+			"Failed to send verification email",
 			http.StatusInternalServerError,
 		)
 		return
@@ -226,7 +247,31 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-// RenderOrderPage handles displaying the order form with verified shops
+// VerifyEmail verifies a user's email address using the token from the email link.
+func (h *Handler) VerifyEmail(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	token := r.URL.Query().Get("token")
+
+	if err := h.UserService.VerifyEmail(token); err != nil {
+		http.Error(
+			w,
+			"Email verification failed: "+err.Error(),
+			http.StatusBadRequest,
+		)
+		return
+	}
+
+	http.Redirect(
+		w,
+		r,
+		"/login",
+		http.StatusSeeOther,
+	)
+}
+
+// RenderOrderPage handles displaying the order form with verified shops.
 func (h *Handler) RenderOrderPage(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -274,7 +319,7 @@ func (h *Handler) RenderOrderPage(
 	)
 }
 
-// CreateOrder handles POST requests from the order form
+// CreateOrder handles POST requests from the order form.
 func (h *Handler) CreateOrder(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -338,7 +383,6 @@ func (h *Handler) CreateOrder(
 		return
 	}
 
-	// Only approved shops can receive orders.
 	if shop.VerificationStatus != "approved" {
 		http.Error(
 			w,
@@ -482,7 +526,6 @@ func (h *Handler) Login(
 		return
 	}
 
-	// Admins go to the admin dashboard.
 	if user.Role == "admin" {
 		http.Redirect(
 			w,
@@ -493,7 +536,6 @@ func (h *Handler) Login(
 		return
 	}
 
-	// Shop owners go to their shop orders.
 	if user.Role == "owner" {
 		http.Redirect(
 			w,
@@ -504,7 +546,6 @@ func (h *Handler) Login(
 		return
 	}
 
-	// Customers go to the customer dashboard.
 	http.Redirect(
 		w,
 		r,
@@ -590,7 +631,6 @@ func (h *Handler) Shop(
 		return
 	}
 
-	// Customers can only view approved shops.
 	if shop.VerificationStatus != "approved" {
 		http.Error(
 			w,
@@ -894,9 +934,11 @@ func (h *Handler) ShopOrders(
 	data := struct {
 		Shop   models.Shop
 		Orders []models.Order
+		Role   string
 	}{
 		Shop:   shop,
 		Orders: orders,
+		Role:   "owner",
 	}
 
 	renderTemplate(
@@ -1016,7 +1058,13 @@ func (h *Handler) ShopManage(
 	renderTemplate(
 		w,
 		"shop_manage.html",
-		shop,
+		struct {
+			Shop models.Shop
+			Role string
+		}{
+			Shop: shop,
+			Role: "owner",
+		},
 		"web/templates/navbar.html",
 		"web/templates/shop_manage.html",
 	)
