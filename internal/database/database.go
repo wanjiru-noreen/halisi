@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"log"
+	"os"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -12,7 +13,12 @@ var DB *sql.DB
 func ConnectDatabase() {
 	var err error
 
-	DB, err = sql.Open("sqlite3", "halisi.db")
+	dbPath := os.Getenv("DATABASE_PATH")
+	if dbPath == "" {
+		dbPath = "halisi.db"
+	}
+
+	DB, err = sql.Open("sqlite3", dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -23,20 +29,20 @@ func ConnectDatabase() {
 	}
 
 	createTables()
-	seedShops()
 
 	log.Println("Database connected successfully")
 }
 
 func createTables() {
-
 	userTable := `
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL,
 		email TEXT NOT NULL UNIQUE,
 		password TEXT NOT NULL,
-		role TEXT NOT NULL
+		role TEXT NOT NULL,
+		email_verified INTEGER NOT NULL DEFAULT 0,
+		verification_token TEXT DEFAULT ''
 	);
 	`
 
@@ -46,7 +52,16 @@ func createTables() {
 		name TEXT NOT NULL,
 		location TEXT NOT NULL,
 		phone TEXT NOT NULL,
-		owner_id INTEGER
+		price_6kg REAL NOT NULL DEFAULT 0,
+		price_13kg REAL NOT NULL DEFAULT 0,
+		price_45kg REAL NOT NULL DEFAULT 0,
+		owner_id INTEGER,
+		latitude REAL DEFAULT 0,
+		longitude REAL DEFAULT 0,
+		business_registration_number TEXT DEFAULT '',
+		kra_pin TEXT DEFAULT '',
+		license_number TEXT DEFAULT '',
+		verification_status TEXT NOT NULL DEFAULT 'pending'
 	);
 	`
 
@@ -60,6 +75,19 @@ func createTables() {
 		total_price REAL NOT NULL,
 		status TEXT NOT NULL,
 		delivery_address TEXT NOT NULL DEFAULT ''
+	);
+	`
+
+	kycDocumentTable := `
+	CREATE TABLE IF NOT EXISTS kyc_documents (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		shop_id INTEGER NOT NULL,
+		document_type TEXT NOT NULL,
+		file_path TEXT NOT NULL,
+		status TEXT NOT NULL DEFAULT 'pending',
+		rejection_reason TEXT DEFAULT '',
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		reviewed_at DATETIME
 	);
 	`
 
@@ -78,72 +106,103 @@ func createTables() {
 		log.Fatal(err)
 	}
 
+	_, err = DB.Exec(kycDocumentTable)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ensureUserColumns()
 	ensureOrderColumns()
+	ensureShopColumns()
+}
+
+func ensureUserColumns() {
+	columns := map[string]string{
+		"email_verified":     "INTEGER NOT NULL DEFAULT 0",
+		"verification_token": "TEXT DEFAULT ''",
+		"google_id":          "TEXT NOT NULL DEFAULT ''",
+	}
+
+	for column, definition := range columns {
+		var count int
+
+		err := DB.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info('users') WHERE name = ?`,
+			column,
+		).Scan(&count)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if count == 0 {
+			_, err := DB.Exec(
+				"ALTER TABLE users ADD COLUMN " + column + " " + definition,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
 }
 
 func ensureOrderColumns() {
-	rows, err := DB.Query("PRAGMA table_info(orders)")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
-
-	columns := map[string]bool{}
-	for rows.Next() {
-		var cid int
-		var name string
-		var ctype string
-		var notnull int
-		var dfltValue sql.NullString
-		var pk int
-		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dfltValue, &pk); err != nil {
-			log.Fatal(err)
-		}
-		columns[name] = true
+	columns := map[string]string{
+		"delivery_address": "TEXT NOT NULL DEFAULT ''",
 	}
 
-	if !columns["delivery_address"] {
-		_, err := DB.Exec(`ALTER TABLE orders ADD COLUMN delivery_address TEXT NOT NULL DEFAULT ''`)
+	for column, definition := range columns {
+		var count int
+
+		err := DB.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info('orders') WHERE name = ?`,
+			column,
+		).Scan(&count)
+
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		if count == 0 {
+			_, err := DB.Exec(
+				"ALTER TABLE orders ADD COLUMN " + column + " " + definition,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }
 
-func seedShops() {
-
-	var count int
-
-	err := DB.QueryRow("SELECT COUNT(*) FROM shops").Scan(&count)
-	if err != nil {
-		log.Fatal(err)
+func ensureShopColumns() {
+	columns := map[string]string{
+		"latitude":                     "REAL DEFAULT 0",
+		"longitude":                    "REAL DEFAULT 0",
+		"business_registration_number": "TEXT DEFAULT ''",
+		"kra_pin":                      "TEXT DEFAULT ''",
+		"license_number":               "TEXT DEFAULT ''",
+		"verification_status":          "TEXT NOT NULL DEFAULT 'pending'",
 	}
 
-	if count > 0 {
-		return
-	}
+	for column, definition := range columns {
+		var count int
 
-	shops := []struct {
-		name     string
-		location string
-		phone    string
-	}{
-		{"Shell Gas", "Kisumu CBD", "0712345678"},
-		{"Rubis Gas", "Kondele", "0723456789"},
-		{"TotalEnergies", "Milimani", "0734567890"},
-	}
-
-	for _, shop := range shops {
-		_, err := DB.Exec(
-			`INSERT INTO shops(name, location, phone)
-			 VALUES(?, ?, ?)`,
-			shop.name,
-			shop.location,
-			shop.phone,
-		)
+		err := DB.QueryRow(
+			`SELECT COUNT(*) FROM pragma_table_info('shops') WHERE name = ?`,
+			column,
+		).Scan(&count)
 
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		if count == 0 {
+			_, err := DB.Exec(
+				"ALTER TABLE shops ADD COLUMN " + column + " " + definition,
+			)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 	}
 }

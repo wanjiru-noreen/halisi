@@ -1,8 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
 
 	"halisi/internal/database"
 	"halisi/internal/handlers"
@@ -12,77 +15,130 @@ import (
 )
 
 func main() {
+	// Load environment variables.
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found; using system environment variables")
+	}
 
-	// Connect database
+	// Validate Google OAuth credentials.
+	if os.Getenv("GOOGLE_CLIENT_ID") == "" ||
+		os.Getenv("GOOGLE_CLIENT_SECRET") == "" {
+		log.Fatal("Google OAuth credentials are not configured")
+	}
+
+	// Initialize Google OAuth and OpenID Connect.
+	if err := handlers.ConfigureGoogleAuth(); err != nil {
+		log.Fatalf("Failed to configure Google authentication: %v", err)
+	}
+
+	// Connect to database.
 	database.ConnectDatabase()
 
-	// Initialize repositories
+	// Create repositories.
 	userRepository := repository.NewUserRepository()
 	shopRepository := repository.NewShopRepository()
 	orderRepository := repository.NewOrderRepository()
+	kycDocumentRepository := repository.NewKYCDocumentRepository()
 
-	// Initialize services
+	// Create services.
 	userService := services.NewUserService(userRepository)
 	shopService := services.NewShopService(shopRepository)
 	orderService := services.NewOrderService(orderRepository)
+	kycDocumentService := services.NewKYCDocumentService(
+		kycDocumentRepository,
+	)
 
-	// Initialize handlers
+	// Create handler.
 	handler := handlers.NewHandler(
 		userService,
 		shopService,
 		orderService,
+		kycDocumentService,
 	)
 
-	// Static files
+	// Serve static files.
+	fs := http.FileServer(http.Dir("web/static"))
 	http.Handle(
 		"/static/",
-		http.StripPrefix(
-			"/static/",
-			http.FileServer(http.Dir("web/static")),
-		),
+		http.StripPrefix("/static/", fs),
 	)
 
-	// ---------------- PUBLIC ROUTES ----------------
-
+	// Public routes.
 	http.HandleFunc("/", handler.Home)
-	http.HandleFunc("/register", handler.Register)
 	http.HandleFunc("/login", handler.Login)
+	http.HandleFunc("/register", handler.Register)
+	http.HandleFunc("/verify-email", handler.VerifyEmail)
+	http.HandleFunc("/logout", handler.Logout)
+
+	// Google authentication routes.
+	http.HandleFunc("/auth/google", handler.GoogleLogin)
+	http.HandleFunc("/auth/google/callback", handler.GoogleCallback)
 
 	// ---------------- CUSTOMER ROUTES ----------------
 
 	http.HandleFunc(
 		"/dashboard",
-		middleware.RequireAuth(handler.Dashboard),
+		middleware.RequireRole("customer", handler.Dashboard),
 	)
 
 	http.HandleFunc(
 		"/shops",
-		middleware.RequireAuth(handler.Shops),
+		middleware.RequireRole("customer", handler.Shops),
 	)
 
 	http.HandleFunc(
 		"/shop",
-		middleware.RequireAuth(handler.Shop),
+		middleware.RequireRole("customer", handler.Shop),
 	)
 
 	http.HandleFunc(
 		"/order",
-		middleware.RequireAuth(handler.Order),
+		middleware.RequireRole("customer", handler.Order),
 	)
 
 	http.HandleFunc(
 		"/orders",
-		middleware.RequireAuth(handler.Orders),
+		middleware.RequireRole("customer", handler.Orders),
 	)
 
 	http.HandleFunc(
 		"/orders/delete",
-		middleware.RequireAuth(handler.DeleteOrder),
+		middleware.RequireRole("customer", handler.DeleteOrder),
 	)
 
 	http.HandleFunc(
-		"/logout",
-		middleware.RequireAuth(handler.Logout),
+		"/orders/confirmation",
+		middleware.RequireRole(
+			"customer",
+			handler.OrderConfirmation,
+		),
+	)
+
+	// ---------------- ADMIN ROUTES ----------------
+
+	http.HandleFunc(
+		"/admin",
+		middleware.RequireRole("admin", handler.AdminDashboard),
+	)
+
+	http.HandleFunc(
+		"/admin/verify-shop",
+		middleware.RequireRole("admin", handler.AdminVerifyShop),
+	)
+
+	http.HandleFunc(
+		"/admin/kyc",
+		middleware.RequireRole("admin", handler.GetPendingKYCDocuments),
+	)
+
+	http.HandleFunc(
+		"/admin/kyc/review",
+		middleware.RequireRole("admin", handler.ReviewKYCDocument),
+	)
+
+	http.HandleFunc(
+		"/admin/kyc/document",
+		middleware.RequireRole("admin", handler.ViewKYCDocument),
 	)
 
 	// ---------------- SHOP OWNER ROUTES ----------------
@@ -93,22 +149,29 @@ func main() {
 	)
 
 	http.HandleFunc(
+		"/shop/manage",
+		middleware.RequireRole("owner", handler.ShopManage),
+	)
+
+	http.HandleFunc(
+		"/shop/kyc",
+		middleware.RequireRole("owner", handler.GetKYCDocuments),
+	)
+
+	http.HandleFunc(
+		"/shop/kyc/upload",
+		middleware.RequireRole("owner", handler.UploadKYCDocument),
+	)
+
+	http.HandleFunc(
 		"/orders/update",
 		middleware.RequireRole("owner", handler.UpdateOrderStatus),
 	)
 
-	// ---------------- ADMIN ROUTES ----------------
+	// Start server.
+	log.Println("🚀 Halisi server running on http://localhost:8080")
 
-	http.HandleFunc(
-		"/admin",
-		middleware.RequireRole("admin", handler.AdminDashboard),
-	)
-
-	fmt.Println("🚀 Halisi server running on http://localhost:8080")
-
-	err := http.ListenAndServe(":8080", nil)
-
-	if err != nil {
-		panic(err)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		log.Fatal(err)
 	}
 }
