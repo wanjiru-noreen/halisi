@@ -112,7 +112,7 @@ Wanjiru Noreen
 
 Prerequisites:
 
-- Go 1.20+ installed
+- Go version specified in `go.mod` installed, plus GCC for the SQLite CGO driver
 - (Optional) `sqlite3` for exploring the database file
 
 Local setup and run:
@@ -157,5 +157,23 @@ Templates
 
 Testing
 
-- Build with `go build ./...` and then run the server. Use the browser to exercise the `/order` flow and confirm the confirmation page displays the map and delivery address.
+- Run `make check` for all Go quality, build, test, coverage, and security checks.
+- Run `make ci` to include the Docker image build, or use `make help` to see individual commands such as `make fmt`, `make test`, and `make docker-build`.
+- To run the container locally, create `.env` with the required Google OAuth settings and run `make docker-run`. Override defaults when needed, for example `make docker-run DOCKER_PORT=9090 DOCKER_ENV_FILE=.env.local`.
+- Run the server and use the browser to exercise the `/order` flow and confirm the confirmation page displays the map and delivery address.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every branch push and on pull requests targeting `development` or `main`. It can also be run manually from GitHub Actions.
+
+- **Quality:** Go formatting, module integrity and tidiness, and `go vet`.
+- **Build and test:** compilation, tests with race detection, and coverage reports retained for seven days. Coverage is reported without a minimum percentage gate.
+- **Security:** reachable vulnerability checks using a pinned `govulncheck` version.
+- **Docker build:** builds the application image on pull requests without publishing it.
+
+The Go jobs run independently on Linux with CGO enabled and cached dependencies/build outputs. Superseded runs are cancelled per branch or PR. No application secrets are required. Push and PR runs are kept separate so the PR merge result is always checked.
+
+Configure the `development` and `main` branch rules to require **Quality**, **Build and test**, **Security**, and **Docker build** before merging. The workflow file does not configure repository branch rules itself.
+
+Add PostgreSQL integration/migration checks and separate frontend jobs when those components are introduced. Current automated tests do not cover all handlers, services, templates, or production database migrations.
 
