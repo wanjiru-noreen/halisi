@@ -237,6 +237,63 @@ func TestUserRepository(t *testing.T) {
 			t.Fatalf("expected 2 users, got %d", len(users))
 		}
 	})
+
+	t.Run("LinkGoogleID_Success", func(t *testing.T) {
+		john, err := repo.GetUserByEmail("john@example.com")
+		if err != nil || john.ID == 0 {
+			t.Fatalf("expected verified john user, err = %v", err)
+		}
+
+		err = repo.LinkGoogleID(john.ID, "google-sub-123")
+		if err != nil {
+			t.Fatalf("LinkGoogleID() error = %v", err)
+		}
+
+		linked, err := repo.GetUserByGoogleID("google-sub-123")
+		if err != nil {
+			t.Fatalf("GetUserByGoogleID() error = %v", err)
+		}
+		if linked.ID != john.ID {
+			t.Errorf("expected user ID %d, got %d", john.ID, linked.ID)
+		}
+		if linked.GoogleID != "google-sub-123" {
+			t.Errorf("expected google_id google-sub-123, got %q", linked.GoogleID)
+		}
+	})
+
+	t.Run("LinkGoogleID_AlreadyLinkedFails", func(t *testing.T) {
+		john, err := repo.GetUserByEmail("john@example.com")
+		if err != nil || john.ID == 0 {
+			t.Fatalf("expected john user, err = %v", err)
+		}
+
+		err = repo.LinkGoogleID(john.ID, "google-sub-456")
+		if err == nil {
+			t.Fatal("expected LinkGoogleID to fail on already linked account")
+		}
+	})
+
+	t.Run("LinkGoogleID_UnverifiedFails", func(t *testing.T) {
+		jane, err := repo.GetUserByEmail("jane@example.com")
+		if err != nil || jane.ID == 0 {
+			t.Fatalf("expected unverified jane user, err = %v", err)
+		}
+
+		err = repo.LinkGoogleID(jane.ID, "google-sub-789")
+		if err == nil {
+			t.Fatal("expected LinkGoogleID to fail on unverified user")
+		}
+	})
+
+	t.Run("GetUserByGoogleID_NotFound", func(t *testing.T) {
+		missing, err := repo.GetUserByGoogleID("missing-google-id")
+		if err != nil {
+			t.Fatalf("GetUserByGoogleID() error = %v", err)
+		}
+		if missing.ID != 0 {
+			t.Errorf("expected empty user, got ID %d", missing.ID)
+		}
+	})
 }
 
 /* =========================

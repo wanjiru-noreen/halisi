@@ -114,13 +114,43 @@ func (s *UserService) RegisterGoogleUser(
 	}
 
 	if existingUser.ID != 0 {
+		// Existing user is already linked to this Google account.
 		if existingUser.GoogleID == googleID {
 			return existingUser, nil
 		}
 
-		return models.User{}, errors.New(
-			"an account with this email already exists; sign in using your existing method",
-		)
+		// Account is already linked to a different Google account.
+		if existingUser.GoogleID != "" {
+			return models.User{}, errors.New(
+				"an account with this email is already linked to another Google account",
+			)
+		}
+
+		// Require email verification before linking Google account to existing email/password account.
+		if !existingUser.EmailVerified {
+			return models.User{}, errors.New(
+				"email address is not verified; please verify your email before signing in with Google",
+			)
+		}
+
+		// Verify that this Google account is not already associated with another user.
+		existingGoogleUser, err := s.repo.GetUserByGoogleID(googleID)
+		if err != nil {
+			return models.User{}, err
+		}
+		if existingGoogleUser.ID != 0 && existingGoogleUser.ID != existingUser.ID {
+			return models.User{}, errors.New(
+				"this Google account is already linked to another account",
+			)
+		}
+
+		// Link Google account to existing verified user.
+		if err := s.repo.LinkGoogleID(existingUser.ID, googleID); err != nil {
+			return models.User{}, err
+		}
+
+		existingUser.GoogleID = googleID
+		return existingUser, nil
 	}
 
 	existingGoogleUser, err := s.repo.GetUserByGoogleID(googleID)
