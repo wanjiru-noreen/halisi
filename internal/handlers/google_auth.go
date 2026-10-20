@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"halisi/internal/models"
@@ -18,11 +19,25 @@ import (
 )
 
 var (
+	googleAuthMu       sync.Mutex
 	googleOAuthConfig  *oauth2.Config
 	googleOIDCVerifier *oidc.IDTokenVerifier
 )
 
+// ConfigureGoogleAuth configures Google OAuth and OIDC if credentials are present.
+// It is safe to call concurrently and is idempotent once configured.
 func ConfigureGoogleAuth() error {
+	googleAuthMu.Lock()
+	defer googleAuthMu.Unlock()
+
+	return configureGoogleAuthLocked()
+}
+
+func configureGoogleAuthLocked() error {
+	if googleOAuthConfig != nil && googleOIDCVerifier != nil {
+		return nil
+	}
+
 	clientID := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID"))
 	clientSecret := strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET"))
 	redirectURL := strings.TrimSpace(os.Getenv("GOOGLE_REDIRECT_URL"))
@@ -62,8 +77,43 @@ func ConfigureGoogleAuth() error {
 	return nil
 }
 
+func ensureGoogleAuth() error {
+	googleAuthMu.Lock()
+	defer googleAuthMu.Unlock()
+
+	return configureGoogleAuthLocked()
+}
+
+// SetGoogleAuthForTesting sets custom OAuth configuration for testing purposes.
+func SetGoogleAuthForTesting(cfg *oauth2.Config, verifier *oidc.IDTokenVerifier) {
+	googleAuthMu.Lock()
+	defer googleAuthMu.Unlock()
+
+	googleOAuthConfig = cfg
+	googleOIDCVerifier = verifier
+}
+
+// ResetGoogleAuthForTesting resets Google OAuth configuration for testing purposes.
+func ResetGoogleAuthForTesting() {
+	googleAuthMu.Lock()
+	defer googleAuthMu.Unlock()
+
+	googleOAuthConfig = nil
+	googleOIDCVerifier = nil
+}
+
 func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
-	if googleOAuthConfig == nil {
+	if err := ensureGoogleAuth(); err != nil {
+		log.Printf("Google sign-in unavailable: %v", err)
+		http.Error(w, "Google sign-in is unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	googleAuthMu.Lock()
+	oauthConfig := googleOAuthConfig
+	googleAuthMu.Unlock()
+
+	if oauthConfig == nil {
 		http.Error(w, "Google sign-in is unavailable", http.StatusServiceUnavailable)
 		return
 	}
@@ -75,7 +125,7 @@ func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	state := base64.RawURLEncoding.EncodeToString(stateBytes)
-	secure := strings.HasPrefix(googleOAuthConfig.RedirectURL, "https://")
+	secure := strings.HasPrefix(oauthConfig.RedirectURL, "https://")
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "google_oauth_state",
@@ -87,7 +137,7 @@ func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   300,
 	})
 
-	authURL := googleOAuthConfig.AuthCodeURL(
+	authURL := oauthConfig.AuthCodeURL(
 		state,
 		oauth2.SetAuthURLParam("prompt", "select_account"),
 	)
@@ -96,7 +146,18 @@ func (h *Handler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
-	if googleOAuthConfig == nil || googleOIDCVerifier == nil {
+	if err := ensureGoogleAuth(); err != nil {
+		log.Printf("Google sign-in unavailable: %v", err)
+		http.Error(w, "Google sign-in is unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
+	googleAuthMu.Lock()
+	oauthConfig := googleOAuthConfig
+	oidcVerifier := googleOIDCVerifier
+	googleAuthMu.Unlock()
+
+	if oauthConfig == nil || oidcVerifier == nil {
 		http.Error(w, "Google sign-in is unavailable", http.StatusServiceUnavailable)
 		return
 	}
@@ -108,7 +169,7 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	secure := strings.HasPrefix(googleOAuthConfig.RedirectURL, "https://")
+	secure := strings.HasPrefix(oauthConfig.RedirectURL, "https://")
 	http.SetCookie(w, &http.Cookie{
 		Name:     "google_oauth_state",
 		Value:    "",
@@ -138,7 +199,7 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 	defer cancel()
 
-	token, err := googleOAuthConfig.Exchange(ctx, code)
+	token, err := oauthConfig.Exchange(ctx, code)
 	if err != nil {
 		log.Printf("Google token exchange failed: %v", err)
 		http.Error(w, "Google sign-in failed", http.StatusUnauthorized)
@@ -151,7 +212,7 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idToken, err := googleOIDCVerifier.Verify(ctx, rawIDToken)
+	idToken, err := oidcVerifier.Verify(ctx, rawIDToken)
 	if err != nil {
 		log.Printf("Google ID token verification failed: %v", err)
 		http.Error(w, "Google identity could not be verified", http.StatusUnauthorized)
@@ -183,8 +244,13 @@ func (h *Handler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Google account handling failed: %v", err)
 
-		if strings.Contains(err.Error(), "already exists") {
+		if strings.Contains(err.Error(), "already exists") || strings.Contains(err.Error(), "already linked") {
 			http.Redirect(w, r, "/login?error=account_exists", http.StatusSeeOther)
+			return
+		}
+
+		if strings.Contains(err.Error(), "not verified") {
+			http.Redirect(w, r, "/login?error=unverified_email", http.StatusSeeOther)
 			return
 		}
 

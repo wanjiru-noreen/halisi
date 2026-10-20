@@ -60,9 +60,9 @@ run: ## Run the application locally
 docker-build: ## Build the application container image
 	docker build --tag $(DOCKER_IMAGE) .
 
-docker-run: docker-build ## Build and run the container using the local .env file
-	@test -f "$(DOCKER_ENV_FILE)" || { \
-		printf 'Missing %s; create it with the required Google OAuth settings.\n' "$(DOCKER_ENV_FILE)"; \
-		exit 1; \
-	}
-	docker run --rm --name $(DOCKER_CONTAINER) --publish $(DOCKER_PORT):8080 --env-file $(DOCKER_ENV_FILE) $(DOCKER_IMAGE)
+docker-run: docker-build ## Build and run the container (uses local .env file if present)
+	@if [ -f "$(DOCKER_ENV_FILE)" ]; then \
+		docker run --rm --name $(DOCKER_CONTAINER) --publish $(DOCKER_PORT):8080 --env-file $(DOCKER_ENV_FILE) $(DOCKER_IMAGE); \
+	else \
+		docker run --rm --name $(DOCKER_CONTAINER) --publish $(DOCKER_PORT):8080 $(DOCKER_IMAGE); \
+	fi

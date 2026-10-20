@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/joho/godotenv"
 
@@ -20,15 +19,9 @@ func main() {
 		log.Println("No .env file found; using system environment variables")
 	}
 
-	// Validate Google OAuth credentials.
-	if os.Getenv("GOOGLE_CLIENT_ID") == "" ||
-		os.Getenv("GOOGLE_CLIENT_SECRET") == "" {
-		log.Fatal("Google OAuth credentials are not configured")
-	}
-
-	// Initialize Google OAuth and OpenID Connect.
+	// Initialize Google OAuth and OpenID Connect (optional at startup).
 	if err := handlers.ConfigureGoogleAuth(); err != nil {
-		log.Fatalf("Failed to configure Google authentication: %v", err)
+		log.Printf("Google authentication is not configured: %v", err)
 	}
 
 	// Connect to database.

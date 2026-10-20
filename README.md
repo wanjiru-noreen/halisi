@@ -159,7 +159,7 @@ Testing
 
 - Run `make check` for all Go quality, build, test, coverage, and security checks.
 - Run `make ci` to include the Docker image build, or use `make help` to see individual commands such as `make fmt`, `make test`, and `make docker-build`.
-- To run the container locally, create `.env` with the required Google OAuth settings and run `make docker-run`. Override defaults when needed, for example `make docker-run DOCKER_PORT=9090 DOCKER_ENV_FILE=.env.local`.
+- To run the container locally, run `make docker-run` (optionally create `.env` with Google OAuth settings). Override defaults when needed, for example `make docker-run DOCKER_PORT=9090 DOCKER_ENV_FILE=.env.local`.
 - Run the server and use the browser to exercise the `/order` flow and confirm the confirmation page displays the map and delivery address.
 
 ## Continuous integration
@@ -176,4 +176,3 @@ The Go jobs run independently on Linux with CGO enabled and cached dependencies/
 Configure the `development` and `main` branch rules to require **Quality**, **Build and test**, **Security**, and **Docker build** before merging. The workflow file does not configure repository branch rules itself.
 
 Add PostgreSQL integration/migration checks and separate frontend jobs when those components are introduced. Current automated tests do not cover all handlers, services, templates, or production database migrations.
-
