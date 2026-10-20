@@ -3,6 +3,7 @@ package models
 type Order struct {
 	ID              int
 	UserID          int
+	RecipientName   string
 	ShopID          int
 	CylinderSize    string
 	Quantity        int

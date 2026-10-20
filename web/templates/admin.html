@@ -19,134 +19,166 @@
 
 <header class="navbar">
 
-<div class="logo">
-HALISI ADMIN
-</div>
+    <div class="logo">
+        HALISI ADMIN
+    </div>
 
-<nav>
-
-<a href="/dashboard">Dashboard</a>
-
-<a href="/shops">Shops</a>
-
-<a href="/orders">Orders</a>
-
-<a href="/logout">Logout</a>
-
-</nav>
+    <nav>
+        <a href="/admin">Dashboard</a>
+        <a href="/logout">Logout</a>
+    </nav>
 
 </header>
 
 <main class="admin-page">
 
-<h1>Dashboard Overview</h1>
+    <h1>Dashboard Overview</h1>
 
-<div class="stats-grid">
+    <div class="stats-grid">
 
-<div class="stat-card">
+        <div class="stat-card">
+            <h2>{{.TotalUsers}}</h2>
+            <p>Users</p>
+        </div>
 
-<h2>{{.TotalUsers}}</h2>
+        <div class="stat-card">
+            <h2>{{.TotalShops}}</h2>
+            <p>Gas Shops</p>
+        </div>
 
-<p>Users</p>
+        <div class="stat-card">
+            <h2>{{.TotalOrders}}</h2>
+            <p>Orders</p>
+        </div>
 
-</div>
+    </div>
 
-<div class="stat-card">
+    <section class="admin-section">
 
-<h2>{{.TotalShops}}</h2>
+        <h2>Shop Verification</h2>
 
-<p>Gas Shops</p>
+        <table>
 
-</div>
+            <tr>
+                <th>Shop</th>
+                <th>Location</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
 
-<div class="stat-card">
+            {{range .Shops}}
 
-<h2>{{.TotalOrders}}</h2>
+            <tr>
 
-<p>Orders</p>
+                <td>{{.Name}}</td>
 
-</div>
+                <td>{{.Location}}</td>
 
-</div>
+                <td>{{.Phone}}</td>
 
-<section class="admin-section">
+                <td>{{.VerificationStatus}}</td>
 
-<h2>Recent Orders</h2>
+                <td>
 
-<table>
+                    {{if eq .VerificationStatus "pending"}}
 
-<tr>
+                    <form method="POST" action="/admin/verify-shop" style="display:inline;">
+                        <input type="hidden" name="shop_id" value="{{.ID}}">
+                        <input type="hidden" name="status" value="approved">
+                        <button type="submit">Approve</button>
+                    </form>
 
-<th>ID</th>
+                    <form method="POST" action="/admin/verify-shop" style="display:inline;">
+                        <input type="hidden" name="shop_id" value="{{.ID}}">
+                        <input type="hidden" name="status" value="rejected">
+                        <button type="submit">Reject</button>
+                    </form>
 
-<th>User</th>
+                    {{else}}
 
-<th>Shop</th>
+                    No action
 
-<th>Status</th>
+                    {{end}}
 
-</tr>
+                </td>
 
-{{range .Orders}}
+            </tr>
 
-<tr>
+            {{else}}
 
-<td>{{.ID}}</td>
+            <tr>
+                <td colspan="5">No shops registered.</td>
+            </tr>
 
-<td>{{.UserID}}</td>
+            {{end}}
 
-<td>{{.ShopID}}</td>
+        </table>
 
-<td>{{.Status}}</td>
+    </section>
 
-</tr>
+    <section class="admin-section">
 
-{{end}}
+        <h2>Recent Orders</h2>
 
-</table>
+        <table>
 
-</section>
+            <tr>
+                <th>ID</th>
+                <th>User</th>
+                <th>Shop</th>
+                <th>Status</th>
+            </tr>
 
-<section class="admin-section">
+            {{range .Orders}}
 
-<h2>Registered Users</h2>
+            <tr>
 
-<table>
+                <td>{{.ID}}</td>
+                <td>{{.UserID}}</td>
+                <td>{{.ShopID}}</td>
+                <td>{{.Status}}</td>
 
-<tr>
+            </tr>
 
-<th>Name</th>
+            {{end}}
 
-<th>Email</th>
+        </table>
 
-<th>Role</th>
+    </section>
 
-</tr>
+    <section class="admin-section">
 
-{{range .Users}}
+        <h2>Registered Users</h2>
 
-<tr>
+        <table>
 
-<td>{{.Name}}</td>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+            </tr>
 
-<td>{{.Email}}</td>
+            {{range .Users}}
 
-<td>{{.Role}}</td>
+            <tr>
 
-</tr>
+                <td>{{.Name}}</td>
+                <td>{{.Email}}</td>
+                <td>{{.Role}}</td>
 
-{{end}}
+            </tr>
 
-</table>
+            {{end}}
 
-</section>
+        </table>
+
+    </section>
 
 </main>
 
 <footer>
-
-© 2026 Halisi
-
+    © 2026 Halisi
 </footer>
 
 </body>

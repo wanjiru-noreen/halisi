@@ -1,85 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HALISI - Find a Shop</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verified Gas Suppliers | Halisi</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <style>
+        .shops-page {
+            background-color: #f7f6ff;
+            min-height: 80vh;
+            padding: 40px 0 80px;
+        }
+
+        .shops-header {
+            margin-bottom: 35px;
+        }
+
+        .shops-header h1 {
+            color: #2E0A9B;
+            font-size: 32px;
+            font-weight: 800;
+            margin: 0 0 8px;
+        }
+
+        .shops-header p {
+            color: #666;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .shops-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .shop-card-modern {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(46, 10, 155, 0.05);
+            border: 1px solid #eceaf5;
+            display: grid;
+            grid-template-columns: 2fr 3fr auto;
+            gap: 25px;
+            align-items: center;
+        }
+
+        .shop-info h3 {
+            margin: 0 0 6px;
+            color: #1a1a1a;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .shop-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            background: #e6f4ea;
+            color: #137333;
+        }
+
+        .pricing-section {
+            background: #fdfcff;
+            border: 1px solid #eeeaff;
+            border-radius: 14px;
+            padding: 14px 18px;
+        }
+
+        .pricing-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #777;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .price-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .price-chip {
+            background: #eeeaff;
+            color: #2E0A9B;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .price-chip span {
+            font-weight: 400;
+            color: #555;
+            font-size: 12px;
+        }
+
+        .shop-action {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .btn-order-shop {
+            background: #FFD84D;
+            color: #2E0A9B;
+            font-weight: 700;
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .btn-order-shop:hover {
+            background: #ffcf31;
+        }
+
+        .empty-state {
+            background: white;
+            border: 1px solid #eceaf5;
+            border-radius: 20px;
+            padding: 50px 25px;
+            text-align: center;
+        }
+
+        .empty-state h2 {
+            color: #2E0A9B;
+            margin: 0 0 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+            margin: 0;
+        }
+
+        @media (max-width: 900px) {
+            .shop-card-modern {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .shop-action {
+                align-items: stretch;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-  {{template "navbar.html" .}}
+{{template "navbar.html" .}}
 
-  <main class="container">
-    <div class="page-header">
-      <h2>Find a Trusted Gas Supplier</h2>
-      <p>Browse verified gas suppliers near you and order from your preferred shop.</p>
-    </div>
+<main class="shops-page">
+    <div class="container">
 
-    <section class="section-title">
-      <h3>Nearby Shops</h3>
-      <p>Choose a shop below to place your order quickly and safely.</p>
-    </section>
-
-    <div class="shops-grid">
-      {{range .Shops}}
-      <article class="shop-card">
-        <div class="shop-card-header">
-          <div>
-            <h3>{{.Name}}</h3>
-            <p class="subtle">{{.Location}} · {{.Phone}}</p>
-          </div>
-          <span class="badge badge-open">Open</span>
+        <div class="shops-header">
+            <h1>Verified Gas Suppliers</h1>
+            <p>Choose from gas suppliers that have been verified by Halisi.</p>
         </div>
 
-        <div class="shop-card-body">
-          <p>Fast delivery from this shop directly to your address.</p>
-          <p class="shop-price">6KG — KSh 1400 · 13KG — KSh 2800 · 45KG — KSh 6000</p>
-        </div>
+        {{if .Shops}}
+        <div class="shops-grid">
 
-        <div class="order-card-footer">
-          <a href="/order?shop_id={{.ID}}" class="btn btn-primary">Order from this shop</a>
-        </div>
-      </article>
-      {{else}}
-      <div class="shop-card">
-        <div class="shop-info">
-          <div class="shop-avatar">🏬</div>
-          <div class="shop-details">
-            <h3>Shell Gas</h3>
-            <div class="shop-meta">
-              <span class="rating">⭐⭐⭐⭐⭐</span>
-              <span>📍 Kisumu CBD</span>
-              <span>📞 0712345678</span>
-              <span class="badge badge-open">● Open</span>
+            {{range .Shops}}
+            <div class="shop-card-modern">
+
+                <div class="shop-info">
+                    <h3>{{.Name}}</h3>
+
+                    <div class="shop-meta">
+                        <span>📍 {{.Location}}</span>
+                        <span>📞 {{.Phone}}</span>
+                    </div>
+
+                    <span class="status-badge">
+                        ● Verified
+                    </span>
+                </div>
+
+                <div class="pricing-section">
+                    <div class="pricing-title">
+                        Cylinder Prices & Sizes
+                    </div>
+
+                    <div class="price-chips">
+                        <div class="price-chip">
+                            6KG <span>KSh {{.Price6kg}}</span>
+                        </div>
+
+                        <div class="price-chip">
+                            13KG <span>KSh {{.Price13kg}}</span>
+                        </div>
+
+                        <div class="price-chip">
+                            45KG <span>KSh {{.Price45kg}}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shop-action">
+                    <a
+                        href="/order?shop_id={{.ID}}"
+                        class="btn-order-shop"
+                    >
+                        Order from this shop
+                    </a>
+                </div>
+
             </div>
-          </div>
-        </div>
-        <a href="/order?shop_id=1" class="btn btn-secondary">View Shop</a>
-      </div>
+            {{end}}
 
-      <div class="shop-card">
-        <div class="shop-info">
-          <div class="shop-avatar">🏬</div>
-          <div class="shop-details">
-            <h3>Rubis Gas</h3>
-            <div class="shop-meta">
-              <span class="rating">⭐⭐⭐⭐⭐</span>
-              <span>📍 Kondele</span>
-              <span>📞 0723456789</span>
-              <span class="badge badge-open">● Open</span>
-            </div>
-          </div>
         </div>
-        <a href="/order?shop_id=2" class="btn btn-secondary">View Shop</a>
-      </div>
-      {{end}}
+        {{else}}
+
+        <div class="empty-state">
+            <h2>No verified shops yet</h2>
+            <p>
+                There are currently no approved gas suppliers available.
+                Please check again later.
+            </p>
+        </div>
+
+        {{end}}
+
     </div>
-  </main>
+</main>
 
-  <footer class="site-footer">
-    <p>© 2026 Halisi. All Rights Reserved.</p>
-  </footer>
+<footer>
+    <div class="container">
+        <p>© 2026 Halisi. All Rights Reserved.</p>
+    </div>
+</footer>
 
 </body>
 </html>
