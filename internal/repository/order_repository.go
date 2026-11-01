@@ -1,109 +1,76 @@
 package repository
 
 import (
+	"context"
+	"database/sql"
+
 	"halisi/internal/database"
+	"halisi/internal/database/queried"
 	"halisi/internal/models"
 )
 
-type OrderRepository struct{}
+type OrderRepository struct {
+	q *queried.QueriedDB
+}
 
 func NewOrderRepository() *OrderRepository {
-	return &OrderRepository{}
+	return &OrderRepository{q: queried.NewQueriedDB(database.DB)}
 }
 
 // Create order
 func (r *OrderRepository) CreateOrder(order models.Order) (models.Order, error) {
-	query := `
-		INSERT INTO orders (
-			user_id,
-			shop_id,
-			cylinder_size,
-			quantity,
-			total_price,
-			status,
-			delivery_address
-		)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`
-
-	result, err := database.DB.Exec(
-		query,
-		order.UserID,
-		order.ShopID,
-		order.CylinderSize,
-		order.Quantity,
-		order.TotalPrice,
-		order.Status,
-		order.DeliveryAddress,
-	)
-
+	ctx := context.Background()
+	result, err := r.q.CreateOrder(ctx, queried.CreateOrderParams{
+		UserID:          order.UserID,
+		ShopID:          order.ShopID,
+		CylinderSize:    order.CylinderSize,
+		Quantity:        order.Quantity,
+		TotalPrice:      order.TotalPrice,
+		Status:          order.Status,
+		DeliveryAddress: order.DeliveryAddress,
+	})
 	if err != nil {
 		return models.Order{}, err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return models.Order{}, err
-	}
-
-	order.ID = int(id)
-
-	return order, nil
+	return models.Order{
+		ID:              result.ID,
+		UserID:          result.UserID,
+		ShopID:          result.ShopID,
+		CylinderSize:    result.CylinderSize,
+		Quantity:        result.Quantity,
+		TotalPrice:      result.TotalPrice,
+		Status:          result.Status,
+		DeliveryAddress: result.DeliveryAddress,
+	}, nil
 }
 
 // Get all orders
 func (r *OrderRepository) GetOrders() ([]models.Order, error) {
-	rows, err := database.DB.Query(`
-		SELECT
-			o.id,
-			o.user_id,
-			o.shop_id,
-			o.cylinder_size,
-			o.quantity,
-			o.total_price,
-			o.status,
-			o.delivery_address,
-s.name,
-COALESCE(u.name, '')
-FROM orders o
-LEFT JOIN shops s ON o.shop_id = s.id
-LEFT JOIN users u ON o.user_id = u.id
-			ORDER BY o.id DESC
-		`)
-
+	ctx := context.Background()
+	results, err := r.q.GetOrders(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
-
 	var orders []models.Order
-
-	for rows.Next() {
-		var order models.Order
-
-		err := rows.Scan(
-			&order.ID,
-			&order.UserID,
-			&order.ShopID,
-			&order.CylinderSize,
-			&order.Quantity,
-			&order.TotalPrice,
-			&order.Status,
-			&order.DeliveryAddress,
-			&order.ShopName,
-			&order.RecipientName,
-		)
-
-		if err != nil {
-			return nil, err
+	for _, result := range results {
+		shopName := ""
+		if result.ShopName.Valid {
+			shopName = result.ShopName.String
 		}
-
-		orders = append(orders, order)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
+		orders = append(orders, models.Order{
+			ID:              result.ID,
+			UserID:          result.UserID,
+			RecipientName:   result.RecipientName,
+			ShopID:          result.ShopID,
+			CylinderSize:    result.CylinderSize,
+			Quantity:        result.Quantity,
+			TotalPrice:      result.TotalPrice,
+			Status:          result.Status,
+			DeliveryAddress: result.DeliveryAddress,
+			ShopName:        shopName,
+		})
 	}
 
 	return orders, nil
@@ -111,97 +78,56 @@ LEFT JOIN users u ON o.user_id = u.id
 
 // Get order by ID
 func (r *OrderRepository) GetOrderByID(id int) (models.Order, error) {
-	var order models.Order
-
-	query := `
-		SELECT
-			o.id,
-			o.user_id,
-			o.shop_id,
-			o.cylinder_size,
-			o.quantity,
-			o.total_price,
-			o.status,
-			o.delivery_address,
-			s.name,
-			COALESCE(u.name, '')
-		FROM orders o
-		LEFT JOIN shops s ON o.shop_id = s.id
-		LEFT JOIN users u ON o.user_id = u.id
-		WHERE o.id = ?
-	`
-
-	err := database.DB.QueryRow(query, id).Scan(
-		&order.ID,
-		&order.UserID,
-		&order.ShopID,
-		&order.CylinderSize,
-		&order.Quantity,
-		&order.TotalPrice,
-		&order.Status,
-		&order.DeliveryAddress,
-		&order.ShopName,
-		&order.RecipientName,
-	)
-
+	ctx := context.Background()
+	result, err := r.q.GetOrderByID(ctx, id)
 	if err != nil {
 		return models.Order{}, err
 	}
 
-	return order, nil
+	shopName := ""
+	if result.ShopName.Valid {
+		shopName = result.ShopName.String
+	}
+
+	return models.Order{
+		ID:              result.ID,
+		UserID:          result.UserID,
+		RecipientName:   result.RecipientName,
+		ShopID:          result.ShopID,
+		CylinderSize:    result.CylinderSize,
+		Quantity:        result.Quantity,
+		TotalPrice:      result.TotalPrice,
+		Status:          result.Status,
+		DeliveryAddress: result.DeliveryAddress,
+		ShopName:        shopName,
+	}, nil
 }
 
 // Get orders for a specific customer
 func (r *OrderRepository) GetOrdersByUserID(userID int) ([]models.Order, error) {
-	rows, err := database.DB.Query(`
-		SELECT
-			o.id,
-			o.user_id,
-			o.shop_id,
-			o.cylinder_size,
-			o.quantity,
-			o.total_price,
-			o.status,
-			o.delivery_address,
-			s.name
-		FROM orders o
-		LEFT JOIN shops s ON o.shop_id = s.id
-		WHERE o.user_id = ?
-		ORDER BY o.id DESC
-	`, userID)
-
+	ctx := context.Background()
+	results, err := r.q.GetOrdersByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
-
 	var orders []models.Order
-
-	for rows.Next() {
-		var order models.Order
-
-		err := rows.Scan(
-			&order.ID,
-			&order.UserID,
-			&order.ShopID,
-			&order.CylinderSize,
-			&order.Quantity,
-			&order.TotalPrice,
-			&order.Status,
-			&order.DeliveryAddress,
-			&order.ShopName,
-		)
-
-		if err != nil {
-			return nil, err
+	for _, result := range results {
+		shopName := ""
+		if result.ShopName.Valid {
+			shopName = result.ShopName.String
 		}
-
-		orders = append(orders, order)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
+		orders = append(orders, models.Order{
+			ID:              result.ID,
+			UserID:          result.UserID,
+			ShopID:          result.ShopID,
+			CylinderSize:    result.CylinderSize,
+			Quantity:        result.Quantity,
+			TotalPrice:      result.TotalPrice,
+			Status:          result.Status,
+			DeliveryAddress: result.DeliveryAddress,
+			ShopName:        shopName,
+		})
 	}
 
 	return orders, nil
@@ -210,66 +136,38 @@ func (r *OrderRepository) GetOrdersByUserID(userID int) ([]models.Order, error) 
 // Update the status of an existing order.
 // This changes the same order instead of creating another order.
 func (r *OrderRepository) UpdateOrderStatus(id int, status string) error {
-	_, err := database.DB.Exec(`
-		UPDATE orders
-		SET status = ?
-		WHERE id = ?
-	`, status, id)
-
-	return err
+	ctx := context.Background()
+	return r.q.UpdateOrderStatus(ctx, queried.UpdateOrderStatusParams{
+		Status: status,
+		ID:     id,
+	})
 }
 
 // Get orders belonging to a specific shop
 func (r *OrderRepository) GetOrdersByShopID(shopID int) ([]models.Order, error) {
-	rows, err := database.DB.Query(`
-		SELECT
-			o.id,
-			o.user_id,
-			o.shop_id,
-			o.cylinder_size,
-			o.quantity,
-			o.total_price,
-			o.status,
-			o.delivery_address,
-			s.name
-		FROM orders o
-		LEFT JOIN shops s ON o.shop_id = s.id
-		WHERE o.shop_id = ?
-		ORDER BY o.id DESC
-	`, shopID)
-
+	ctx := context.Background()
+	results, err := r.q.GetOrdersByShopID(ctx, shopID)
 	if err != nil {
 		return nil, err
 	}
 
-	defer rows.Close()
-
 	var orders []models.Order
-
-	for rows.Next() {
-		var order models.Order
-
-		err := rows.Scan(
-			&order.ID,
-			&order.UserID,
-			&order.ShopID,
-			&order.CylinderSize,
-			&order.Quantity,
-			&order.TotalPrice,
-			&order.Status,
-			&order.DeliveryAddress,
-			&order.ShopName,
-		)
-
-		if err != nil {
-			return nil, err
+	for _, result := range results {
+		shopName := ""
+		if result.ShopName.Valid {
+			shopName = result.ShopName.String
 		}
-
-		orders = append(orders, order)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
+		orders = append(orders, models.Order{
+			ID:              result.ID,
+			UserID:          result.UserID,
+			ShopID:          result.ShopID,
+			CylinderSize:    result.CylinderSize,
+			Quantity:        result.Quantity,
+			TotalPrice:      result.TotalPrice,
+			Status:          result.Status,
+			DeliveryAddress: result.DeliveryAddress,
+			ShopName:        shopName,
+		})
 	}
 
 	return orders, nil
@@ -277,11 +175,6 @@ func (r *OrderRepository) GetOrdersByShopID(shopID int) ([]models.Order, error) 
 
 // Delete a pending order
 func (r *OrderRepository) DeleteOrder(id int) error {
-	_, err := database.DB.Exec(`
-		DELETE FROM orders
-		WHERE id = ?
-		AND status = 'Pending'
-	`, id)
-
-	return err
+	ctx := context.Background()
+	return r.q.DeleteOrder(ctx, id)
 }

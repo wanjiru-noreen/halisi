@@ -1,55 +1,47 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"halisi/internal/database"
+	"halisi/internal/database/queried"
 	"halisi/internal/models"
 )
 
 type KYCDocumentRepository struct {
-	db *sql.DB
+	q *queried.QueriedDB
 }
 
 func NewKYCDocumentRepository() *KYCDocumentRepository {
 	return &KYCDocumentRepository{
-		db: database.DB,
+		q: queried.NewQueriedDB(database.DB),
 	}
 }
 
 func (r *KYCDocumentRepository) CreateDocument(
 	document *models.KYCDocument,
 ) error {
-	query := `
-		INSERT INTO kyc_documents (
-			shop_id,
-			document_type,
-			file_path,
-			status,
-			rejection_reason
-		)
-		VALUES (?, ?, ?, ?, ?)
-	`
-
-	result, err := r.db.Exec(
-		query,
-		document.ShopID,
-		document.DocumentType,
-		document.FilePath,
-		document.Status,
-		document.RejectionReason,
-	)
+	ctx := context.Background()
+	result, err := r.q.CreateKYCDocument(ctx, queried.CreateKYCDocumentParams{
+		ShopID:          document.ShopID,
+		DocumentType:    document.DocumentType,
+		FilePath:        document.FilePath,
+		Status:          document.Status,
+		RejectionReason: document.RejectionReason,
+	})
 	if err != nil {
 		return fmt.Errorf("create KYC document: %w", err)
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return fmt.Errorf("get KYC document ID: %w", err)
+	document.ID = result.ID
+	document.CreatedAt = result.CreatedAt.Format(time.RFC3339)
+	if result.ReviewedAt.Valid {
+		v := result.ReviewedAt.Time.Format(time.RFC3339)
+		document.ReviewedAt = &v
 	}
-
-	document.ID = int(id)
 
 	return nil
 }
@@ -57,51 +49,28 @@ func (r *KYCDocumentRepository) CreateDocument(
 func (r *KYCDocumentRepository) GetDocumentsByShopID(
 	shopID int,
 ) ([]models.KYCDocument, error) {
-	query := `
-		SELECT
-			id,
-			shop_id,
-			document_type,
-			file_path,
-			status,
-			rejection_reason,
-			created_at,
-			reviewed_at
-		FROM kyc_documents
-		WHERE shop_id = ?
-		ORDER BY created_at DESC, id DESC
-	`
-
-	rows, err := r.db.Query(query, shopID)
+	ctx := context.Background()
+	results, err := r.q.GetKYCDocumentsByShopID(ctx, shopID)
 	if err != nil {
 		return nil, fmt.Errorf("get KYC documents: %w", err)
 	}
-	defer rows.Close()
 
 	var documents []models.KYCDocument
-
-	for rows.Next() {
-		var document models.KYCDocument
-
-		err := rows.Scan(
-			&document.ID,
-			&document.ShopID,
-			&document.DocumentType,
-			&document.FilePath,
-			&document.Status,
-			&document.RejectionReason,
-			&document.CreatedAt,
-			&document.ReviewedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan KYC document: %w", err)
+	for _, result := range results {
+		doc := models.KYCDocument{
+			ID:              result.ID,
+			ShopID:          result.ShopID,
+			DocumentType:    result.DocumentType,
+			FilePath:        result.FilePath,
+			Status:          result.Status,
+			RejectionReason: result.RejectionReason,
+			CreatedAt:       result.CreatedAt.Format(time.RFC3339),
 		}
-
-		documents = append(documents, document)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate KYC documents: %w", err)
+		if result.ReviewedAt.Valid {
+			v := result.ReviewedAt.Time.Format(time.RFC3339)
+			doc.ReviewedAt = &v
+		}
+		documents = append(documents, doc)
 	}
 
 	return documents, nil
@@ -110,42 +79,30 @@ func (r *KYCDocumentRepository) GetDocumentsByShopID(
 func (r *KYCDocumentRepository) GetDocumentByID(
 	id int,
 ) (*models.KYCDocument, error) {
-	query := `
-		SELECT
-			id,
-			shop_id,
-			document_type,
-			file_path,
-			status,
-			rejection_reason,
-			created_at,
-			reviewed_at
-		FROM kyc_documents
-		WHERE id = ?
-	`
-
-	var document models.KYCDocument
-
-	err := r.db.QueryRow(query, id).Scan(
-		&document.ID,
-		&document.ShopID,
-		&document.DocumentType,
-		&document.FilePath,
-		&document.Status,
-		&document.RejectionReason,
-		&document.CreatedAt,
-		&document.ReviewedAt,
-	)
-
+	ctx := context.Background()
+	result, err := r.q.GetKYCDocumentByID(ctx, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("KYC document not found")
 		}
-
 		return nil, fmt.Errorf("get KYC document: %w", err)
 	}
 
-	return &document, nil
+	doc := models.KYCDocument{
+		ID:              result.ID,
+		ShopID:          result.ShopID,
+		DocumentType:    result.DocumentType,
+		FilePath:        result.FilePath,
+		Status:          result.Status,
+		RejectionReason: result.RejectionReason,
+		CreatedAt:       result.CreatedAt.Format(time.RFC3339),
+	}
+	if result.ReviewedAt.Valid {
+		v := result.ReviewedAt.Time.Format(time.RFC3339)
+		doc.ReviewedAt = &v
+	}
+
+	return &doc, nil
 }
 
 func (r *KYCDocumentRepository) UpdateDocumentStatus(
@@ -153,32 +110,24 @@ func (r *KYCDocumentRepository) UpdateDocumentStatus(
 	status string,
 	rejectionReason string,
 ) error {
-	query := `
-		UPDATE kyc_documents
-		SET
-			status = ?,
-			rejection_reason = ?,
-			reviewed_at = CURRENT_TIMESTAMP
-		WHERE id = ?
-		AND status = 'pending'
-	`
-
-	result, err := r.db.Exec(
-		query,
-		status,
-		rejectionReason,
-		id,
-	)
+	ctx := context.Background()
+	err := r.q.UpdateKYCDocumentStatus(ctx, queried.UpdateKYCDocumentStatusParams{
+		Status:          status,
+		RejectionReason: rejectionReason,
+		ID:              id,
+	})
 	if err != nil {
 		return fmt.Errorf("update KYC document status: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	// Check if the document was actually updated
+	var count int
+	err = r.q.DB().QueryRowContext(ctx, "SELECT COUNT(*) FROM kyc_documents WHERE id = $1 AND status = $2", id, status).Scan(&count)
 	if err != nil {
 		return fmt.Errorf("check KYC document update: %w", err)
 	}
 
-	if rowsAffected == 0 {
+	if count == 0 {
 		return fmt.Errorf("KYC document not found or already reviewed")
 	}
 
@@ -186,51 +135,28 @@ func (r *KYCDocumentRepository) UpdateDocumentStatus(
 }
 
 func (r *KYCDocumentRepository) GetPendingDocuments() ([]models.KYCDocument, error) {
-	query := `
-		SELECT
-			id,
-			shop_id,
-			document_type,
-			file_path,
-			status,
-			rejection_reason,
-			created_at,
-			reviewed_at
-		FROM kyc_documents
-		WHERE status = 'pending'
-		ORDER BY created_at ASC, id ASC
-	`
-
-	rows, err := r.db.Query(query)
+	ctx := context.Background()
+	results, err := r.q.GetPendingKYCDocuments(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get pending KYC documents: %w", err)
 	}
-	defer rows.Close()
 
 	var documents []models.KYCDocument
-
-	for rows.Next() {
-		var document models.KYCDocument
-
-		err := rows.Scan(
-			&document.ID,
-			&document.ShopID,
-			&document.DocumentType,
-			&document.FilePath,
-			&document.Status,
-			&document.RejectionReason,
-			&document.CreatedAt,
-			&document.ReviewedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan pending KYC document: %w", err)
+	for _, result := range results {
+		doc := models.KYCDocument{
+			ID:              result.ID,
+			ShopID:          result.ShopID,
+			DocumentType:    result.DocumentType,
+			FilePath:        result.FilePath,
+			Status:          result.Status,
+			RejectionReason: result.RejectionReason,
+			CreatedAt:       result.CreatedAt.Format(time.RFC3339),
 		}
-
-		documents = append(documents, document)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate pending KYC documents: %w", err)
+		if result.ReviewedAt.Valid {
+			v := result.ReviewedAt.Time.Format(time.RFC3339)
+			doc.ReviewedAt = &v
+		}
+		documents = append(documents, doc)
 	}
 
 	return documents, nil

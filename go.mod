@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/gorilla/sessions v1.4.0
-	github.com/mattn/go-sqlite3 v1.14.49
+	github.com/lib/pq v1.10.9
 	golang.org/x/crypto v0.41.0
 )
 

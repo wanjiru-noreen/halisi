@@ -2,60 +2,76 @@ package repository
 
 import (
 	"database/sql"
+	"os"
 	"testing"
 
 	"halisi/internal/database"
 	"halisi/internal/models"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/lib/pq"
 )
 
 func setupTestDB(t *testing.T) {
 	t.Helper()
 
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("DATABASE_URL not set; skipping tests")
+	}
+
 	var err error
 
-	database.DB, err = sql.Open("sqlite3", ":memory:")
+	database.DB, err = sql.Open("postgres", databaseURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Clean up any existing data
+	_, err = database.DB.Exec(`
+		DELETE FROM orders;
+		DELETE FROM shops;
+		DELETE FROM users;
+	`)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	_, err = database.DB.Exec(`
-		CREATE TABLE users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+		CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY,
 			name TEXT NOT NULL,
 			email TEXT NOT NULL UNIQUE,
 			password TEXT NOT NULL,
 			role TEXT NOT NULL,
-			email_verified INTEGER NOT NULL DEFAULT 0,
+			email_verified BOOLEAN NOT NULL DEFAULT FALSE,
 			verification_token TEXT DEFAULT '',
 			google_id TEXT NOT NULL DEFAULT ''
 		);
 
-		CREATE TABLE shops (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+		CREATE TABLE IF NOT EXISTS shops (
+			id SERIAL PRIMARY KEY,
 			name TEXT NOT NULL,
 			location TEXT NOT NULL,
 			phone TEXT NOT NULL,
-			price_6kg REAL NOT NULL DEFAULT 0,
-			price_13kg REAL NOT NULL DEFAULT 0,
-			price_45kg REAL NOT NULL DEFAULT 0,
+			price_6kg DOUBLE PRECISION NOT NULL DEFAULT 0,
+			price_13kg DOUBLE PRECISION NOT NULL DEFAULT 0,
+			price_45kg DOUBLE PRECISION NOT NULL DEFAULT 0,
 			owner_id INTEGER,
-			latitude REAL DEFAULT 0,
-			longitude REAL DEFAULT 0,
+			latitude DOUBLE PRECISION DEFAULT 0,
+			longitude DOUBLE PRECISION DEFAULT 0,
 			business_registration_number TEXT DEFAULT '',
 			kra_pin TEXT DEFAULT '',
 			license_number TEXT DEFAULT '',
 			verification_status TEXT NOT NULL DEFAULT 'pending'
 		);
 
-		CREATE TABLE orders (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
+		CREATE TABLE IF NOT EXISTS orders (
+			id SERIAL PRIMARY KEY,
 			user_id INTEGER,
 			shop_id INTEGER,
 			cylinder_size TEXT NOT NULL,
 			quantity INTEGER NOT NULL,
-			total_price REAL NOT NULL,
+			total_price DOUBLE PRECISION NOT NULL,
 			status TEXT NOT NULL,
 			delivery_address TEXT NOT NULL DEFAULT ''
 		);
@@ -68,6 +84,11 @@ func setupTestDB(t *testing.T) {
 
 func teardownTestDB() {
 	if database.DB != nil {
+		_, _ = database.DB.Exec(`
+			DELETE FROM orders;
+			DELETE FROM shops;
+			DELETE FROM users;
+		`)
 		database.DB.Close()
 		database.DB = nil
 	}

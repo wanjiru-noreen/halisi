@@ -1,81 +1,69 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
 	"halisi/internal/database"
+	"halisi/internal/database/queried"
 	"halisi/internal/models"
 )
 
 type UserRepository struct {
-	db *sql.DB
+	q *queried.QueriedDB
 }
 
 func NewUserRepository() *UserRepository {
-	return &UserRepository{db: database.DB}
+	return &UserRepository{q: queried.NewQueriedDB(database.DB)}
 }
 
 // CreateUser inserts a new user record.
 func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
-	query := `
-		INSERT INTO users (
-			name,
-			email,
-			password,
-			role,
-			email_verified,
-			verification_token,
-			google_id
-		)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-	`
-
-	result, err := r.db.Exec(
-		query,
-		user.Name,
-		user.Email,
-		user.Password,
-		user.Role,
-		user.EmailVerified,
-		user.VerificationToken,
-		user.GoogleID,
-	)
+	ctx := context.Background()
+	result, err := r.q.CreateUser(ctx, struct {
+		Name              string
+		Email             string
+		Password          string
+		Role              string
+		EmailVerified     bool
+		VerificationToken string
+		GoogleID          string
+	}{
+		Name:              user.Name,
+		Email:             user.Email,
+		Password:          user.Password,
+		Role:              user.Role,
+		EmailVerified:     user.EmailVerified,
+		VerificationToken: user.VerificationToken,
+		GoogleID:          user.GoogleID,
+	})
 	if err != nil {
 		return models.User{}, fmt.Errorf("failed to insert user: %w", err)
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return models.User{}, fmt.Errorf(
-			"failed to retrieve inserted user ID: %w",
-			err,
-		)
-	}
-
-	user.ID = int(id)
-	return user, nil
+	return models.User{
+		ID:                result.ID,
+		Name:              result.Name,
+		Email:             result.Email,
+		Password:          result.Password,
+		Role:              result.Role,
+		EmailVerified:     result.EmailVerified,
+		VerificationToken: result.VerificationToken,
+		GoogleID:          result.GoogleID,
+	}, nil
 }
 
 // UpdateUnverifiedUser updates an existing unverified user's details.
 func (r *UserRepository) UpdateUnverifiedUser(user models.User) error {
-	_, err := r.db.Exec(`
-		UPDATE users
-		SET
-			name = ?,
-			password = ?,
-			role = ?,
-			email_verified = 0,
-			verification_token = ?
-		WHERE id = ?
-		  AND email_verified = 0
-	`,
-		user.Name,
-		user.Password,
-		user.Role,
-		user.VerificationToken,
-		user.ID,
-	)
+	ctx := context.Background()
+	err := r.q.UpdateUnverifiedUser(ctx, queried.UpdateUnverifiedUserParams{
+		Name:              user.Name,
+		Password:          user.Password,
+		Role:              user.Role,
+		VerificationToken: user.VerificationToken,
+		ID:                user.ID,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to update unverified user: %w", err)
 	}
@@ -85,32 +73,8 @@ func (r *UserRepository) UpdateUnverifiedUser(user models.User) error {
 
 // GetUserByEmail retrieves a user by email.
 func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
-	query := `
-		SELECT
-			id,
-			name,
-			email,
-			password,
-			role,
-			email_verified,
-			verification_token,
-			google_id
-		FROM users
-		WHERE email = ?
-	`
-
-	var user models.User
-
-	err := r.db.QueryRow(query, email).Scan(
-		&user.ID,
-		&user.Name,
-		&user.Email,
-		&user.Password,
-		&user.Role,
-		&user.EmailVerified,
-		&user.VerificationToken,
-		&user.GoogleID,
-	)
+	ctx := context.Background()
+	result, err := r.q.GetUserByEmail(ctx, email)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, nil
@@ -119,39 +83,24 @@ func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
 		return models.User{}, fmt.Errorf("failed to query user by email: %w", err)
 	}
 
-	return user, nil
+	return models.User{
+		ID:                result.ID,
+		Name:              result.Name,
+		Email:             result.Email,
+		Password:          result.Password,
+		Role:              result.Role,
+		EmailVerified:     result.EmailVerified,
+		VerificationToken: result.VerificationToken,
+		GoogleID:          result.GoogleID,
+	}, nil
 }
 
 // GetUserByVerificationToken retrieves a user by verification token.
 func (r *UserRepository) GetUserByVerificationToken(
 	token string,
 ) (models.User, error) {
-	query := `
-		SELECT
-			id,
-			name,
-			email,
-			password,
-			role,
-			email_verified,
-			verification_token,
-			google_id
-		FROM users
-		WHERE verification_token = ?
-	`
-
-	var user models.User
-
-	err := r.db.QueryRow(query, token).Scan(
-		&user.ID,
-		&user.Name,
-		&user.Email,
-		&user.Password,
-		&user.Role,
-		&user.EmailVerified,
-		&user.VerificationToken,
-		&user.GoogleID,
-	)
+	ctx := context.Background()
+	result, err := r.q.GetUserByVerificationToken(ctx, token)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, nil
@@ -163,18 +112,22 @@ func (r *UserRepository) GetUserByVerificationToken(
 		)
 	}
 
-	return user, nil
+	return models.User{
+		ID:                result.ID,
+		Name:              result.Name,
+		Email:             result.Email,
+		Password:          result.Password,
+		Role:              result.Role,
+		EmailVerified:     result.EmailVerified,
+		VerificationToken: result.VerificationToken,
+		GoogleID:          result.GoogleID,
+	}, nil
 }
 
 // VerifyUserEmail marks a user's email as verified and clears the token.
 func (r *UserRepository) VerifyUserEmail(userID int) error {
-	_, err := r.db.Exec(`
-		UPDATE users
-		SET
-			email_verified = 1,
-			verification_token = ''
-		WHERE id = ?
-	`, userID)
+	ctx := context.Background()
+	err := r.q.VerifyUserEmail(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("failed to verify user email: %w", err)
 	}
@@ -184,47 +137,24 @@ func (r *UserRepository) VerifyUserEmail(userID int) error {
 
 // GetUsers returns all registered users.
 func (r *UserRepository) GetUsers() ([]models.User, error) {
-	rows, err := r.db.Query(`
-		SELECT
-			id,
-			name,
-			email,
-			password,
-			role,
-			email_verified,
-			verification_token,
-			google_id
-		FROM users
-		ORDER BY id
-	`)
+	ctx := context.Background()
+	results, err := r.q.GetUsers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query users: %w", err)
 	}
-	defer rows.Close()
 
 	users := []models.User{}
-
-	for rows.Next() {
-		var user models.User
-
-		if err := rows.Scan(
-			&user.ID,
-			&user.Name,
-			&user.Email,
-			&user.Password,
-			&user.Role,
-			&user.EmailVerified,
-			&user.VerificationToken,
-			&user.GoogleID,
-		); err != nil {
-			return nil, fmt.Errorf("failed to scan user: %w", err)
-		}
-
-		users = append(users, user)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to iterate users: %w", err)
+	for _, result := range results {
+		users = append(users, models.User{
+			ID:                result.ID,
+			Name:              result.Name,
+			Email:             result.Email,
+			Password:          result.Password,
+			Role:              result.Role,
+			EmailVerified:     result.EmailVerified,
+			VerificationToken: result.VerificationToken,
+			GoogleID:          result.GoogleID,
+		})
 	}
 
 	return users, nil
@@ -234,32 +164,8 @@ func (r *UserRepository) GetUsers() ([]models.User, error) {
 func (r *UserRepository) GetUserByGoogleID(
 	googleID string,
 ) (models.User, error) {
-	query := `
-		SELECT
-			id,
-			name,
-			email,
-			password,
-			role,
-			email_verified,
-			verification_token,
-			google_id
-		FROM users
-		WHERE google_id = ?
-	`
-
-	var user models.User
-
-	err := r.db.QueryRow(query, googleID).Scan(
-		&user.ID,
-		&user.Name,
-		&user.Email,
-		&user.Password,
-		&user.Role,
-		&user.EmailVerified,
-		&user.VerificationToken,
-		&user.GoogleID,
-	)
+	ctx := context.Background()
+	result, err := r.q.GetUserByGoogleID(ctx, googleID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, nil
@@ -271,7 +177,16 @@ func (r *UserRepository) GetUserByGoogleID(
 		)
 	}
 
-	return user, nil
+	return models.User{
+		ID:                result.ID,
+		Name:              result.Name,
+		Email:             result.Email,
+		Password:          result.Password,
+		Role:              result.Role,
+		EmailVerified:     result.EmailVerified,
+		VerificationToken: result.VerificationToken,
+		GoogleID:          result.GoogleID,
+	}, nil
 }
 
 // LinkGoogleID links a Google account to an existing verified user.
@@ -279,23 +194,23 @@ func (r *UserRepository) LinkGoogleID(
 	userID int,
 	googleID string,
 ) error {
-	result, err := r.db.Exec(`
-		UPDATE users
-		SET google_id = ?
-		WHERE id = ?
-		  AND email_verified = 1
-		  AND google_id = ''
-	`, googleID, userID)
+	ctx := context.Background()
+	err := r.q.LinkGoogleID(ctx, queried.LinkGoogleIDParams{
+		GoogleID: googleID,
+		ID:       userID,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to link Google account: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
+	// Check if the user was actually updated
+	var count int
+	err = r.q.DB().QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE id = $1 AND google_id = $2", userID, googleID).Scan(&count)
 	if err != nil {
 		return fmt.Errorf("failed to check Google account link: %w", err)
 	}
 
-	if rows != 1 {
+	if count != 1 {
 		return fmt.Errorf(
 			"Google account could not be linked: user is unverified or already linked",
 		)
