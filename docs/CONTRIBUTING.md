@@ -21,17 +21,17 @@ Thank you for contributing to Halisi! This document outlines our development wor
 Halisi adheres to a structured branching model:
 
 * **`main`**: Production-ready, stable releases. Never commit directly to `main`.
-* **`development`**: Integration branch for new features and bug fixes. All feature pull requests must target `development`.
+* **`develop`**: Integration branch for new features and bug fixes. All feature pull requests must target `develop`.
 * **`feature/<feature-name>`**: New functionality (e.g. `feature/daraja-stk-push`, `feature/google-maps-pins`).
 * **`fix/<bug-description>`**: Bug fixes (e.g. `fix/templ-brace-parsing`).
 * **`chore/<task-name>`**: Refactoring, tool updates, or infrastructure maintenance.
 
 ### Typical Contribution Steps
 1. Fork the repository and clone your fork locally.
-2. Ensure your local `development` branch is up to date:
+2. Ensure your local `develop` branch is up to date:
    ```bash
-   git checkout development
-   git pull origin development
+   git checkout develop
+   git pull origin develop
    ```
 3. Create your feature branch:
    ```bash
@@ -39,7 +39,7 @@ Halisi adheres to a structured branching model:
    ```
 4. Implement your changes and write unit tests.
 5. Verify build, tests, and formatting locally with `make check`.
-6. Push to your fork and submit a PR targeting `development`.
+6. Push to your fork and submit a PR targeting `develop`.
 
 ---
 
@@ -157,4 +157,4 @@ Pull requests will automatically trigger the GitHub Actions CI pipeline, which e
    * Include screenshots or screen recordings for UI modifications.
    * Reference the related GitHub issue number (e.g. `Closes #29`).
 3. **Scope**: Keep pull requests focused on a single concern or issue. Avoid mixing unrelated refactors into feature PRs.
-4. **Review**: All PRs require review from a project maintainer before being merged into `development`.
+4. **Review**: All PRs require review from a project maintainer before being merged into `develop`.

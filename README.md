@@ -368,7 +368,7 @@ We welcome contributions from the community! Please follow our established workf
 2. Create a feature branch (`git checkout -b feature/amazing-feature`).
 3. Commit your changes following [Conventional Commits](https://www.conventionalcommits.org/) (`git commit -m 'feat: add Google Maps shop radius filter'`).
 4. Push to your branch (`git push origin feature/amazing-feature`).
-5. Open a Pull Request targeting the `development` branch.
+5. Open a Pull Request targeting the `develop` branch.
 
 All pull requests run automated CI testing, vulnerability scanning, and code formatting checks.
 
