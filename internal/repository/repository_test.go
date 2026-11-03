@@ -67,9 +67,7 @@ func setupTestDB(t *testing.T) {
 			delivery_address TEXT NOT NULL DEFAULT ''
 		);
 
-		DELETE FROM orders;
-		DELETE FROM shops;
-		DELETE FROM users;
+		TRUNCATE TABLE orders, shops, users RESTART IDENTITY CASCADE;
 	`)
 
 	if err != nil {
@@ -80,9 +78,7 @@ func setupTestDB(t *testing.T) {
 func teardownTestDB() {
 	if database.DB != nil {
 		_, _ = database.DB.Exec(`
-			DELETE FROM orders;
-			DELETE FROM shops;
-			DELETE FROM users;
+			TRUNCATE TABLE orders, shops, users RESTART IDENTITY CASCADE;
 		`)
 		database.DB.Close()
 		database.DB = nil
@@ -422,6 +418,7 @@ func TestOrderRepository(t *testing.T) {
 
 	_, err := database.DB.Exec(`
 		INSERT INTO shops (
+			id,
 			name,
 			location,
 			phone,
@@ -429,7 +426,11 @@ func TestOrderRepository(t *testing.T) {
 			price_13kg,
 			price_45kg
 		)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES (1, $1, $2, $3, $4, $5, $6)
+		ON CONFLICT (id) DO UPDATE SET
+			name = EXCLUDED.name,
+			location = EXCLUDED.location,
+			phone = EXCLUDED.phone
 	`,
 		"Shell Gas",
 		"Kisumu CBD",
