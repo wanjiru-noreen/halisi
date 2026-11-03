@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 )
+
 // Suppress unused import warnings for sqlc-generated code.
 var _ = sql.DB{}
 
