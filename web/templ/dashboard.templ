@@ -1,21 +1,19 @@
 package webtempl
 
-import "halisi/internal/models"
-
 templ Dashboard() {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>Dashboard | Halisi</title>
-			<link rel="preconnect" href="https://fonts.googleapis.com">
-			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 			<link
 				href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
 				rel="stylesheet"
-			>
-			<link rel="stylesheet" href="/static/css/style.css">
+			/>
+			<link rel="stylesheet" href="/static/css/style.css"/>
 			<style>
 				.dashboard-main { padding-bottom: 60px; }
 				.hero {
@@ -383,13 +381,13 @@ templ Dashboard() {
 			</style>
 		</head>
 		<body>
-			{Navbar("customer")}
+			@Navbar("customer")
 			<main class="dashboard-main">
 				<section class="hero">
 					<div class="container">
 						<div class="hero-content">
 							<span class="hero-badge">Trusted by 120+ homes</span>
-							<h1>Never run out of<br>cooking gas</h1>
+							<h1>Never run out of<br/>cooking gas</h1>
 							<p>Fast, safe and reliable gas delivery to your doorstep.</p>
 							<div class="hero-actions">
 								<a href="/order" class="btn btn-primary">Order gas</a>
@@ -401,7 +399,7 @@ templ Dashboard() {
 								<img
 									src="/static/images/gas.jpg"
 									alt="Halisi Gas Cylinder"
-								>
+								/>
 								<span class="floating-dot dot-1"></span>
 								<span class="floating-dot dot-2"></span>
 							</div>

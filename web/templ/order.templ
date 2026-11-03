@@ -11,10 +11,10 @@ templ OrderPage(data OrderData) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>HALISI - Complete Your Order</title>
-			<link rel="stylesheet" href="/static/css/style.css">
+			<link rel="stylesheet" href="/static/css/style.css"/>
 			<style>
 				.order-page {
 					min-height: 100vh;
@@ -103,7 +103,7 @@ templ OrderPage(data OrderData) {
 			</style>
 		</head>
 		<body>
-			{Navbar("customer")}
+			@Navbar("customer")
 			<main class="order-page">
 				<div class="order-container">
 					<div class="page-header">
@@ -116,17 +116,17 @@ templ OrderPage(data OrderData) {
 								<label for="shop_id">Select Shop</label>
 								<select id="shop_id" name="shop_id" required onchange="updatePrices()">
 									<option value="">Select a shop</option>
-									{range data.Shops}
-									<option
-										value="{.ID}"
-										data-price6kg="{.Price6kg}"
-										data-price13kg="{.Price13kg}"
-										data-price45kg="{.Price45kg}"
-										{if .ID == data.SelectedShopID}selected{end}
-									>
-										{.Name} - {.Location}
-									</option>
-									{end}
+									for _, shop := range data.Shops {
+										<option
+											value={ shop.ID }
+											data-price6kg={ shop.Price6kg }
+											data-price13kg={ shop.Price13kg }
+											data-price45kg={ shop.Price45kg }
+											selected?={ shop.ID == data.SelectedShopID }
+										>
+											{ shop.Name } - { shop.Location }
+										</option>
+									}
 								</select>
 							</div>
 							<div class="form-row">
@@ -150,7 +150,7 @@ templ OrderPage(data OrderData) {
 										required
 										onchange="updateTotal()"
 										oninput="updateTotal()"
-									>
+									/>
 								</div>
 							</div>
 							<div class="form-group">
@@ -161,7 +161,7 @@ templ OrderPage(data OrderData) {
 									name="address"
 									placeholder="Enter your location (e.g. Milimani, House #4)"
 									required
-								>
+								/>
 							</div>
 							<div class="form-group">
 								<label for="phone">Phone Number</label>
@@ -171,7 +171,7 @@ templ OrderPage(data OrderData) {
 									name="phone"
 									placeholder="07XXXXXXXX"
 									required
-								>
+								/>
 							</div>
 							<div class="order-total">
 								<span>Total Price</span>

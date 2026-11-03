@@ -15,13 +15,13 @@ templ AdminDashboard(data AdminData) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>Admin Dashboard | Halisi</title>
-			<link rel="stylesheet" href="/static/css/style.css">
-			<link rel="preconnect" href="https://fonts.googleapis.com">
-			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-			<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+			<link rel="stylesheet" href="/static/css/style.css"/>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 		</head>
 		<body>
 			<header class="navbar">
@@ -35,15 +35,15 @@ templ AdminDashboard(data AdminData) {
 				<h1>Dashboard Overview</h1>
 				<div class="stats-grid">
 					<div class="stat-card">
-						<h2>{data.TotalUsers}</h2>
+						<h2>{ data.TotalUsers }</h2>
 						<p>Users</p>
 					</div>
 					<div class="stat-card">
-						<h2>{data.TotalShops}</h2>
+						<h2>{ data.TotalShops }</h2>
 						<p>Gas Shops</p>
 					</div>
 					<div class="stat-card">
-						<h2>{data.TotalOrders}</h2>
+						<h2>{ data.TotalOrders }</h2>
 						<p>Orders</p>
 					</div>
 				</div>
@@ -57,36 +57,36 @@ templ AdminDashboard(data AdminData) {
 							<th>Status</th>
 							<th>Action</th>
 						</tr>
-						{if len(data.Shops) > 0}
-						{range data.Shops}
-						<tr>
-							<td>{.Name}</td>
-							<td>{.Location}</td>
-							<td>{.Phone}</td>
-							<td>{.VerificationStatus}</td>
-							<td>
-								{if .VerificationStatus == "pending"}
-								<form method="POST" action="/admin/verify-shop" style="display:inline;">
-									<input type="hidden" name="shop_id" value="{.ID}">
-									<input type="hidden" name="status" value="approved">
-									<button type="submit">Approve</button>
-								</form>
-								<form method="POST" action="/admin/verify-shop" style="display:inline;">
-									<input type="hidden" name="shop_id" value="{.ID}">
-									<input type="hidden" name="status" value="rejected">
-									<button type="submit">Reject</button>
-								</form>
-								{else}
-								No action
-								{end}
-							</td>
-						</tr>
-						{end}
-						{else}
-						<tr>
-							<td colspan="5">No shops registered.</td>
-						</tr>
-						{end}
+						if len(data.Shops) > 0 {
+							for _, shop := range data.Shops {
+								<tr>
+									<td>{ shop.Name }</td>
+									<td>{ shop.Location }</td>
+									<td>{ shop.Phone }</td>
+									<td>{ shop.VerificationStatus }</td>
+									<td>
+										if shop.VerificationStatus == "pending" {
+											<form method="POST" action="/admin/verify-shop" style="display:inline;">
+												<input type="hidden" name="shop_id" value={ shop.ID }/>
+												<input type="hidden" name="status" value="approved"/>
+												<button type="submit">Approve</button>
+											</form>
+											<form method="POST" action="/admin/verify-shop" style="display:inline;">
+												<input type="hidden" name="shop_id" value={ shop.ID }/>
+												<input type="hidden" name="status" value="rejected"/>
+												<button type="submit">Reject</button>
+											</form>
+										} else {
+											No action
+										}
+									</td>
+								</tr>
+							}
+						} else {
+							<tr>
+								<td colspan="5">No shops registered.</td>
+							</tr>
+						}
 					</table>
 				</section>
 				<section class="admin-section">
@@ -98,14 +98,14 @@ templ AdminDashboard(data AdminData) {
 							<th>Shop</th>
 							<th>Status</th>
 						</tr>
-						{range data.Orders}
-						<tr>
-							<td>{.ID}</td>
-							<td>{.UserID}</td>
-							<td>{.ShopID}</td>
-							<td>{.Status}</td>
-						</tr>
-						{end}
+						for _, order := range data.Orders {
+							<tr>
+								<td>{ order.ID }</td>
+								<td>{ order.UserID }</td>
+								<td>{ order.ShopID }</td>
+								<td>{ order.Status }</td>
+							</tr>
+						}
 					</table>
 				</section>
 				<section class="admin-section">
@@ -116,13 +116,13 @@ templ AdminDashboard(data AdminData) {
 							<th>Email</th>
 							<th>Role</th>
 						</tr>
-						{range data.Users}
-						<tr>
-							<td>{.Name}</td>
-							<td>{.Email}</td>
-							<td>{.Role}</td>
-						</tr>
-						{end}
+						for _, user := range data.Users {
+							<tr>
+								<td>{ user.Name }</td>
+								<td>{ user.Email }</td>
+								<td>{ user.Role }</td>
+							</tr>
+						}
 					</table>
 				</section>
 			</main>

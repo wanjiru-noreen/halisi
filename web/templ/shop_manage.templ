@@ -11,10 +11,10 @@ templ ShopManagePage(data ShopManageData) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>Manage Shop | Halisi</title>
-			<link rel="stylesheet" href="/static/css/style.css">
+			<link rel="stylesheet" href="/static/css/style.css"/>
 			<style>
 				body {
 					margin: 0;
@@ -163,7 +163,7 @@ templ ShopManagePage(data ShopManageData) {
 			</style>
 		</head>
 		<body>
-			{VendorNavbar()}
+			@VendorNavbar()
 			<div class="shop-page">
 				<div class="shop-container">
 					<div class="page-header">
@@ -171,19 +171,19 @@ templ ShopManagePage(data ShopManageData) {
 						<p>Manage your shop information and gas prices.</p>
 					</div>
 					<div class="shop-card">
-						<div class="shop-name">{data.Shop.Name}</div>
+						<div class="shop-name">{ data.Shop.Name }</div>
 						<div class="shop-info">
 							<div class="info-box">
 								<span class="info-label">Location</span>
-								<span class="info-value">{data.Shop.Location}</span>
+								<span class="info-value">{ data.Shop.Location }</span>
 							</div>
 							<div class="info-box">
 								<span class="info-label">Phone</span>
-								<span class="info-value">{data.Shop.Phone}</span>
+								<span class="info-value">{ data.Shop.Phone }</span>
 							</div>
 							<div class="info-box">
 								<span class="info-label">Shop Status</span>
-								<span class="info-value active">{data.Shop.VerificationStatus}</span>
+								<span class="info-value active">{ data.Shop.VerificationStatus }</span>
 							</div>
 						</div>
 					</div>
@@ -202,7 +202,7 @@ templ ShopManagePage(data ShopManageData) {
 										step="0.01"
 										placeholder="Enter price"
 										required
-									>
+									/>
 									<div class="currency">Price in KSh</div>
 								</div>
 								<div class="price-box">
@@ -216,7 +216,7 @@ templ ShopManagePage(data ShopManageData) {
 										step="0.01"
 										placeholder="Enter price"
 										required
-									>
+									/>
 									<div class="currency">Price in KSh</div>
 								</div>
 								<div class="price-box">
@@ -230,7 +230,7 @@ templ ShopManagePage(data ShopManageData) {
 										step="0.01"
 										placeholder="Enter price"
 										required
-									>
+									/>
 									<div class="currency">Price in KSh</div>
 								</div>
 							</div>

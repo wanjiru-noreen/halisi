@@ -6,10 +6,10 @@ templ ShopPage(shop models.Shop) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>{shop.Name} | Halisi</title>
-			<link rel="stylesheet" href="/static/css/style.css">
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ shop.Name } | Halisi</title>
+			<link rel="stylesheet" href="/static/css/style.css"/>
 			<style>
 				.shop-page {
 					min-height: 100vh;
@@ -94,11 +94,11 @@ templ ShopPage(shop models.Shop) {
 			</style>
 		</head>
 		<body>
-			{Navbar("customer")}
+			@Navbar("customer")
 			<div class="shop-page">
 				<div class="shop-container">
 					<div class="shop-header">
-						<h1>{shop.Name}</h1>
+						<h1>{ shop.Name }</h1>
 						<p>View available gas prices and place your order.</p>
 					</div>
 					<div class="shop-card">
@@ -106,11 +106,11 @@ templ ShopPage(shop models.Shop) {
 						<div class="shop-info">
 							<div class="info-box">
 								<span>Location</span>
-								<strong>{shop.Location}</strong>
+								<strong>{ shop.Location }</strong>
 							</div>
 							<div class="info-box">
 								<span>Phone</span>
-								<strong>{shop.Phone}</strong>
+								<strong>{ shop.Phone }</strong>
 							</div>
 							<div class="info-box">
 								<span>Status</span>
@@ -123,27 +123,27 @@ templ ShopPage(shop models.Shop) {
 						<div class="price-grid">
 							<div class="price-box">
 								<h3>6kg</h3>
-								{if shop.Price6kg > 0}
-								<div class="price">KSh {shop.Price6kg}</div>
-								{else}
-								<div class="unavailable">Currently unavailable</div>
-								{end}
+								if shop.Price6kg > 0 {
+									<div class="price">KSh { shop.Price6kg }</div>
+								} else {
+									<div class="unavailable">Currently unavailable</div>
+								}
 							</div>
 							<div class="price-box">
 								<h3>13kg</h3>
-								{if shop.Price13kg > 0}
-								<div class="price">KSh {shop.Price13kg}</div>
-								{else}
-								<div class="unavailable">Currently unavailable</div>
-								{end}
+								if shop.Price13kg > 0 {
+									<div class="price">KSh { shop.Price13kg }</div>
+								} else {
+									<div class="unavailable">Currently unavailable</div>
+								}
 							</div>
 							<div class="price-box">
 								<h3>45kg</h3>
-								{if shop.Price45kg > 0}
-								<div class="price">KSh {shop.Price45kg}</div>
-								{else}
-								<div class="unavailable">Currently unavailable</div>
-								{end}
+								if shop.Price45kg > 0 {
+									<div class="price">KSh { shop.Price45kg }</div>
+								} else {
+									<div class="unavailable">Currently unavailable</div>
+								}
 							</div>
 						</div>
 						<a href="/order?shop_id={shop.ID}" class="order-btn">Order Gas</a>
