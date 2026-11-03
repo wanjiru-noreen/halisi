@@ -26,16 +26,7 @@ func setupTestDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Clean up any existing data
-	_, err = database.DB.Exec(`
-		DELETE FROM orders;
-		DELETE FROM shops;
-		DELETE FROM users;
-	`)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	// Ensure tables exist before cleaning or running repository tests
 	_, err = database.DB.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
@@ -75,6 +66,10 @@ func setupTestDB(t *testing.T) {
 			status TEXT NOT NULL,
 			delivery_address TEXT NOT NULL DEFAULT ''
 		);
+
+		DELETE FROM orders;
+		DELETE FROM shops;
+		DELETE FROM users;
 	`)
 
 	if err != nil {
