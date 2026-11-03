@@ -1,6 +1,9 @@
 package webtempl
 
-import "halisi/internal/models"
+import (
+	"fmt"
+	"halisi/internal/models"
+)
 
 type ShopsData struct {
 	Shops []models.Shop
@@ -11,13 +14,13 @@ templ ShopsPage(data ShopsData) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>Verified Gas Suppliers | Halisi</title>
-			<link rel="preconnect" href="https://fonts.googleapis.com">
-			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-			<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-			<link rel="stylesheet" href="/static/css/style.css">
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+			<link rel="stylesheet" href="/static/css/style.css"/>
 			<style>
 				.shops-page {
 					background-color: #f7f6ff;
@@ -152,45 +155,45 @@ templ ShopsPage(data ShopsData) {
 			</style>
 		</head>
 		<body>
-			{Navbar(data.Role)}
+			@Navbar(data.Role)
 			<main class="shops-page">
 				<div class="container">
 					<div class="shops-header">
 						<h1>Verified Gas Suppliers</h1>
 						<p>Choose from gas suppliers that have been verified by Halisi.</p>
 					</div>
-					{if len(data.Shops) > 0}
-					<div class="shops-grid">
-						{range data.Shops}
-						<div class="shop-card-modern">
-							<div class="shop-info">
-								<h3>{.Name}</h3>
-								<div class="shop-meta">
-									<span>📍 {.Location}</span>
-									<span>📞 {.Phone}</span>
+					if len(data.Shops) > 0 {
+						<div class="shops-grid">
+							for _, shop := range data.Shops {
+								<div class="shop-card-modern">
+									<div class="shop-info">
+										<h3>{ shop.Name }</h3>
+										<div class="shop-meta">
+											<span>📍 { shop.Location }</span>
+											<span>📞 { shop.Phone }</span>
+										</div>
+										<span class="status-badge">● Verified</span>
+									</div>
+									<div class="pricing-section">
+										<div class="pricing-title">Cylinder Prices & Sizes</div>
+										<div class="price-chips">
+											<div class="price-chip">6KG <span>KSh { shop.Price6kg }</span></div>
+											<div class="price-chip">13KG <span>KSh { shop.Price13kg }</span></div>
+											<div class="price-chip">45KG <span>KSh { shop.Price45kg }</span></div>
+										</div>
+									</div>
+									<div class="shop-action">
+										<a href={ fmt.Sprintf("/order?shop_id=%d", shop.ID) } class="btn-order-shop">Order from this shop</a>
+									</div>
 								</div>
-								<span class="status-badge">● Verified</span>
-							</div>
-							<div class="pricing-section">
-								<div class="pricing-title">Cylinder Prices & Sizes</div>
-								<div class="price-chips">
-									<div class="price-chip">6KG <span>KSh {.Price6kg}</span></div>
-									<div class="price-chip">13KG <span>KSh {.Price13kg}</span></div>
-									<div class="price-chip">45KG <span>KSh {.Price45kg}</span></div>
-								</div>
-							</div>
-							<div class="shop-action">
-								<a href="/order?shop_id={.ID}" class="btn-order-shop">Order from this shop</a>
-							</div>
+							}
 						</div>
-						{end}
-					</div>
-					{else}
-					<div class="empty-state">
-						<h2>No verified shops yet</h2>
-						<p>There are currently no approved gas suppliers available. Please check again later.</p>
-					</div>
-					{end}
+					} else {
+						<div class="empty-state">
+							<h2>No verified shops yet</h2>
+							<p>There are currently no approved gas suppliers available. Please check again later.</p>
+						</div>
+					}
 				</div>
 			</main>
 			<footer>

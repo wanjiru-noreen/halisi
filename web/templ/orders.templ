@@ -1,6 +1,9 @@
 package webtempl
 
-import "halisi/internal/models"
+import (
+	"fmt"
+	"halisi/internal/models"
+)
 
 type OrdersData struct {
 	Orders []models.Order
@@ -11,13 +14,13 @@ templ OrdersPage(data OrdersData) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>My Orders | Halisi</title>
-			<link rel="preconnect" href="https://fonts.googleapis.com">
-			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-			<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-			<link rel="stylesheet" href="/static/css/style.css">
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+			<link rel="stylesheet" href="/static/css/style.css"/>
 			<style>
 				.orders-page {
 					background-color: #f7f6ff;
@@ -179,7 +182,7 @@ templ OrdersPage(data OrdersData) {
 			</style>
 		</head>
 		<body>
-			{Navbar(data.Role)}
+			@Navbar(data.Role)
 			<main class="orders-page">
 				<div class="container">
 					<div class="orders-header">
@@ -187,48 +190,48 @@ templ OrdersPage(data OrdersData) {
 						<p>Track your gas orders and delivery progress.</p>
 					</div>
 					<div class="orders-list">
-						{if len(data.Orders) > 0}
-						{range data.Orders}
-						<div class="order-card">
-							<div class="order-main-info">
-								<div class="order-top-row">
-									<span class="order-id">Order #{.ID}</span>
-									<span class="status-badge">{.Status}</span>
+						if len(data.Orders) > 0 {
+							for _, order := range data.Orders {
+								<div class="order-card">
+									<div class="order-main-info">
+										<div class="order-top-row">
+											<span class="order-id">Order #{ order.ID }</span>
+											<span class="status-badge">{ order.Status }</span>
+										</div>
+										<h3 class="shop-name">{ order.ShopName }</h3>
+										<div class="order-details-grid">
+											<div class="detail-block">
+												<span>Cylinder Size</span>
+												<strong>{ order.CylinderSize }</strong>
+											</div>
+											<div class="detail-block">
+												<span>Quantity</span>
+												<strong>{ order.Quantity }</strong>
+											</div>
+											<div class="detail-block">
+												<span>Total Amount</span>
+												<strong style="color: #2E0A9B;">KSh { order.TotalPrice }</strong>
+											</div>
+										</div>
+										<p class="delivery-address">
+											Delivery Address: <span>{ order.DeliveryAddress }</span>
+										</p>
+									</div>
+									<div class="order-actions">
+										<a href={ fmt.Sprintf("/order?reorder=%d", order.ID) } class="btn-action btn-reorder">Order Again</a>
+										<form action={ fmt.Sprintf("/orders/delete?id=%d", order.ID) } method="POST" style="margin: 0;">
+											<button type="submit" class="btn-action btn-delete" style="width: 100%;" onclick="return confirm('Are you sure you want to delete this order?');">Delete Order</button>
+										</form>
+									</div>
 								</div>
-								<h3 class="shop-name">{.ShopName}</h3>
-								<div class="order-details-grid">
-									<div class="detail-block">
-										<span>Cylinder Size</span>
-										<strong>{.CylinderSize}</strong>
-									</div>
-									<div class="detail-block">
-										<span>Quantity</span>
-										<strong>{.Quantity}</strong>
-									</div>
-									<div class="detail-block">
-										<span>Total Amount</span>
-										<strong style="color: #2E0A9B;">KSh {.TotalPrice}</strong>
-									</div>
-								</div>
-								<p class="delivery-address">
-									Delivery Address: <span>{.DeliveryAddress}</span>
-								</p>
+							}
+						} else {
+							<div class="no-orders">
+								<h3>No orders found</h3>
+								<p>You haven't placed any gas orders yet.</p>
+								<a href="/order" class="btn-action btn-reorder" style="display: inline-block;">Order Gas Now</a>
 							</div>
-							<div class="order-actions">
-								<a href="/order?reorder={.ID}" class="btn-action btn-reorder">Order Again</a>
-								<form action="/orders/delete?id={.ID}" method="POST" style="margin: 0;">
-									<button type="submit" class="btn-action btn-delete" style="width: 100%;" onclick="return confirm('Are you sure you want to delete this order?');">Delete Order</button>
-								</form>
-							</div>
-						</div>
-						{end}
-						{else}
-						<div class="no-orders">
-							<h3>No orders found</h3>
-							<p>You haven't placed any gas orders yet.</p>
-							<a href="/order" class="btn-action btn-reorder" style="display: inline-block;">Order Gas Now</a>
-						</div>
-						{end}
+						}
 					</div>
 				</div>
 			</main>

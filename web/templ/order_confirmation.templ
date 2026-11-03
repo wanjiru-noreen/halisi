@@ -6,13 +6,13 @@ templ OrderConfirmation(order models.Order) {
 	<!DOCTYPE html>
 	<html lang="en">
 		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 			<title>Order Confirmed | Halisi</title>
-			<link rel="preconnect" href="https://fonts.googleapis.com">
-			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-			<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-			<link rel="stylesheet" href="/static/css/style.css">
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+			<link rel="stylesheet" href="/static/css/style.css"/>
 			<style>
 				.confirmation-page {
 					background-color: #f7f6ff;
@@ -186,7 +186,7 @@ templ OrderConfirmation(order models.Order) {
 			</style>
 		</head>
 		<body>
-			{Navbar("customer")}
+			@Navbar("customer")
 			<main class="confirmation-page">
 				<div class="container">
 					<div class="confirmation-container">
@@ -202,34 +202,34 @@ templ OrderConfirmation(order models.Order) {
 								<h3>Order Summary</h3>
 								<div class="detail-item">
 									<span class="detail-label">Status</span>
-									<span class="detail-value"><span class="status-pill">{order.Status}</span></span>
+									<span class="detail-value"><span class="status-pill">{ order.Status }</span></span>
 								</div>
 								<div class="detail-item">
 									<span class="detail-label">Shop</span>
-									<span class="detail-value">{order.ShopName}</span>
+									<span class="detail-value">{ order.ShopName }</span>
 								</div>
 								<div class="detail-item">
 									<span class="detail-label">Cylinder Size</span>
-									<span class="detail-value">{order.CylinderSize}</span>
+									<span class="detail-value">{ order.CylinderSize }</span>
 								</div>
 								<div class="detail-item">
 									<span class="detail-label">Quantity</span>
-									<span class="detail-value">{order.Quantity}</span>
+									<span class="detail-value">{ order.Quantity }</span>
 								</div>
 								<div class="detail-item" style="margin-top: 12px; border-top: 1px dashed #eeeaf5; padding-top: 12px;">
 									<span class="detail-label" style="font-weight: 700; color: #2E0A9B;">Total Amount</span>
-									<span class="detail-value" style="color: #2E0A9B; font-size: 16px;">KSh {order.TotalPrice}</span>
+									<span class="detail-value" style="color: #2E0A9B; font-size: 16px;">KSh { order.TotalPrice }</span>
 								</div>
 							</div>
 							<div class="card-box">
 								<h3>Delivery Location</h3>
 								<div class="detail-item">
 									<span class="detail-label">Recipient</span>
-									<span class="detail-value">{order.RecipientName}</span>
+									<span class="detail-value">{ order.RecipientName }</span>
 								</div>
 								<div class="detail-item">
 									<span class="detail-label">Delivery Address</span>
-									<span class="detail-value">{order.DeliveryAddress}</span>
+									<span class="detail-value">{ order.DeliveryAddress }</span>
 								</div>
 								<div class="detail-item">
 									<span class="detail-label">Estimated Time</span>
@@ -243,11 +243,11 @@ templ OrderConfirmation(order models.Order) {
 								<div class="route-line"></div>
 								<div class="route-point">
 									<div class="route-dot">📍</div>
-									<span>{order.ShopName} (Shop)</span>
+									<span>{ order.ShopName } (Shop)</span>
 								</div>
 								<div class="route-point destination">
 									<div class="route-dot">🏠</div>
-									<span>{order.DeliveryAddress}</span>
+									<span>{ order.DeliveryAddress }</span>
 								</div>
 							</div>
 						</div>

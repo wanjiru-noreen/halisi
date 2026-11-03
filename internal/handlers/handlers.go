@@ -9,7 +9,7 @@ import (
 	"halisi/internal/middleware"
 	"halisi/internal/models"
 	"halisi/internal/services"
-	"halisi/web/templ"
+	templ "halisi/web/templ"
 
 	"github.com/gorilla/sessions"
 )
@@ -36,7 +36,6 @@ func NewHandler(
 		Store:              middleware.Store,
 	}
 }
-
 
 // Register handles user registration form submission.
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
