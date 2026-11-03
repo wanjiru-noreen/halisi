@@ -1,0 +1,172 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  GOFLAGS: -mod=readonly
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  pr-compliance:
+    name: PR Compliance & Description Check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Verify PR Title, Description & Checklist
+        run: python3 .github/scripts/verify_pr_description.py
+
+  quality:
+    name: Code Quality & Vet
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: true
+
+      - name: Install templ CLI
+        run: go install github.com/a-h/templ/cmd/templ@latest
+
+      - name: Check code formatting
+        run: |
+          unformatted=$(gofmt -l cmd internal web)
+          if [ -n "$unformatted" ]; then
+            echo "Error: Unformatted files found:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Verify Go modules
+        run: |
+          go mod download
+          go mod verify
+          go mod tidy -diff
+
+      - name: Run go vet
+        run: go vet ./...
+
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: halisi_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/halisi_test?sslmode=disable
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: true
+
+      - name: Install templ CLI
+        run: go install github.com/a-h/templ/cmd/templ@latest
+
+      - name: Generate templ components
+        run: templ generate
+
+      - name: Build Go packages
+        run: go build ./...
+
+      - name: Run tests with race detector and coverage
+        run: |
+          go test -race -count=1 -timeout=5m -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tee coverage-summary.txt
+
+      - name: Publish coverage summary to GitHub Step Summary
+        run: |
+          {
+            echo '### 📊 Go Test Coverage Summary'
+            echo '```text'
+            cat coverage-summary.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload coverage artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: |
+            coverage.out
+            coverage-summary.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+  security:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: true
+
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  docker:
+    name: Docker Container Build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build application container
+        run: docker build -t halisi:ci .

@@ -14,7 +14,7 @@ type ShopPage struct {
 
 // OrderPage holds data for the order form page
 type OrderPage struct {
-	Shops         []models.Shop
+	Shops          []models.Shop
 	SelectedShopID int
 }
 

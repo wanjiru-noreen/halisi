@@ -26,16 +26,7 @@ func setupTestDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Clean up any existing data
-	_, err = database.DB.Exec(`
-		DELETE FROM orders;
-		DELETE FROM shops;
-		DELETE FROM users;
-	`)
-	if err != nil {
-		t.Fatal(err)
-	}
-
+	// Ensure tables exist before cleaning or running repository tests
 	_, err = database.DB.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
@@ -75,6 +66,8 @@ func setupTestDB(t *testing.T) {
 			status TEXT NOT NULL,
 			delivery_address TEXT NOT NULL DEFAULT ''
 		);
+
+		TRUNCATE TABLE orders, shops, users RESTART IDENTITY CASCADE;
 	`)
 
 	if err != nil {
@@ -85,9 +78,7 @@ func setupTestDB(t *testing.T) {
 func teardownTestDB() {
 	if database.DB != nil {
 		_, _ = database.DB.Exec(`
-			DELETE FROM orders;
-			DELETE FROM shops;
-			DELETE FROM users;
+			TRUNCATE TABLE orders, shops, users RESTART IDENTITY CASCADE;
 		`)
 		database.DB.Close()
 		database.DB = nil
@@ -427,6 +418,7 @@ func TestOrderRepository(t *testing.T) {
 
 	_, err := database.DB.Exec(`
 		INSERT INTO shops (
+			id,
 			name,
 			location,
 			phone,
@@ -434,7 +426,11 @@ func TestOrderRepository(t *testing.T) {
 			price_13kg,
 			price_45kg
 		)
-		VALUES (?, ?, ?, ?, ?, ?)
+		VALUES (1, $1, $2, $3, $4, $5, $6)
+		ON CONFLICT (id) DO UPDATE SET
+			name = EXCLUDED.name,
+			location = EXCLUDED.location,
+			phone = EXCLUDED.phone
 	`,
 		"Shell Gas",
 		"Kisumu CBD",
