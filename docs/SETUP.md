@@ -1,173 +1,160 @@
-# Halisi Setup Guide
+# Halisi Local Development & Setup Guide
 
-## Prerequisites
+## 1. Prerequisites
 
-| Requirement | Version | Purpose |
-|-------------|---------|---------|
-| Go | 1.26+ | Application runtime and build tool |
-| PostgreSQL | 12+ | Database |
-| sqlc | Latest | Generate type-safe Go code from SQL |
-| Git | Any | Version control |
+Before setting up Halisi, ensure your workstation has the following tools installed:
 
-## Quick Start
+| Tool | Version | Purpose | Installation Guide |
+|---|---|---|---|
+| **Go** | `1.26+` | Application compiler and runtime | [golang.org/dl](https://golang.org/dl/) |
+| **Docker & Docker Compose** | Latest | Container runtime for PostgreSQL & Mailpit | [docker.com](https://www.docker.com/) |
+| **templ CLI** | `v0.3.1100+` | Type-safe HTML component compiler | `go install github.com/a-h/templ/cmd/templ@latest` |
+| **sqlc CLI** | `v1.26+` | Compile-time SQL-to-Go query generator | `go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest` |
+| **Git** | `2.40+` | Source control management | [git-scm.com](https://git-scm.com/) |
 
-### 1. Clone the Repository
-
+Verify your installation:
 ```bash
-git clone <repository-url>
-cd halisi
+go version
+docker compose version
+templ version
+sqlc version
 ```
 
-### 2. Install Dependencies
+---
 
+## 2. Quickstart Setup (Under 3 Minutes)
+
+### Step 1: Clone Repository & Create Environment File
+```bash
+git clone https://github.com/wanjiru-noreen/halisi.git
+cd halisi
+cp .env.example .env
+```
+
+### Step 2: Start PostgreSQL & Mailpit via Docker Compose
+Halisi includes a turnkey local cluster with PostgreSQL 16 and Mailpit (local SMTP mail catcher):
+
+```bash
+docker compose up -d postgres mailpit
+```
+* **PostgreSQL**: Bound to `localhost:5432` (`user: postgres`, `password: postgres`, `db: halisi`).
+* **Mailpit SMTP**: Bound to `localhost:1025` (handles transactional emails).
+* **Mailpit Web UI**: Open `http://localhost:8025` in your browser to inspect verification and password reset emails instantly.
+
+### Step 3: Install Go Module Dependencies
 ```bash
 go mod download
 ```
 
-### 3. Set Up the Database
-
-Create a PostgreSQL database for the application:
-
+### Step 4: Generate Code (Templ Components & sqlc Queries)
 ```bash
-createdb halisi
-```
+# Compile .templ files into type-safe Go components
+templ generate
 
-Or using `psql`:
-
-```sql
-CREATE DATABASE halisi;
-```
-
-### 4. Configure Environment Variables
-
-Create a `.env` file in the project root with the following variables:
-
-```env
-# Database
-DATABASE_URL=postgres://user:password@localhost:5432/halisi?sslmode=disable
-
-# Google OAuth2
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-
-# SMTP Email (for verification emails)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_FROM=noreply@halisi.com
-
-# Application URL (for verification email links)
-APP_URL=http://localhost:8080
-```
-
-#### Google OAuth2 Setup
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
-2. Create a new project or select an existing one.
-3. Enable the **Google+ API**.
-4. Create **OAuth 2.0 Client ID** credentials (type: Web application).
-5. Add `http://localhost:8080/auth/google/callback` to the **Authorized redirect URIs**.
-6. Copy the Client ID and Client Secret into your `.env` file.
-
-#### SMTP Setup
-
-For local development, you can use:
-- **Gmail**: Use an [App Password](https://myaccount.google.com/apppasswords) (not your regular password).
-- **Ethereal**: A fake SMTP service for testing — creates disposable email accounts.
-- **Mailhog**: A local SMTP server that catches emails for inspection at `http://localhost:8025`.
-
-### 5. Generate sqlc Code
-
-If you modify SQL queries, regenerate the Go code:
-
-```bash
+# Compile internal/database/queries into internal/database/queried
 sqlc generate
 ```
 
-### 6. Run the Application
-
+### Step 5: Start Local Server
 ```bash
 go run ./cmd/api
 ```
+The server will boot on `http://localhost:8080`.
 
-The server starts on `http://localhost:8080`. Tables are auto-created on first run.
+---
 
-### 7. Create an Admin User
+## 3. Environment Variables Configuration (`.env`)
 
-The first admin user must be created directly in the database. There is no self-service admin registration:
+```ini
+# Application Server
+PORT=8080
+APP_ENV=development
+APP_URL=http://localhost:8080
+SESSION_KEY=32-character-random-secret-key-goes-here
 
-```sql
--- Generate a bcrypt hash for the password (e.g., using Go or an online tool)
--- Example: password "admin123" → hash via bcrypt
+# PostgreSQL Database
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/halisi?sslmode=disable
 
-INSERT INTO users (name, email, password, role, email_verified)
-VALUES ('Admin', 'admin@halisi.com', '$2a$10$<bcrypt-hash>', 'admin', TRUE);
+# Google OAuth2 (Optional for offline dev)
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# Google Maps API (For Geocoding & Interactive Shop Map)
+GOOGLE_MAPS_API_KEY=AIzaSyYourGoogleMapsApiKey
+
+# Safaricom M-Pesa Daraja (Sandbox)
+MPESA_ENVIRONMENT=sandbox
+MPESA_CONSUMER_KEY=your_sandbox_consumer_key
+MPESA_CONSUMER_SECRET=your_sandbox_consumer_secret
+MPESA_PASSKEY=bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919
+MPESA_SHORTCODE=174379
+MPESA_CALLBACK_URL=https://your-ngrok-or-localtunnel-url.loca.lt/api/payments/mpesa/callback
+
+# SMTP Email Configuration (Mailpit for local dev)
+SMTP_HOST=localhost
+SMTP_PORT=1025
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM=no-reply@halisi.co.ke
+
+# Object Storage (Local disk for dev, AWS S3 or Cloudflare R2 for prod)
+STORAGE_PROVIDER=local
+S3_BUCKET=halisi-documents
+S3_REGION=eu-west-1
+S3_ACCESS_KEY=
+S3_SECRET_KEY=
 ```
 
-To generate a bcrypt hash from the command line:
+---
+
+## 4. Setting Up Test Accounts & Admin User
+
+### 1. Register a Normal Account
+1. Open `http://localhost:8080/register` in your browser.
+2. Sign up as a `customer` or `owner` (vendor).
+3. Open the Mailpit Web UI at `http://localhost:8025`.
+4. Click the verification link sent in the confirmation email to activate your account.
+
+### 2. Promote User to Platform Administrator
+To test admin governance and KYC approval features, promote an existing verified user via `psql`:
 
 ```bash
-# Using a small Go program
-go run -exec '' /dev/stdin <<'EOF'
-package main
-import (
-    "fmt"
-    "golang.org/x/crypto/bcrypt"
-)
-func main() {
-    hash, _ := bcrypt.GenerateFromPassword([]byte("your-password"), bcrypt.DefaultCost)
-    fmt.Println(string(hash))
-}
-EOF
+docker compose exec postgres psql -U postgres -d halisi -c "UPDATE users SET role = 'admin' WHERE email = 'your-email@example.com';"
 ```
 
-## Project Structure Overview
-
-```
-halisi/
-├── cmd/api/main.go          # Entry point
-├── internal/                # Application logic
-│   ├── database/            # DB connection and schema
-│   ├── email/               # Email sending
-│   ├── handlers/            # HTTP handlers
-│   ├── middleware/          # Auth and role middleware
-│   ├── models/              # Domain models
-│   ├── repository/          # Data access layer
-│   └── services/            # Business logic
-├── web/                     # Frontend assets
-│   ├── static/              # CSS, JS, images
-│   └── templates/           # HTML templates
-├── .env                     # Environment variables (not in git)
-├── go.mod                   # Go dependencies
-├── sqlc.yaml                # sqlc configuration
-└── Dockerfile               # Docker build
+### 3. Promote User to Delivery Rider
+```bash
+docker compose exec postgres psql -U postgres -d halisi -c "UPDATE users SET role = 'rider' WHERE email = 'rider@example.com';"
 ```
 
-## Running Tests
+---
+
+## 5. Development Workflow & Live Reload
+
+### Watch Mode with `templ` and Air
+For automatic template recompilation on file changes:
 
 ```bash
-go test ./...
+# Watch templ components in one terminal
+templ generate --watch
+
+# In a second terminal, run air or go run
+go run ./cmd/api
 ```
 
-## Troubleshooting
+---
 
-### "DATABASE_URL environment variable is required"
+## 6. Running Tests & Quality Checks
 
-Ensure your `.env` file exists and contains a valid `DATABASE_URL`.
+Run the automated test suite and linter before committing changes:
 
-### "Google OAuth credentials are not configured"
+```bash
+# Run unit and repository tests with race detector
+make test
 
-Check that `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set in your `.env`.
+# Run formatting, dependency verification, and vet analysis
+make quality
 
-### "SMTP configuration is incomplete"
-
-Email verification requires SMTP settings. For local development without email, you can temporarily bypass verification by setting `email_verified = TRUE` directly in the database.
-
-### Port 8080 already in use
-
-Stop the process on port 8080 or change the port in `cmd/api/main.go`:
-
-```go
-http.ListenAndServe(":9090", nil)
+# Run vulnerability check across all Go dependencies
+make security
 ```

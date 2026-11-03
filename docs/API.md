@@ -1,226 +1,225 @@
-# Halisi API Reference
+# Halisi API & Route Reference
 
-All endpoints serve HTML pages (server-side rendering). The application uses cookie-based sessions for authentication and role-based access control.
+Halisi serves server-side rendered (SSR) type-safe components via **templ** and **HTMX**, complemented by asynchronous REST/JSON API endpoints for Google Maps, M-Pesa webhooks, and in-app notifications.
 
-## Base URL
+---
 
-```
-http://localhost:8080
-```
+## 📌 Base URLs & Content Negotiation
 
-## Authentication Endpoints
+* **Local Development**: `http://localhost:8080`
+* **Production**: `https://api.halisi.co.ke` (or configured `APP_URL`)
+* **Session Storage**: HTTP-only, SameSite-strict encrypted cookie via `gorilla/sessions`.
+* **CSRF Protection**: All state-changing `POST`/`PUT`/`DELETE` requests must include a valid CSRF token via form field `gorilla.csrf.Token` or header `X-CSRF-Token`.
 
-### GET `/`
-Render the home page. No authentication required.
+---
 
-### GET `/login`
-Render the login form. No authentication required.
+## 🔑 1. Authentication & Account Management
 
-### POST `/login`
-Process login form submission. Validates email/password against the database using bcrypt. On success, sets session cookies and redirects to the appropriate dashboard based on user role.
+### `GET /`
+* **Access**: Public
+* **Description**: Marketing landing page with hero CTA, featured gas refill shops, and quick search.
 
-**Form fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `email` | Yes | User's email address |
-| `password` | Yes | User's password |
+### `GET /register` | `POST /register`
+* **Access**: Public
+* **Description**: Create new account. Hashes password with `bcrypt`, generates a verification token, and sends confirmation email via SMTP.
+* **Form Parameters**:
+  * `name` (string, required): Full name.
+  * `email` (string, required): Valid email address.
+  * `phone` (string, required): Format `2547XXXXXXXX`.
+  * `password` (string, required): Min 8 characters.
+  * `role` (string, required): `customer`, `owner` (vendor), or `rider`.
 
-### GET `/register`
-Render the registration form. No authentication required.
+### `GET /verify-email?token=:token`
+* **Access**: Public
+* **Description**: Verifies email address and activates account.
 
-### POST `/register`
-Process registration. Validates input, hashes password with bcrypt, generates a verification token, and sends a verification email via SMTP.
+### `GET /login` | `POST /login`
+* **Access**: Public (Rate-limited: 5 req/min)
+* **Description**: Authenticate credentials and establish user session.
+* **Form Parameters**:
+  * `email` (string, required)
+  * `password` (string, required)
 
-**Form fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `fullname` | Yes | User's full name |
-| `email` | Yes | User's email address |
-| `password` | Yes | User's password |
-| `role` | Yes | Either `customer` or `owner` |
+### `GET /auth/google` | `GET /auth/google/callback`
+* **Access**: Public
+* **Description**: Google OAuth2 OpenID Connect flow. Redirects to Google consent and provisions verified session.
 
-### GET `/verify-email`
-Verify email address using the token from the registration email.
+### `GET /forgot-password` | `POST /forgot-password`
+* **Access**: Public (Rate-limited: 3 req/min)
+* **Description**: Generate 15-minute cryptographically signed password reset token and dispatch instructions via email.
 
-**Query parameters:**
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `token` | Yes | The verification token sent via email |
+### `GET /reset-password?token=:token` | `POST /reset-password`
+* **Access**: Public
+* **Description**: Update password using valid reset token.
 
-### GET `/logout`
-Clear the session cookie and redirect to the login page.
+### `GET /logout`
+* **Access**: Authenticated
+* **Description**: Invalidate cookie session and redirect to `/login`.
 
-## Google OAuth2 Endpoints
+---
 
-### GET `/auth/google`
-Initiate Google OAuth2 login flow. Redirects to Google's authorization page.
+## 🛒 2. Customer Endpoints (`role: customer`)
 
-### GET `/auth/google/callback`
-Handle the OAuth2 callback from Google. Verifies the ID token via OpenID Connect, creates or updates the user record, and sets the session.
+### `GET /dashboard`
+* **Description**: Customer hub showing active orders, delivery tracking shortcuts, and quick re-order actions.
 
-## Customer Routes
+### `GET /shops`
+* **Description**: Browse verified LPG shops with filters for cylinder sizes (6kg, 13kg, 45kg) and brand.
+* **Query Parameters**:
+  * `q` (string, optional): Search keyword.
+  * `cylinder_size` (string, optional): `6kg`, `13kg`, or `45kg`.
 
-All customer routes require authentication with role `customer`.
+### `GET /shops/map`
+* **Description**: Fullscreen interactive Google Map plotting verified LPG shops within radius, showing live prices and stock availability badges.
 
-### GET `/dashboard`
-Render the customer dashboard showing recent orders and activity.
+### `GET /api/shops/nearby`
+* **Description**: JSON endpoint returning nearby shops ranked by Haversine proximity.
+* **Query Parameters**:
+  * `lat` (float, required): Customer latitude.
+  * `lon` (float, required): Customer longitude.
+  * `radius_km` (float, optional, default: 10).
 
-### GET `/shops`
-Render a list of all verified shops with their details (name, location, prices).
+### `GET /shop?id=:id`
+* **Description**: Shop profile page with cylinder prices, operating hours, stock status, ratings breakdown, and customer reviews.
 
-### GET `/shop`
-Render a single shop's details including prices and location.
+### `GET /order?shop_id=:id`
+* **Description**: Order configuration form with delivery address autocomplete, cylinder size picker, and optional safety accessories (regulator, hosepipe).
 
-**Query parameters:**
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `id` | Yes | Shop ID |
+### `GET /api/delivery-fee`
+* **Description**: Calculate delivery fee based on customer address coordinates and shop location.
+* **Query Parameters**: `shop_id` (int), `lat` (float), `lon` (float).
+* **Response**: `{"delivery_fee": 150.00, "distance_km": 2.4}`.
 
-### GET `/order`
-Render the order placement form for a specific shop.
+### `POST /order`
+* **Description**: Create new refill order and initiate checkout.
+* **Form Parameters**:
+  * `shop_id` (int, required)
+  * `cylinder_size` (string, required)
+  * `quantity` (int, required)
+  * `delivery_address` (string, required)
+  * `latitude` (float, required)
+  * `longitude` (float, required)
+  * `payment_method` (string, required): `mpesa` or `cash`.
+  * `phone_number` (string, conditional): Required if `payment_method=mpesa`.
 
-**Query parameters:**
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `shop_id` | Yes | Shop ID to order from |
+### `GET /orders`
+* **Description**: List order history with status pills (Pending, Paid, Dispatched, Delivered, Cancelled).
 
-### POST `/order`
-Process a new order. Creates an order record with status `Pending`.
+### `GET /orders/:id/track`
+* **Description**: Live delivery tracking view with 5-step timeline, assigned rider details, and estimated arrival time.
 
-**Form fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `shop_id` | Yes | Shop ID |
-| `cylinder_size` | Yes | Cylinder size (e.g., `6kg`, `13kg`, `45kg`) |
-| `quantity` | Yes | Number of cylinders |
-| `delivery_address` | Yes | Delivery address |
+### `GET /orders/:id/receipt`
+* **Description**: Tamper-evident printable and downloadable digital receipt featuring order details, M-Pesa receipt code, and verification QR code.
 
-### GET `/orders`
-Render a list of all orders placed by the current user.
+### `POST /orders/:id/review`
+* **Description**: Submit 1–5 star rating and feedback tags for a delivered order.
+* **Form Parameters**:
+  * `rating` (int, required): 1–5.
+  * `comment` (string, optional): Written feedback.
+  * `tags` (string[], optional): `fast_delivery`, `polite_rider`, `fair_price`.
 
-### POST `/orders/delete`
-Delete an order.
+---
 
-**Form fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `id` | Yes | Order ID to delete |
+## 🏪 3. Shop Owner / Vendor Endpoints (`role: owner`)
 
-### GET `/orders/confirmation`
-Render order confirmation page with order details.
+### `GET /shop/manage`
+* **Description**: Vendor portal for managing shop profile, operating hours, stock availability, and cylinder prices.
 
-**Query parameters:**
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `id` | Yes | Order ID |
+### `POST /shop/manage`
+* **Description**: Update shop business details and pricing.
+* **Form Parameters**:
+  * `name`, `location`, `phone`
+  * `price_6kg`, `price_13kg`, `price_45kg`
+  * `is_open` (boolean): Shop operating state.
+  * `stock_6kg`, `stock_13kg`, `stock_45kg` (booleans): Real-time inventory toggles.
 
-## Admin Routes
+### `GET /shop/orders`
+* **Description**: Incoming orders dispatch board categorized by active, in-transit, and completed orders.
 
-All admin routes require authentication with role `admin`.
+### `POST /orders/update`
+* **Description**: Advance order lifecycle status.
+* **Form Parameters**:
+  * `order_id` (int, required)
+  * `status` (string, required): `confirmed`, `out_for_delivery`, `delivered`, `cancelled`.
+  * `rider_id` (int, optional): Assign delivery rider.
 
-### GET `/admin`
-Render the admin dashboard with overview statistics.
+### `GET /shop/kyc` | `POST /shop/kyc/upload`
+* **Description**: Upload regulatory compliance files (EPRA license, KRA PIN, Business Registration).
+* **Form Parameters**:
+  * `document_type` (string, required): `epra_license`, `business_registration`, `kra_pin`.
+  * `file` (multipart/form-data, required): PDF/PNG/JPEG under 5MB.
 
-### POST `/admin/verify-shop`
-Verify or reject a shop's registration. Updates the shop's `verification_status`.
+### `GET /shop/ledger`
+* **Description**: View financial settlements, M-Pesa collections, and daily revenue breakdown.
 
-**Form fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `shop_id` | Yes | Shop ID to verify |
-| `action` | Yes | `approve` or `reject` |
+---
 
-### GET `/admin/kyc`
-Render a list of pending KYC documents awaiting review.
+## 🛵 4. Delivery Rider Endpoints (`role: rider`)
 
-### POST `/admin/kyc/review`
-Review a KYC document — approve or reject it with an optional rejection reason.
+### `GET /rider/orders`
+* **Description**: Assigned deliveries board with customer phone numbers and Google Maps route links.
 
-**Form fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `document_id` | Yes | KYC document ID |
-| `status` | Yes | `approved` or `rejected` |
-| `rejection_reason` | Conditional | Required if status is `rejected` |
+### `POST /rider/orders/:id/verify-pin`
+* **Description**: Submit customer 4-digit OTP delivery verification code to complete delivery.
+* **Form Parameters**:
+  * `verification_pin` (string, required): 4-digit code provided by customer upon drop-off.
 
-### GET `/admin/kyc/document`
-View a specific KYC document's details.
+---
 
-**Query parameters:**
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `id` | Yes | KYC document ID |
+## 🛡️ 5. Platform Administrator Endpoints (`role: admin`)
 
-## Shop Owner Routes
+### `GET /admin`
+* **Description**: Platform executive dashboard with GMV, user growth, shop verification stats, and volume charts.
 
-All owner routes require authentication with role `owner`.
+### `GET /admin/kyc`
+* **Description**: Pending vendor regulatory document review queue.
 
-### GET `/shop/orders`
-Render a list of orders for the owner's shop.
+### `POST /admin/kyc/review`
+* **Description**: Approve or reject submitted KYC documentation.
+* **Form Parameters**:
+  * `document_id` (int, required)
+  * `status` (string, required): `approved` or `rejected`.
+  * `rejection_reason` (string, conditional): Mandatory when rejecting.
 
-### GET `/shop/manage`
-Render the shop management page where the owner can update shop details (name, location, phone, prices, coordinates, business registration info).
+### `POST /admin/verify-shop`
+* **Description**: Issue or revoke verified marketplace badge for an LPG shop.
 
-### POST `/shop/manage`
-Update shop details.
+### `GET /admin/users` | `POST /admin/users/:id/status`
+* **Description**: Manage user accounts and suspend non-compliant users or shops.
 
-**Form fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Shop name |
-| `location` | Yes | Shop location |
-| `phone` | Yes | Contact phone number |
-| `price_6kg` | Yes | Price for 6kg cylinder |
-| `price_13kg` | Yes | Price for 13kg cylinder |
-| `price_45kg` | Yes | Price for 45kg cylinder |
-| `latitude` | No | Shop latitude for map display |
-| `longitude` | No | Shop longitude for map display |
-| `business_registration_number` | No | Business registration number |
-| `kra_pin` | No | KRA PIN (Kenyan tax ID) |
-| `license_number` | No | Business license number |
+---
 
-### GET `/shop/kyc`
-Render a list of KYC documents submitted by the owner's shop, with their current status.
+## 💳 6. Payments & Webhooks
 
-### POST `/shop/kyc/upload`
-Upload a KYC document for the owner's shop. Creates a new KYC document record with status `pending`.
+### `POST /api/payments/mpesa/stkpush`
+* **Description**: Initiates Daraja STK Push to customer's mobile phone.
+* **Payload**: `{"order_id": 102, "phone_number": "254712345678"}`.
 
-**Form fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `document_type` | Yes | Type of document (e.g., `business_registration`, `kra_pin`, `license`) |
-| `file` | Yes | File upload (document image/PDF) |
+### `POST /api/payments/mpesa/callback`
+* **Access**: Public Webhook (Safaricom Daraja IP whitelist / signature verification)
+* **Description**: Asynchronous payment confirmation webhook. Idempotently transitions payment and order records to `success`/`paid`.
 
-### POST `/orders/update`
-Update the status of an order (e.g., from `Pending` to `Delivered`).
+### `GET /api/orders/:id/payment-status`
+* **Description**: Polling endpoint returning live payment status (`initiated`, `success`, `failed`).
 
-**Form fields:**
-| Field | Required | Description |
-|-------|----------|-------------|
-| `order_id` | Yes | Order ID |
-| `status` | Yes | New status (e.g., `Pending`, `Processing`, `Out for Delivery`, `Delivered`, `Cancelled`) |
+---
 
-## Static Files
+## 🔔 7. Notifications & Utilities
 
-### GET `/static/*`
-Serve static files (CSS, JavaScript, images) from `web/static/`.
+### `GET /api/notifications`
+* **Description**: Return user's recent in-app notifications with unread counts.
 
-## Session Management
+### `POST /api/notifications/:id/read`
+* **Description**: Mark specific notification as read.
 
-The application uses cookie-based sessions via Gorilla Sessions. Session data stored in cookies includes:
+### `GET /verify-receipt?hash=:hash`
+* **Access**: Public
+* **Description**: Public receipt authenticity verification page reached via QR code.
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `user_id` | int | Logged-in user's ID |
-| `role` | string | User's role (`customer`, `owner`, `admin`) |
-| `name` | string | User's display name |
-| `email` | string | User's email address |
+### `GET /healthz` | `GET /readyz`
+* **Access**: Public
+* **Description**: Liveness and readiness health probes for container orchestrators.
 
-## Error Handling
-
-| Status Code | Meaning |
-|-------------|---------|
-| 303 See Other | Redirect to `/login` when not authenticated |
-| 403 Forbidden | User authenticated but lacks required role |
-| 405 Method Not Allowed | Invalid HTTP method for the endpoint |
-| 500 Internal Server Error | Server-side error (e.g., template render failure, DB error) |
+### `GET /metrics`
+* **Access**: Internal / Monitoring
+* **Description**: Prometheus telemetry metrics exposition.

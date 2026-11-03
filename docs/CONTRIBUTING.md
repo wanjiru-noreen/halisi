@@ -1,215 +1,160 @@
 # Contributing to Halisi
 
-Thank you for your interest in contributing to Halisi! This guide explains how to set up your development environment, follow the project's conventions, and submit changes.
+Thank you for contributing to Halisi! This document outlines our development workflows, coding standards, branch conventions, and pull request procedures.
 
-## Table of Contents
+---
 
-- [Development Workflow](#development-workflow)
-- [Code Style](#code-style)
-- [Commit Messages](#commit-messages)
-- [Pull Request Process](#pull-request-process)
-- [Testing](#testing)
-- [Adding New Features](#adding-new-features)
-- [Database Changes](#database-changes)
+## 📌 Table of Contents
 
-## Development Workflow
+- [Branching Strategy & Workflow](#branching-strategy--workflow)
+- [Local Setup & Pre-requisites](#local-setup--pre-requisites)
+- [Code Generation (Templ & sqlc)](#code-generation-templ--sqlc)
+- [Coding Conventions & Standards](#coding-conventions--standards)
+- [Commit Message Conventions](#commit-message-conventions)
+- [Testing & Quality Verification](#testing--quality-verification)
+- [Pull Request Guidelines](#pull-request-guidelines)
 
-1. **Fork** the repository.
-2. **Clone** your fork locally:
+---
+
+## 🌿 Branching Strategy & Workflow
+
+Halisi adheres to a structured branching model:
+
+* **`main`**: Production-ready, stable releases. Never commit directly to `main`.
+* **`development`**: Integration branch for new features and bug fixes. All feature pull requests must target `development`.
+* **`feature/<feature-name>`**: New functionality (e.g. `feature/daraja-stk-push`, `feature/google-maps-pins`).
+* **`fix/<bug-description>`**: Bug fixes (e.g. `fix/templ-brace-parsing`).
+* **`chore/<task-name>`**: Refactoring, tool updates, or infrastructure maintenance.
+
+### Typical Contribution Steps
+1. Fork the repository and clone your fork locally.
+2. Ensure your local `development` branch is up to date:
    ```bash
-   git clone https://github.com/<your-username>/halisi.git
-   cd halisi
+   git checkout development
+   git pull origin development
    ```
-3. **Add** the upstream remote:
+3. Create your feature branch:
    ```bash
-   git remote add upstream https://github.com/<original-owner>/halisi.git
+   git checkout -b feature/my-feature-name
    ```
-4. **Create** a feature branch:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-5. **Make** your changes following the guidelines below.
-6. **Run** tests to ensure nothing is broken:
-   ```bash
-   go test ./...
-   ```
-7. **Commit** your changes with clear messages.
-8. **Push** to your fork:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-9. **Open** a Pull Request against the `main` branch.
+4. Implement your changes and write unit tests.
+5. Verify build, tests, and formatting locally with `make check`.
+6. Push to your fork and submit a PR targeting `development`.
 
-## Code Style
+---
 
-### Go Code
+## 💻 Local Setup & Pre-requisites
 
-- Follow the [Effective Go](https://go.dev/doc/effective_go) guidelines.
-- Run `gofmt` to format code before committing:
-  ```bash
-  gofmt -w .
-  ```
-- Use `go vet` to check for common issues:
-  ```bash
-  go vet ./...
-  ```
-- Import order: standard library → third-party → local imports, with blank lines between groups.
-- Use meaningful variable and function names. Avoid abbreviations unless they are widely understood (e.g., `id`, `url`, `http`).
+Ensure you have installed:
+* **Go 1.26+**
+* **Docker & Docker Compose**
+* **templ CLI**: `go install github.com/a-h/templ/cmd/templ@latest`
+* **sqlc CLI**: `go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest`
 
-### Naming Conventions
-
-| Element | Convention | Example |
-|---------|-----------|---------|
-| Packages | lowercase, short | `handlers`, `services`, `middleware` |
-| Structs | PascalCase, noun | `UserService`, `Order`, `KYCDocument` |
-| Functions | PascalCase (exported), camelCase (unexported) | `CreateOrder`, `validateInput` |
-| Variables | camelCase | `userID`, `shopName` |
-| Constants | UPPER_SNAKE_CASE | `MaxUploadSize` |
-| Files | snake_case | `order_service.go`, `auth.go` |
-
-### HTML Templates
-
-- Use semantic HTML5 elements.
-- Keep templates simple — put business logic in handlers and services, not in templates.
-- Use template actions sparingly; prefer passing pre-computed data from handlers.
-
-### CSS
-
-- Follow the existing CSS structure in `web/static/css/`.
-- Use descriptive class names (BEM-style preferred).
-
-## Commit Messages
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <description>
-
-[optional body]
+Start local database and mail services:
+```bash
+docker compose up -d postgres mailpit
 ```
 
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `style`: Code formatting (no logic change)
-- `refactor`: Code restructuring (no feature change)
-- `test`: Adding or updating tests
-- `chore`: Maintenance tasks
+---
 
-**Examples:**
+## ⚙️ Code Generation (Templ & sqlc)
+
+Halisi relies on compile-time code generation for both frontend components and database access:
+
+### 1. Templ Components
+Whenever modifying `.templ` files in `web/templ/`:
+```bash
+templ generate
 ```
-feat(handlers): add order cancellation endpoint
-fix(services): handle nil shop in order creation
-docs(api): update KYC document review endpoint
-refactor(middleware): extract role check into helper
+Never manually edit generated `*_templ.go` files; always edit the corresponding `.templ` file and re-run generation.
+
+### 2. SQL Queries (sqlc)
+Whenever adding or modifying SQL queries in `internal/database/queries/` or updating `schema.sql`:
+```bash
+sqlc generate
+```
+All database queries must be type-safe and compiled into `internal/database/queried/`. Do not write raw SQL strings in handlers or repositories.
+
+---
+
+## 📐 Coding Conventions & Standards
+
+### Go Standards
+* Adhere to [Effective Go](https://go.dev/doc/effective_go) and [Go CodeReviewComments](https://github.com/golang/go/wiki/CodeReviewComments).
+* Always run `gofmt` on modified Go files.
+* Propagate `context.Context` through HTTP handlers, domain services, and database queries.
+* Use structured logging with standard library `log/slog` rather than unstructured `log.Print`.
+* Never ignore returned errors; handle them explicitly or wrap them with context: `fmt.Errorf("failed to fetch order %d: %w", orderID, err)`.
+
+### Templ & Frontend Standards
+* Keep component logic declarative. Business calculations belong in `internal/services/`, not inside `.templ` expressions.
+* Pass strongly-typed structs from `internal/templdata/` to components instead of anonymous maps.
+* Ensure all form inputs include CSRF protection tokens and mobile-responsive CSS classes.
+
+---
+
+## 📝 Commit Message Conventions
+
+Halisi strictly enforces [Conventional Commits](https://www.conventionalcommits.org/):
+
+```text
+<type>(<scope>): <short description in imperative present tense>
+
+[optional detailed body]
+
+[optional footer: Closes #12]
 ```
 
-## Pull Request Process
+### Allowed Types
+* `feat`: A new user-facing feature or domain capability.
+* `fix`: A bug fix.
+* `docs`: Documentation improvements or updates.
+* `style`: White-space, formatting, missing semi-colons (no code logic changes).
+* `refactor`: Code reorganization without fixing bugs or adding features.
+* `perf`: Performance optimizations.
+* `test`: Adding or updating test cases.
+* `chore`: Build tooling, dependency upgrades, or CI workflow changes.
 
-1. **Update** your branch with the latest `main`:
-   ```bash
-   git fetch upstream
-   git rebase upstream/main
-   ```
-2. **Ensure** all tests pass:
-   ```bash
-   go test ./...
-   ```
-3. **Fill out** the PR template with:
-   - A clear description of the changes.
-   - Screenshots for UI changes.
-   - Steps to test the changes.
-4. **Request** a review from a maintainer.
-5. **Address** any review feedback.
-6. PRs are squash-merged to keep the history clean.
+### Examples
+* `feat(payments): implement Safaricom Daraja STK push client`
+* `fix(templ): resolve missing closing brace in admin template`
+* `docs(readme): add environment variables and quickstart guide`
+* `chore(ci): update GitHub Actions workflow for PostgreSQL 16`
 
-## Testing
+---
 
-### Running Tests
+## 🧪 Testing & Quality Verification
+
+Before submitting a pull request, run the comprehensive verification suite via the `Makefile`:
 
 ```bash
-# Run all tests
-go test ./...
+# 1. Format code
+make fmt
 
-# Run tests in a specific package
-go test ./internal/services/...
+# 2. Check formatting, module hygiene, and vet
+make quality
 
-# Run tests with verbose output
-go test -v ./...
+# 3. Run race-detector unit and repository tests
+make test
 
-# Run tests with coverage
-go test -cover ./...
+# 4. Check for known vulnerabilities in dependencies
+make security
+
+# 5. Run all checks at once
+make check
 ```
 
-### Writing Tests
+Pull requests will automatically trigger the GitHub Actions CI pipeline, which enforces that `make check` passes without warnings.
 
-- Place test files alongside the code they test (e.g., `service_test.go` next to `service.go`).
-- Use table-driven tests for multiple test cases.
-- Test both happy paths and error cases.
-- Use meaningful test names that describe the scenario:
-  ```go
-  func TestCreateOrder_InvalidShopID_ReturnsError(t *testing.T) {
-      // ...
-  }
-  ```
+---
 
-### Example Table-Driven Test
+## 🚀 Pull Request Guidelines
 
-```go
-func TestValidateEmail(t *testing.T) {
-    tests := []struct {
-        name    string
-        email   string
-        wantErr bool
-    }{
-        {
-            name:    "valid email",
-            email:   "user@example.com",
-            wantErr: false,
-        },
-        {
-            name:    "missing @ symbol",
-            email:   "userexample.com",
-            wantErr: true,
-        },
-    }
-
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            // test logic
-        })
-    }
-}
-```
-
-## Adding New Features
-
-When adding a new feature, follow the layered architecture:
-
-1. **Model** (`internal/models/`): Define the Go struct if a new entity is needed.
-2. **Schema** (`internal/database/schema.sql`): Add the database table or columns.
-3. **Queries**: Add SQL queries for sqlc to generate.
-4. **Repository** (`internal/repository/`): Implement data access methods.
-5. **Service** (`internal/services/`): Implement business logic.
-6. **Handler** (`internal/handlers/`): Implement the HTTP handler.
-7. **Routes** (`cmd/api/main.go`): Register the new route with appropriate middleware.
-8. **Template** (`web/templates/`): Create the HTML template.
-9. **Tests**: Add tests for the new functionality.
-10. **Documentation**: Update relevant docs (API.md, DATABASE.md, etc.).
-
-## Database Changes
-
-1. Update `internal/database/schema.sql` with the new schema.
-2. Add `ALTER TABLE` statements to `internal/database/database.go`'s `createTables()` function for existing databases.
-3. Add SQL queries in `internal/database/queries/` for new operations.
-4. Run `sqlc generate` to regenerate the Go code.
-5. Update the repository layer to use the new generated queries.
-6. Update `docs/DATABASE.md` to reflect the schema changes.
-
-## Code of Conduct
-
-- Be respectful and inclusive.
-- Provide constructive feedback.
-- Help others learn and grow.
-- Focus on what is best for the community and the project.
+1. **Title**: Follow the Conventional Commit format (e.g. `feat(maps): add Google Maps interactive shop view`).
+2. **Description**:
+   * Explain the *why* and *what* of the change.
+   * Include screenshots or screen recordings for UI modifications.
+   * Reference the related GitHub issue number (e.g. `Closes #29`).
+3. **Scope**: Keep pull requests focused on a single concern or issue. Avoid mixing unrelated refactors into feature PRs.
+4. **Review**: All PRs require review from a project maintainer before being merged into `development`.
