@@ -429,7 +429,7 @@ func TestOrderRepository(t *testing.T) {
 			price_13kg,
 			price_45kg
 		)
-		VALUES (?, ?, ?, ?, ?, ?)
+		VALUES ($1, $2, $3, $4, $5, $6)
 	`,
 		"Shell Gas",
 		"Kisumu CBD",
