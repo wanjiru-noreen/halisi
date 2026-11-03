@@ -1,12 +1,12 @@
 # Halisi
 
-A gas refill ordering and management system that connects customers with nearby gas refill shops.
+A digital marketplace connecting households with gas refill shops in Kenya — with reliable delivery tracking and order management.
 
 ## Overview
 
-Halisi helps users find gas refill shops, view available prices, and place refill orders. Shop owners can manage their gas prices and handle customer orders through the system.
+Halisi helps customers find gas refill shops, compare prices, place orders, and track deliveries. Shop owners manage their prices, handle incoming orders, and update delivery status — all through one platform.
 
-The goal is to make gas refilling easier, faster, and more accessible.
+The goal is to make gas refilling easier, faster, and more accessible for every household.
 
 ## Problem
 
@@ -19,143 +19,131 @@ Many households experience challenges when refilling gas:
 
 ## Solution
 
-Halisi provides a digital platform where:
+Halisi provides a trusted marketplace where:
 
-* Customers can discover gas shops and request refills
-* Shop owners can manage prices and orders
-* Administrators can manage the platform
+* Customers can discover gas shops, place orders, and track deliveries
+* Shop owners can manage prices, accept orders, and update delivery status
+* Administrators can oversee the platform and verify shop owners
 
 ## Features
 
 ### Customer
 
-* User registration and login
-* View available gas shops
-* View gas refill prices
-* Place refill orders
+* User registration and login (including Google OAuth)
+* Browse available gas shops and compare prices
+* Place refill orders with delivery address
+* Track order status and delivery progress
 * View order history
 
 ### Shop Owner
 
-* Shop account management
-* Update gas prices
-* View incoming orders
+* Shop account management with KYC verification
+* Update gas cylinder prices
+* View and manage incoming orders
 * Accept or reject orders
-* Update order status
+* Update order status and delivery tracking
 
 ### Admin
 
-* Manage users
-* Manage gas shops
+* Manage users and gas shops
+* Monitor KYC document verification
 * Monitor system activity
 
 ## Technology Stack
 
-**Backend**
+**Backend:** Go 1.26 with `net/http`
 
-* Go (Golang)
+**Frontend:** HTML templates with CSS
 
-**Frontend**
+**Database:** PostgreSQL with sqlc for type-safe queries
 
-* HTML
-* CSS
+**Authentication:** Google OAuth via `go-oidc`
 
-**Database**
-
-* SQLite
-
-**Architecture**
-
-* Layered architecture:
-
-  * Handlers
-  * Services
-  * Repository
-  * Models
+**Architecture:** Layered — Handlers → Services → Repositories → Models
 
 ## Project Structure
 
 ```
-Halisi/
-│
+halisi/
 ├── cmd/
-│   └── api/
-│
+│   └── api/              # Application entry point
 ├── internal/
-│   ├── handlers/
-│   ├── models/
-│   ├── database/
-│   ├── repository/
-│   ├── services/
-│   └── middleware/
-│
+│   ├── handlers/         # HTTP handlers
+│   ├── models/           # Data models
+│   ├── database/         # Database setup & sqlc queries
+│   ├── repository/       # Data access layer
+│   ├── services/         # Business logic
+│   └── middleware/       # Auth and request middleware
 ├── web/
-│   ├── templates/
-│   └── static/
-│
+│   ├── templates/        # HTML templates
+│   ├── templ/            # Type-safe templ components (in progress)
+│   └── static/           # CSS, JS, images
+├── Dockerfile
+├── sqlc.yaml             # sqlc configuration
 └── README.md
 ```
 
+## Quickstart
+
+**Prerequisites:**
+
+* Go 1.26+ installed
+* PostgreSQL running locally
+
+**Local setup and run:**
+
+```bash
+# Build the project
+go build ./...
+
+# Run the API server
+go run ./cmd/api
+
+# Open http://localhost:8080
+```
+
+The application connects to PostgreSQL using environment variables (`DATABASE_URL` or individual `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`). On first run, tables are created automatically.
+
+**Docker:**
+
+```bash
+docker build -t halisi .
+docker run -p 8080:8080 halisi
+```
+
+## API Endpoints
+
+* `GET /` — Landing page
+* `GET /register`, `POST /register` — User registration
+* `GET /login`, `POST /login` — Login
+* `GET /dashboard` — User dashboard (requires auth)
+* `GET /shops` — Browse shops (requires auth)
+* `GET /order` — Order form (requires auth)
+* `POST /order` — Place order (renders confirmation)
+* `GET /orders` — Your orders
+
 ## Future Improvements
 
-* Mobile application
+* Customer reviews and ratings
 * Location-based shop discovery
-* Online payments
-* Delivery tracking
-* Customer reviews
+* Mobile application
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Make your changes
+4. Submit a pull request to the `development` branch
+
+All pull requests are reviewed before merging.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ## Author
 
 Wanjiru Noreen
-
-## Quickstart
-
-Prerequisites:
-
-- Go 1.20+ installed
-- (Optional) `sqlite3` for exploring the database file
-
-Local setup and run:
-
-```bash
-# fetch deps and build
-go build ./...
-
-# run the API server
-go run ./cmd/api
-
-# open http://localhost:8080
-```
-
-Database:
-
-- The project uses `halisi.db` (SQLite). On first run the app will create tables and apply lightweight migrations.
-
-Useful endpoints (after running):
-
-- `GET /` — Landing page
-- `GET /register`, `POST /register` — User registration
-- `GET /login`, `POST /login` — Login
-- `GET /dashboard` — User dashboard (requires auth)
-- `GET /shops` — Browse shops (requires auth)
-- `GET /order` — Order form (requires auth)
-- `POST /order` — Place order (renders confirmation)
-- `GET /orders` — Your orders
-
-Notes / recent UI behavior
-
-- The order form shows a single dropdown to select a shop (the previous tap/grid was removed).
-- After placing an order the server renders a confirmation page that includes a small static roadmap graphic and the delivery address.
-- Price mapping implemented in handlers:
-  - 6kg => KSh 1400
-  - 13kg => KSh 2800
-  - 45kg => KSh 6000
-
-Templates
-
-- Templates are in `web/templates`. Partials (like the navbar) are parsed alongside page templates — if you add new partials, include them in `template.ParseFiles` or use a template `FuncMap` as needed.
-
-Testing
-
-- Build with `go build ./...` and then run the server. Use the browser to exercise the `/order` flow and confirm the confirmation page displays the map and delivery address.
 

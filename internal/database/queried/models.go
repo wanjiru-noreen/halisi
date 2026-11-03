@@ -3,7 +3,6 @@
 package queried
 
 import (
-	"context"
 	"database/sql"
 	"time"
 )

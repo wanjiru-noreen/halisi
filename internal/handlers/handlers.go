@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"bytes"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,6 +9,7 @@ import (
 	"halisi/internal/middleware"
 	"halisi/internal/models"
 	"halisi/internal/services"
+	"halisi/web/templ"
 
 	"github.com/gorilla/sessions"
 )
@@ -38,54 +37,11 @@ func NewHandler(
 	}
 }
 
-func renderTemplate(
-	w http.ResponseWriter,
-	name string,
-	data interface{},
-	files ...string,
-) {
-	tmpl, err := template.ParseFiles(files...)
-	if err != nil {
-		http.Error(
-			w,
-			"Failed to load page: "+err.Error(),
-			http.StatusInternalServerError,
-		)
-		return
-	}
-
-	var output bytes.Buffer
-
-	if err := tmpl.ExecuteTemplate(
-		&output,
-		name,
-		data,
-	); err != nil {
-		http.Error(
-			w,
-			"Failed to render page: "+err.Error(),
-			http.StatusInternalServerError,
-		)
-		return
-	}
-
-	w.Header().Set(
-		"Content-Type",
-		"text/html; charset=utf-8",
-	)
-
-	_, _ = w.Write(output.Bytes())
-}
 
 // Register handles user registration form submission.
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		renderTemplate(
-			w,
-			"register.html",
-			nil,
-			"web/templates/register.html",
-		)
+		templ.Register().Render(r.Context(), w)
 		return
 	}
 
@@ -302,21 +258,14 @@ func (h *Handler) RenderOrderPage(
 		)
 	}
 
-	data := struct {
-		Shops          []models.Shop
-		SelectedShopID int
-	}{
+	err = templ.OrderPage(templ.OrderData{
 		Shops:          shops,
 		SelectedShopID: selectedShopID,
+	}).Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	renderTemplate(
-		w,
-		"order.html",
-		data,
-		"web/templates/navbar.html",
-		"web/templates/order.html",
-	)
 }
 
 // CreateOrder handles POST requests from the order form.
@@ -464,12 +413,10 @@ func (h *Handler) Home(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	renderTemplate(
-		w,
-		"index.html",
-		nil,
-		"web/templates/index.html",
-	)
+	err := templ.Index().Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (h *Handler) Login(
@@ -477,12 +424,7 @@ func (h *Handler) Login(
 	r *http.Request,
 ) {
 	if r.Method == http.MethodGet {
-		renderTemplate(
-			w,
-			"login.html",
-			nil,
-			"web/templates/login.html",
-		)
+		templ.Login().Render(r.Context(), w)
 		return
 	}
 
@@ -558,12 +500,11 @@ func (h *Handler) Dashboard(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	renderTemplate(
-		w,
-		"dashboard.html",
-		nil,
-		"web/templates/dashboard.html",
-	)
+	err := templ.Dashboard().Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) Shops(
@@ -581,17 +522,14 @@ func (h *Handler) Shops(
 		return
 	}
 
-	renderTemplate(
-		w,
-		"shops.html",
-		struct {
-			Shops []models.Shop
-		}{
-			Shops: shops,
-		},
-		"web/templates/navbar.html",
-		"web/templates/shops.html",
-	)
+	err = templ.ShopsPage(templ.ShopsData{
+		Shops: shops,
+		Role:  "customer",
+	}).Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) Shop(
@@ -640,13 +578,11 @@ func (h *Handler) Shop(
 		return
 	}
 
-	renderTemplate(
-		w,
-		"shop.html",
-		shop,
-		"web/templates/navbar.html",
-		"web/templates/shop.html",
-	)
+	err = templ.ShopPage(shop).Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) Order(
@@ -685,17 +621,14 @@ func (h *Handler) Orders(
 		return
 	}
 
-	renderTemplate(
-		w,
-		"orders.html",
-		struct {
-			Orders []models.Order
-		}{
-			Orders: orders,
-		},
-		"web/templates/navbar.html",
-		"web/templates/orders.html",
-	)
+	err = templ.OrdersPage(templ.OrdersData{
+		Orders: orders,
+		Role:   "customer",
+	}).Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) OrderConfirmation(
@@ -726,13 +659,11 @@ func (h *Handler) OrderConfirmation(
 		return
 	}
 
-	renderTemplate(
-		w,
-		"order_confirmation.html",
-		order,
-		"web/templates/navbar.html",
-		"web/templates/order_confirmation.html",
-	)
+	err = templ.OrderConfirmation(order).Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) DeleteOrder(
@@ -795,26 +726,18 @@ func (h *Handler) AdminDashboard(
 		return
 	}
 
-	data := struct {
-		TotalUsers  int
-		TotalShops  int
-		TotalOrders int
-		Users       []models.User
-		Shops       []models.Shop
-		Orders      []models.Order
-	}{
-		TotalUsers: len(users),
-		TotalShops: len(shops),
-		Users:      users,
-		Shops:      shops,
+	err = templ.AdminDashboard(templ.AdminData{
+		TotalUsers:  len(users),
+		TotalShops:  len(shops),
+		TotalOrders: 0,
+		Users:       users,
+		Shops:       shops,
+		Orders:      nil,
+	}).Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	renderTemplate(
-		w,
-		"admin.html",
-		data,
-		"web/templates/admin.html",
-	)
 }
 
 // AdminVerifyShop approves or rejects a shop.
@@ -931,23 +854,15 @@ func (h *Handler) ShopOrders(
 		return
 	}
 
-	data := struct {
-		Shop   models.Shop
-		Orders []models.Order
-		Role   string
-	}{
+	err = templ.ShopOrdersPage(templ.ShopOrdersData{
 		Shop:   shop,
 		Orders: orders,
 		Role:   "owner",
+	}).Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
 	}
-
-	renderTemplate(
-		w,
-		"shop_orders.html",
-		data,
-		"web/templates/navbar.html",
-		"web/templates/shop_orders.html",
-	)
 }
 
 func (h *Handler) ShopManage(
@@ -1055,19 +970,14 @@ func (h *Handler) ShopManage(
 		return
 	}
 
-	renderTemplate(
-		w,
-		"shop_manage.html",
-		struct {
-			Shop models.Shop
-			Role string
-		}{
-			Shop: shop,
-			Role: "owner",
-		},
-		"web/templates/navbar.html",
-		"web/templates/shop_manage.html",
-	)
+	err = templ.ShopManagePage(templ.ShopManageData{
+		Shop: shop,
+		Role: "owner",
+	}).Render(r.Context(), w)
+	if err != nil {
+		http.Error(w, "Failed to render page: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *Handler) UpdateOrderStatus(

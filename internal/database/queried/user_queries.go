@@ -4,7 +4,6 @@ package queried
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one

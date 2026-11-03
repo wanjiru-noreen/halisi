@@ -5,8 +5,9 @@ package queried
 import (
 	"context"
 	"database/sql"
-	"time"
 )
+// Suppress unused import warnings for sqlc-generated code.
+var _ = sql.DB{}
 
 const createKYCDocument = `-- name: CreateKYCDocument :one
 INSERT INTO kyc_documents (
