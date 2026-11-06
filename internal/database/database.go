@@ -33,19 +33,19 @@ func ConnectDatabase() {
 		log.Fatal(err)
 	}
 
-	if err := createTables(); err != nil {
+	if err := InitializeSchema(DB); err != nil {
 		log.Fatal(err)
 	}
 
 	log.Println("Database connected successfully")
 }
 
-func createTables() error {
+func InitializeSchema(db *sql.DB) error {
 	schema, err := databaseFiles.ReadFile("schema.sql")
 	if err != nil {
 		return fmt.Errorf("read database schema: %w", err)
 	}
-	if _, err := DB.Exec(string(schema)); err != nil {
+	if _, err := db.Exec(string(schema)); err != nil {
 		return fmt.Errorf("apply database schema: %w", err)
 	}
 
@@ -54,7 +54,7 @@ func createTables() error {
 		return fmt.Errorf("read schema normalization migration: %w", err)
 	}
 
-	tx, err := DB.Begin()
+	tx, err := db.Begin()
 	if err != nil {
 		return fmt.Errorf("begin schema normalization migration: %w", err)
 	}
