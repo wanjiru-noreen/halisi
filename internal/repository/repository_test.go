@@ -225,6 +225,13 @@ func TestShopRepository(t *testing.T) {
 	repo := NewShopRepository()
 
 	ownerID := 10
+	_, err := database.DB.Exec(`
+		INSERT INTO users (id, name, email, password, role)
+		VALUES ($1, $2, $3, $4, $5)
+	`, ownerID, "Shop Owner", "owner@example.com", "password", "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("CreateShop", func(t *testing.T) {
 		shop := models.Shop{
@@ -380,6 +387,11 @@ func TestOrderRepository(t *testing.T) {
 	repo := NewOrderRepository()
 
 	_, err := database.DB.Exec(`
+		INSERT INTO users (id, name, email, password, role)
+		VALUES
+			(1, 'Order User', 'order-user@example.com', 'password', 'customer'),
+			(2, 'Second User', 'second-user@example.com', 'password', 'customer');
+
 		INSERT INTO shops (
 			id,
 			name,
