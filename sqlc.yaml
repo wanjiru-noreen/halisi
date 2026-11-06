@@ -8,3 +8,19 @@ sql:
         package: "queried"
         out: "internal/database/queried"
         sql_package: "database/sql"
+        overrides:
+          - column: "users.id"
+            go_type: "int"
+          - column: "shops.id"
+            go_type: "int"
+          - column: "orders.id"
+            go_type: "int"
+          - column: "kyc_documents.id"
+            go_type: "int"
+          - db_type: "pg_catalog.int4"
+            go_type: "int"
+          - db_type: "pg_catalog.int4"
+            nullable: true
+            go_type:
+              import: "database/sql"
+              type: "NullInt64"

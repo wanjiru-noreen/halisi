@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	"halisi/internal/database"
 	"halisi/internal/database/queried"
@@ -30,16 +29,16 @@ func (r *KYCDocumentRepository) CreateDocument(
 		DocumentType:    document.DocumentType,
 		FilePath:        document.FilePath,
 		Status:          document.Status,
-		RejectionReason: document.RejectionReason,
+		RejectionReason: sql.NullString{String: document.RejectionReason, Valid: true},
 	})
 	if err != nil {
 		return fmt.Errorf("create KYC document: %w", err)
 	}
 
 	document.ID = result.ID
-	document.CreatedAt = result.CreatedAt.Format(time.RFC3339)
+	document.CreatedAt = timestampFromNullTime(result.CreatedAt)
 	if result.ReviewedAt.Valid {
-		v := result.ReviewedAt.Time.Format(time.RFC3339)
+		v := timestampFromNullTime(result.ReviewedAt)
 		document.ReviewedAt = &v
 	}
 
@@ -63,11 +62,11 @@ func (r *KYCDocumentRepository) GetDocumentsByShopID(
 			DocumentType:    result.DocumentType,
 			FilePath:        result.FilePath,
 			Status:          result.Status,
-			RejectionReason: result.RejectionReason,
-			CreatedAt:       result.CreatedAt.Format(time.RFC3339),
+			RejectionReason: stringFromNullString(result.RejectionReason),
+			CreatedAt:       timestampFromNullTime(result.CreatedAt),
 		}
 		if result.ReviewedAt.Valid {
-			v := result.ReviewedAt.Time.Format(time.RFC3339)
+			v := timestampFromNullTime(result.ReviewedAt)
 			doc.ReviewedAt = &v
 		}
 		documents = append(documents, doc)
@@ -94,11 +93,11 @@ func (r *KYCDocumentRepository) GetDocumentByID(
 		DocumentType:    result.DocumentType,
 		FilePath:        result.FilePath,
 		Status:          result.Status,
-		RejectionReason: result.RejectionReason,
-		CreatedAt:       result.CreatedAt.Format(time.RFC3339),
+		RejectionReason: stringFromNullString(result.RejectionReason),
+		CreatedAt:       timestampFromNullTime(result.CreatedAt),
 	}
 	if result.ReviewedAt.Valid {
-		v := result.ReviewedAt.Time.Format(time.RFC3339)
+		v := timestampFromNullTime(result.ReviewedAt)
 		doc.ReviewedAt = &v
 	}
 
@@ -113,7 +112,7 @@ func (r *KYCDocumentRepository) UpdateDocumentStatus(
 	ctx := context.Background()
 	err := r.q.UpdateKYCDocumentStatus(ctx, queried.UpdateKYCDocumentStatusParams{
 		Status:          status,
-		RejectionReason: rejectionReason,
+		RejectionReason: sql.NullString{String: rejectionReason, Valid: true},
 		ID:              id,
 	})
 	if err != nil {
@@ -149,11 +148,11 @@ func (r *KYCDocumentRepository) GetPendingDocuments() ([]models.KYCDocument, err
 			DocumentType:    result.DocumentType,
 			FilePath:        result.FilePath,
 			Status:          result.Status,
-			RejectionReason: result.RejectionReason,
-			CreatedAt:       result.CreatedAt.Format(time.RFC3339),
+			RejectionReason: stringFromNullString(result.RejectionReason),
+			CreatedAt:       timestampFromNullTime(result.CreatedAt),
 		}
 		if result.ReviewedAt.Valid {
-			v := result.ReviewedAt.Time.Format(time.RFC3339)
+			v := timestampFromNullTime(result.ReviewedAt)
 			doc.ReviewedAt = &v
 		}
 		documents = append(documents, doc)

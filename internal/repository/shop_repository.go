@@ -33,11 +33,11 @@ func (r *ShopRepository) CreateShop(shop models.Shop) (models.Shop, error) {
 		Price13kg:                  shop.Price13kg,
 		Price45kg:                  shop.Price45kg,
 		OwnerID:                    ownerID,
-		Latitude:                   shop.Latitude,
-		Longitude:                  shop.Longitude,
-		BusinessRegistrationNumber: shop.BusinessRegistrationNumber,
-		KRAPin:                     shop.KRAPin,
-		LicenseNumber:              shop.LicenseNumber,
+		Latitude:                   sql.NullFloat64{Float64: shop.Latitude, Valid: true},
+		Longitude:                  sql.NullFloat64{Float64: shop.Longitude, Valid: true},
+		BusinessRegistrationNumber: sql.NullString{String: shop.BusinessRegistrationNumber, Valid: true},
+		KraPin:                     sql.NullString{String: shop.KRAPin, Valid: true},
+		LicenseNumber:              sql.NullString{String: shop.LicenseNumber, Valid: true},
 		VerificationStatus:         shop.VerificationStatus,
 	})
 	if err != nil {
@@ -59,11 +59,11 @@ func (r *ShopRepository) CreateShop(shop models.Shop) (models.Shop, error) {
 		Price13kg:                  result.Price13kg,
 		Price45kg:                  result.Price45kg,
 		OwnerID:                    ownerIDPtr,
-		Latitude:                   result.Latitude,
-		Longitude:                  result.Longitude,
-		BusinessRegistrationNumber: result.BusinessRegistrationNumber,
-		KRAPin:                     result.KRAPin,
-		LicenseNumber:              result.LicenseNumber,
+		Latitude:                   float64FromNullFloat64(result.Latitude),
+		Longitude:                  float64FromNullFloat64(result.Longitude),
+		BusinessRegistrationNumber: stringFromNullString(result.BusinessRegistrationNumber),
+		KRAPin:                     stringFromNullString(result.KraPin),
+		LicenseNumber:              stringFromNullString(result.LicenseNumber),
 		VerificationStatus:         result.VerificationStatus,
 	}, nil
 }
@@ -108,11 +108,11 @@ func (r *ShopRepository) GetShops() ([]models.Shop, error) {
 			Price13kg:                  result.Price13kg,
 			Price45kg:                  result.Price45kg,
 			OwnerID:                    ownerIDPtr,
-			Latitude:                   result.Latitude,
-			Longitude:                  result.Longitude,
-			BusinessRegistrationNumber: result.BusinessRegistrationNumber,
-			KRAPin:                     result.KRAPin,
-			LicenseNumber:              result.LicenseNumber,
+			Latitude:                   float64FromNullFloat64(result.Latitude),
+			Longitude:                  float64FromNullFloat64(result.Longitude),
+			BusinessRegistrationNumber: stringFromNullString(result.BusinessRegistrationNumber),
+			KRAPin:                     stringFromNullString(result.KraPin),
+			LicenseNumber:              stringFromNullString(result.LicenseNumber),
 			VerificationStatus:         result.VerificationStatus,
 		})
 	}
@@ -144,11 +144,11 @@ func (r *ShopRepository) GetVerifiedShops() ([]models.Shop, error) {
 			Price13kg:                  result.Price13kg,
 			Price45kg:                  result.Price45kg,
 			OwnerID:                    ownerIDPtr,
-			Latitude:                   result.Latitude,
-			Longitude:                  result.Longitude,
-			BusinessRegistrationNumber: result.BusinessRegistrationNumber,
-			KRAPin:                     result.KRAPin,
-			LicenseNumber:              result.LicenseNumber,
+			Latitude:                   float64FromNullFloat64(result.Latitude),
+			Longitude:                  float64FromNullFloat64(result.Longitude),
+			BusinessRegistrationNumber: stringFromNullString(result.BusinessRegistrationNumber),
+			KRAPin:                     stringFromNullString(result.KraPin),
+			LicenseNumber:              stringFromNullString(result.LicenseNumber),
 			VerificationStatus:         result.VerificationStatus,
 		})
 	}
@@ -182,11 +182,11 @@ func (r *ShopRepository) GetShopByID(id int) (models.Shop, error) {
 		Price13kg:                  result.Price13kg,
 		Price45kg:                  result.Price45kg,
 		OwnerID:                    ownerIDPtr,
-		Latitude:                   result.Latitude,
-		Longitude:                  result.Longitude,
-		BusinessRegistrationNumber: result.BusinessRegistrationNumber,
-		KRAPin:                     result.KRAPin,
-		LicenseNumber:              result.LicenseNumber,
+		Latitude:                   float64FromNullFloat64(result.Latitude),
+		Longitude:                  float64FromNullFloat64(result.Longitude),
+		BusinessRegistrationNumber: stringFromNullString(result.BusinessRegistrationNumber),
+		KRAPin:                     stringFromNullString(result.KraPin),
+		LicenseNumber:              stringFromNullString(result.LicenseNumber),
 		VerificationStatus:         result.VerificationStatus,
 	}, nil
 }
@@ -194,7 +194,7 @@ func (r *ShopRepository) GetShopByID(id int) (models.Shop, error) {
 // Get shop by owner ID
 func (r *ShopRepository) GetShopByOwnerID(ownerID int) (models.Shop, error) {
 	ctx := context.Background()
-	result, err := r.q.GetShopByOwnerID(ctx, ownerID)
+	result, err := r.q.GetShopByOwnerID(ctx, sql.NullInt64{Int64: int64(ownerID), Valid: true})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.Shop{}, nil
@@ -217,11 +217,11 @@ func (r *ShopRepository) GetShopByOwnerID(ownerID int) (models.Shop, error) {
 		Price13kg:                  result.Price13kg,
 		Price45kg:                  result.Price45kg,
 		OwnerID:                    ownerIDPtr,
-		Latitude:                   result.Latitude,
-		Longitude:                  result.Longitude,
-		BusinessRegistrationNumber: result.BusinessRegistrationNumber,
-		KRAPin:                     result.KRAPin,
-		LicenseNumber:              result.LicenseNumber,
+		Latitude:                   float64FromNullFloat64(result.Latitude),
+		Longitude:                  float64FromNullFloat64(result.Longitude),
+		BusinessRegistrationNumber: stringFromNullString(result.BusinessRegistrationNumber),
+		KRAPin:                     stringFromNullString(result.KraPin),
+		LicenseNumber:              stringFromNullString(result.LicenseNumber),
 		VerificationStatus:         result.VerificationStatus,
 	}, nil
 }

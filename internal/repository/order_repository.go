@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 
 	"halisi/internal/database"
 	"halisi/internal/database/queried"
@@ -20,8 +21,8 @@ func NewOrderRepository() *OrderRepository {
 func (r *OrderRepository) CreateOrder(order models.Order) (models.Order, error) {
 	ctx := context.Background()
 	result, err := r.q.CreateOrder(ctx, queried.CreateOrderParams{
-		UserID:          order.UserID,
-		ShopID:          order.ShopID,
+		UserID:          sql.NullInt64{Int64: int64(order.UserID), Valid: true},
+		ShopID:          sql.NullInt64{Int64: int64(order.ShopID), Valid: true},
 		CylinderSize:    order.CylinderSize,
 		Quantity:        order.Quantity,
 		TotalPrice:      order.TotalPrice,
@@ -34,8 +35,8 @@ func (r *OrderRepository) CreateOrder(order models.Order) (models.Order, error) 
 
 	return models.Order{
 		ID:              result.ID,
-		UserID:          result.UserID,
-		ShopID:          result.ShopID,
+		UserID:          intFromNullInt64(result.UserID),
+		ShopID:          intFromNullInt64(result.ShopID),
 		CylinderSize:    result.CylinderSize,
 		Quantity:        result.Quantity,
 		TotalPrice:      result.TotalPrice,
@@ -60,9 +61,9 @@ func (r *OrderRepository) GetOrders() ([]models.Order, error) {
 		}
 		orders = append(orders, models.Order{
 			ID:              result.ID,
-			UserID:          result.UserID,
+			UserID:          intFromNullInt64(result.UserID),
 			RecipientName:   result.RecipientName,
-			ShopID:          result.ShopID,
+			ShopID:          intFromNullInt64(result.ShopID),
 			CylinderSize:    result.CylinderSize,
 			Quantity:        result.Quantity,
 			TotalPrice:      result.TotalPrice,
@@ -90,9 +91,9 @@ func (r *OrderRepository) GetOrderByID(id int) (models.Order, error) {
 
 	return models.Order{
 		ID:              result.ID,
-		UserID:          result.UserID,
+		UserID:          intFromNullInt64(result.UserID),
 		RecipientName:   result.RecipientName,
-		ShopID:          result.ShopID,
+		ShopID:          intFromNullInt64(result.ShopID),
 		CylinderSize:    result.CylinderSize,
 		Quantity:        result.Quantity,
 		TotalPrice:      result.TotalPrice,
@@ -105,7 +106,7 @@ func (r *OrderRepository) GetOrderByID(id int) (models.Order, error) {
 // Get orders for a specific customer
 func (r *OrderRepository) GetOrdersByUserID(userID int) ([]models.Order, error) {
 	ctx := context.Background()
-	results, err := r.q.GetOrdersByUserID(ctx, userID)
+	results, err := r.q.GetOrdersByUserID(ctx, sql.NullInt64{Int64: int64(userID), Valid: true})
 	if err != nil {
 		return nil, err
 	}
@@ -118,8 +119,8 @@ func (r *OrderRepository) GetOrdersByUserID(userID int) ([]models.Order, error) 
 		}
 		orders = append(orders, models.Order{
 			ID:              result.ID,
-			UserID:          result.UserID,
-			ShopID:          result.ShopID,
+			UserID:          intFromNullInt64(result.UserID),
+			ShopID:          intFromNullInt64(result.ShopID),
 			CylinderSize:    result.CylinderSize,
 			Quantity:        result.Quantity,
 			TotalPrice:      result.TotalPrice,
@@ -145,7 +146,7 @@ func (r *OrderRepository) UpdateOrderStatus(id int, status string) error {
 // Get orders belonging to a specific shop
 func (r *OrderRepository) GetOrdersByShopID(shopID int) ([]models.Order, error) {
 	ctx := context.Background()
-	results, err := r.q.GetOrdersByShopID(ctx, shopID)
+	results, err := r.q.GetOrdersByShopID(ctx, sql.NullInt64{Int64: int64(shopID), Valid: true})
 	if err != nil {
 		return nil, err
 	}
@@ -158,8 +159,8 @@ func (r *OrderRepository) GetOrdersByShopID(shopID int) ([]models.Order, error) 
 		}
 		orders = append(orders, models.Order{
 			ID:              result.ID,
-			UserID:          result.UserID,
-			ShopID:          result.ShopID,
+			UserID:          intFromNullInt64(result.UserID),
+			ShopID:          intFromNullInt64(result.ShopID),
 			CylinderSize:    result.CylinderSize,
 			Quantity:        result.Quantity,
 			TotalPrice:      result.TotalPrice,
