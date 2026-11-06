@@ -6,9 +6,11 @@
 GO ?= go
 TEMPL ?= templ
 SQLC ?= sqlc
+MIGRATE ?= migrate
 DOCKER ?= docker
 DOCKER_COMPOSE ?= docker compose
 
+MIGRATE_VERSION ?= v4.19.1
 BINARY_NAME ?= halisi-server
 BUILD_DIR ?= ./bin
 GO_PACKAGES ?= ./...
@@ -28,7 +30,7 @@ DOCKER_ENV_FILE ?= .env
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install-tools up down logs ps db-shell generate templ templ-watch sqlc run dev tidy build clean fmt fmt-check mod-check vet quality test security check docker-build docker-run ci
+.PHONY: help install-tools up down logs ps db-shell generate templ templ-watch sqlc migrate-up migrate-down run dev tidy build clean fmt fmt-check mod-check vet quality test security check docker-build docker-run ci
 
 # ------------------------------------------------------------------------------
 # 📖 Help
@@ -39,11 +41,13 @@ help: ## Show this help message
 # ------------------------------------------------------------------------------
 # 🛠️ Tools Installation
 # ------------------------------------------------------------------------------
-install-tools: ## Install development CLI tools (templ and sqlc)
+install-tools: ## Install development CLI tools (templ, sqlc, and migrate)
 	@echo "Installing templ CLI..."
 	@$(GO) install github.com/a-h/templ/cmd/templ@latest
 	@echo "Installing sqlc CLI..."
 	@$(GO) install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	@echo "Installing golang-migrate CLI..."
+	@$(GO) install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@$(MIGRATE_VERSION)
 	@echo "Tools installed successfully."
 
 # ------------------------------------------------------------------------------
@@ -77,6 +81,12 @@ templ-watch: ## Watch .templ files and automatically recompile on save
 
 sqlc: ## Compile SQL queries into type-safe Go repository code
 	$(SQLC) generate
+
+migrate-up: ## Apply all pending database migrations (requires DATABASE_URL)
+	$(MIGRATE) -path internal/database/migrations -database "$(DATABASE_URL)" up
+
+migrate-down: ## Roll back the latest database migration (requires DATABASE_URL)
+	$(MIGRATE) -path internal/database/migrations -database "$(DATABASE_URL)" down 1
 
 # ------------------------------------------------------------------------------
 # 🚀 Development & Build

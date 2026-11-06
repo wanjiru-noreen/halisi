@@ -2,11 +2,20 @@ package database
 
 import (
 	"database/sql"
+	"embed"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/lib/pq"
 )
+
+//go:embed migrations/*.sql
+var migrationFiles embed.FS
 
 var DB *sql.DB
 
@@ -28,87 +37,52 @@ func ConnectDatabase() {
 		log.Fatal(err)
 	}
 
-	createTables()
+	if err := runMigrations(databaseURL); err != nil {
+		log.Fatalf("Failed to run database migrations: %v", err)
+	}
 
 	log.Println("Database connected successfully")
 }
 
-func createTables() {
-	userTable := `
-	CREATE TABLE IF NOT EXISTS users (
-		id SERIAL PRIMARY KEY,
-		name TEXT NOT NULL,
-		email TEXT NOT NULL UNIQUE,
-		password TEXT NOT NULL,
-		role TEXT NOT NULL,
-		email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-		verification_token TEXT DEFAULT '',
-		google_id TEXT NOT NULL DEFAULT ''
-	);
-	`
-
-	shopTable := `
-	CREATE TABLE IF NOT EXISTS shops (
-		id SERIAL PRIMARY KEY,
-		name TEXT NOT NULL,
-		location TEXT NOT NULL,
-		phone TEXT NOT NULL,
-		price_6kg DOUBLE PRECISION NOT NULL DEFAULT 0,
-		price_13kg DOUBLE PRECISION NOT NULL DEFAULT 0,
-		price_45kg DOUBLE PRECISION NOT NULL DEFAULT 0,
-		owner_id INTEGER,
-		latitude DOUBLE PRECISION DEFAULT 0,
-		longitude DOUBLE PRECISION DEFAULT 0,
-		business_registration_number TEXT DEFAULT '',
-		kra_pin TEXT DEFAULT '',
-		license_number TEXT DEFAULT '',
-		verification_status TEXT NOT NULL DEFAULT 'pending'
-	);
-	`
-
-	orderTable := `
-	CREATE TABLE IF NOT EXISTS orders (
-		id SERIAL PRIMARY KEY,
-		user_id INTEGER,
-		shop_id INTEGER,
-		cylinder_size TEXT NOT NULL,
-		quantity INTEGER NOT NULL,
-		total_price DOUBLE PRECISION NOT NULL,
-		status TEXT NOT NULL,
-		delivery_address TEXT NOT NULL DEFAULT ''
-	);
-	`
-
-	kycDocumentTable := `
-	CREATE TABLE IF NOT EXISTS kyc_documents (
-		id SERIAL PRIMARY KEY,
-		shop_id INTEGER NOT NULL,
-		document_type TEXT NOT NULL,
-		file_path TEXT NOT NULL,
-		status TEXT NOT NULL DEFAULT 'pending',
-		rejection_reason TEXT DEFAULT '',
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		reviewed_at TIMESTAMP
-	);
-	`
-
-	_, err := DB.Exec(userTable)
+func runMigrations(databaseURL string) error {
+	source, err := iofs.New(migrationFiles, "migrations")
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("open embedded migrations: %w", err)
 	}
 
-	_, err = DB.Exec(shopTable)
+	migrationDB, err := sql.Open("postgres", databaseURL)
 	if err != nil {
-		log.Fatal(err)
+		return errors.Join(
+			fmt.Errorf("open migration database: %w", err),
+			source.Close(),
+		)
 	}
 
-	_, err = DB.Exec(orderTable)
+	driver, err := postgres.WithInstance(migrationDB, &postgres.Config{})
 	if err != nil {
-		log.Fatal(err)
+		return errors.Join(
+			fmt.Errorf("create migration database driver: %w", err),
+			source.Close(),
+			migrationDB.Close(),
+		)
 	}
 
-	_, err = DB.Exec(kycDocumentTable)
+	runner, err := migrate.NewWithInstance("iofs", source, "postgres", driver)
 	if err != nil {
-		log.Fatal(err)
+		return errors.Join(
+			fmt.Errorf("create migration runner: %w", err),
+			source.Close(),
+			driver.Close(),
+		)
 	}
+
+	err = runner.Up()
+	if errors.Is(err, migrate.ErrNoChange) {
+		err = nil
+	} else if err != nil {
+		err = fmt.Errorf("apply migrations: %w", err)
+	}
+
+	sourceErr, databaseErr := runner.Close()
+	return errors.Join(err, sourceErr, databaseErr)
 }

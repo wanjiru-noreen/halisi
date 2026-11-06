@@ -70,7 +70,7 @@ templ generate
 Never manually edit generated `*_templ.go` files; always edit the corresponding `.templ` file and re-run generation.
 
 ### 2. SQL Queries (sqlc)
-Whenever adding or modifying SQL queries in `internal/database/queries/` or updating `schema.sql`:
+Whenever adding or modifying SQL queries in `internal/database/queries/` or changing the database schema through a migration:
 ```bash
 sqlc generate
 ```
