@@ -21,21 +21,13 @@ func NewUserRepository() *UserRepository {
 // CreateUser inserts a new user record.
 func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 	ctx := context.Background()
-	result, err := r.q.CreateUser(ctx, struct {
-		Name              string
-		Email             string
-		Password          string
-		Role              string
-		EmailVerified     bool
-		VerificationToken string
-		GoogleID          string
-	}{
+	result, err := r.q.CreateUser(ctx, queried.CreateUserParams{
 		Name:              user.Name,
 		Email:             user.Email,
 		Password:          user.Password,
 		Role:              user.Role,
 		EmailVerified:     user.EmailVerified,
-		VerificationToken: user.VerificationToken,
+		VerificationToken: sql.NullString{String: user.VerificationToken, Valid: true},
 		GoogleID:          user.GoogleID,
 	})
 	if err != nil {
@@ -49,7 +41,7 @@ func (r *UserRepository) CreateUser(user models.User) (models.User, error) {
 		Password:          result.Password,
 		Role:              result.Role,
 		EmailVerified:     result.EmailVerified,
-		VerificationToken: result.VerificationToken,
+		VerificationToken: stringFromNullString(result.VerificationToken),
 		GoogleID:          result.GoogleID,
 	}, nil
 }
@@ -61,7 +53,7 @@ func (r *UserRepository) UpdateUnverifiedUser(user models.User) error {
 		Name:              user.Name,
 		Password:          user.Password,
 		Role:              user.Role,
-		VerificationToken: user.VerificationToken,
+		VerificationToken: sql.NullString{String: user.VerificationToken, Valid: true},
 		ID:                user.ID,
 	})
 	if err != nil {
@@ -90,7 +82,7 @@ func (r *UserRepository) GetUserByEmail(email string) (models.User, error) {
 		Password:          result.Password,
 		Role:              result.Role,
 		EmailVerified:     result.EmailVerified,
-		VerificationToken: result.VerificationToken,
+		VerificationToken: stringFromNullString(result.VerificationToken),
 		GoogleID:          result.GoogleID,
 	}, nil
 }
@@ -100,7 +92,7 @@ func (r *UserRepository) GetUserByVerificationToken(
 	token string,
 ) (models.User, error) {
 	ctx := context.Background()
-	result, err := r.q.GetUserByVerificationToken(ctx, token)
+	result, err := r.q.GetUserByVerificationToken(ctx, sql.NullString{String: token, Valid: true})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, nil
@@ -119,7 +111,7 @@ func (r *UserRepository) GetUserByVerificationToken(
 		Password:          result.Password,
 		Role:              result.Role,
 		EmailVerified:     result.EmailVerified,
-		VerificationToken: result.VerificationToken,
+		VerificationToken: stringFromNullString(result.VerificationToken),
 		GoogleID:          result.GoogleID,
 	}, nil
 }
@@ -152,7 +144,7 @@ func (r *UserRepository) GetUsers() ([]models.User, error) {
 			Password:          result.Password,
 			Role:              result.Role,
 			EmailVerified:     result.EmailVerified,
-			VerificationToken: result.VerificationToken,
+			VerificationToken: stringFromNullString(result.VerificationToken),
 			GoogleID:          result.GoogleID,
 		})
 	}
@@ -184,7 +176,7 @@ func (r *UserRepository) GetUserByGoogleID(
 		Password:          result.Password,
 		Role:              result.Role,
 		EmailVerified:     result.EmailVerified,
-		VerificationToken: result.VerificationToken,
+		VerificationToken: stringFromNullString(result.VerificationToken),
 		GoogleID:          result.GoogleID,
 	}, nil
 }

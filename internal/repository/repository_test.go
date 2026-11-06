@@ -26,50 +26,13 @@ func setupTestDB(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Ensure tables exist before cleaning or running repository tests
+	if err := database.InitializeSchema(database.DB); err != nil {
+		t.Fatal(err)
+	}
+
 	_, err = database.DB.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id SERIAL PRIMARY KEY,
-			name TEXT NOT NULL,
-			email TEXT NOT NULL UNIQUE,
-			password TEXT NOT NULL,
-			role TEXT NOT NULL,
-			email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-			verification_token TEXT DEFAULT '',
-			google_id TEXT NOT NULL DEFAULT ''
-		);
-
-		CREATE TABLE IF NOT EXISTS shops (
-			id SERIAL PRIMARY KEY,
-			name TEXT NOT NULL,
-			location TEXT NOT NULL,
-			phone TEXT NOT NULL,
-			price_6kg DOUBLE PRECISION NOT NULL DEFAULT 0,
-			price_13kg DOUBLE PRECISION NOT NULL DEFAULT 0,
-			price_45kg DOUBLE PRECISION NOT NULL DEFAULT 0,
-			owner_id INTEGER,
-			latitude DOUBLE PRECISION DEFAULT 0,
-			longitude DOUBLE PRECISION DEFAULT 0,
-			business_registration_number TEXT DEFAULT '',
-			kra_pin TEXT DEFAULT '',
-			license_number TEXT DEFAULT '',
-			verification_status TEXT NOT NULL DEFAULT 'pending'
-		);
-
-		CREATE TABLE IF NOT EXISTS orders (
-			id SERIAL PRIMARY KEY,
-			user_id INTEGER,
-			shop_id INTEGER,
-			cylinder_size TEXT NOT NULL,
-			quantity INTEGER NOT NULL,
-			total_price DOUBLE PRECISION NOT NULL,
-			status TEXT NOT NULL,
-			delivery_address TEXT NOT NULL DEFAULT ''
-		);
-
 		TRUNCATE TABLE orders, shops, users RESTART IDENTITY CASCADE;
 	`)
-
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,6 +225,13 @@ func TestShopRepository(t *testing.T) {
 	repo := NewShopRepository()
 
 	ownerID := 10
+	_, err := database.DB.Exec(`
+		INSERT INTO users (id, name, email, password, role)
+		VALUES ($1, $2, $3, $4, $5)
+	`, ownerID, "Shop Owner", "owner@example.com", "password", "owner")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("CreateShop", func(t *testing.T) {
 		shop := models.Shop{
@@ -417,6 +387,11 @@ func TestOrderRepository(t *testing.T) {
 	repo := NewOrderRepository()
 
 	_, err := database.DB.Exec(`
+		INSERT INTO users (id, name, email, password, role)
+		VALUES
+			(1, 'Order User', 'order-user@example.com', 'password', 'customer'),
+			(2, 'Second User', 'second-user@example.com', 'password', 'customer');
+
 		INSERT INTO shops (
 			id,
 			name,

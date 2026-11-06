@@ -2,11 +2,16 @@ package database
 
 import (
 	"database/sql"
+	"embed"
+	"fmt"
 	"log"
 	"os"
 
 	_ "github.com/lib/pq"
 )
+
+//go:embed schema.sql migrations/0001_schema_normalization.up.sql
+var databaseFiles embed.FS
 
 var DB *sql.DB
 
@@ -28,87 +33,39 @@ func ConnectDatabase() {
 		log.Fatal(err)
 	}
 
-	createTables()
+	if err := InitializeSchema(DB); err != nil {
+		log.Fatal(err)
+	}
 
 	log.Println("Database connected successfully")
 }
 
-func createTables() {
-	userTable := `
-	CREATE TABLE IF NOT EXISTS users (
-		id SERIAL PRIMARY KEY,
-		name TEXT NOT NULL,
-		email TEXT NOT NULL UNIQUE,
-		password TEXT NOT NULL,
-		role TEXT NOT NULL,
-		email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-		verification_token TEXT DEFAULT '',
-		google_id TEXT NOT NULL DEFAULT ''
-	);
-	`
-
-	shopTable := `
-	CREATE TABLE IF NOT EXISTS shops (
-		id SERIAL PRIMARY KEY,
-		name TEXT NOT NULL,
-		location TEXT NOT NULL,
-		phone TEXT NOT NULL,
-		price_6kg DOUBLE PRECISION NOT NULL DEFAULT 0,
-		price_13kg DOUBLE PRECISION NOT NULL DEFAULT 0,
-		price_45kg DOUBLE PRECISION NOT NULL DEFAULT 0,
-		owner_id INTEGER,
-		latitude DOUBLE PRECISION DEFAULT 0,
-		longitude DOUBLE PRECISION DEFAULT 0,
-		business_registration_number TEXT DEFAULT '',
-		kra_pin TEXT DEFAULT '',
-		license_number TEXT DEFAULT '',
-		verification_status TEXT NOT NULL DEFAULT 'pending'
-	);
-	`
-
-	orderTable := `
-	CREATE TABLE IF NOT EXISTS orders (
-		id SERIAL PRIMARY KEY,
-		user_id INTEGER,
-		shop_id INTEGER,
-		cylinder_size TEXT NOT NULL,
-		quantity INTEGER NOT NULL,
-		total_price DOUBLE PRECISION NOT NULL,
-		status TEXT NOT NULL,
-		delivery_address TEXT NOT NULL DEFAULT ''
-	);
-	`
-
-	kycDocumentTable := `
-	CREATE TABLE IF NOT EXISTS kyc_documents (
-		id SERIAL PRIMARY KEY,
-		shop_id INTEGER NOT NULL,
-		document_type TEXT NOT NULL,
-		file_path TEXT NOT NULL,
-		status TEXT NOT NULL DEFAULT 'pending',
-		rejection_reason TEXT DEFAULT '',
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		reviewed_at TIMESTAMP
-	);
-	`
-
-	_, err := DB.Exec(userTable)
+func InitializeSchema(db *sql.DB) error {
+	schema, err := databaseFiles.ReadFile("schema.sql")
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("read database schema: %w", err)
+	}
+	if _, err := db.Exec(string(schema)); err != nil {
+		return fmt.Errorf("apply database schema: %w", err)
 	}
 
-	_, err = DB.Exec(shopTable)
+	migration, err := databaseFiles.ReadFile("migrations/0001_schema_normalization.up.sql")
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("read schema normalization migration: %w", err)
 	}
 
-	_, err = DB.Exec(orderTable)
+	tx, err := db.Begin()
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("begin schema normalization migration: %w", err)
 	}
-
-	_, err = DB.Exec(kycDocumentTable)
-	if err != nil {
-		log.Fatal(err)
+	if _, err := tx.Exec(string(migration)); err != nil {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			return fmt.Errorf("apply schema normalization migration: %w (rollback failed: %v)", err, rollbackErr)
+		}
+		return fmt.Errorf("apply schema normalization migration: %w", err)
 	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit schema normalization migration: %w", err)
+	}
+	return nil
 }

@@ -37,6 +37,7 @@ erDiagram
         boolean email_verified
         string google_id
         timestamptz created_at
+        timestamptz updated_at
     }
 
     SHOPS {
@@ -56,6 +57,8 @@ erDiagram
         string verification_status
         double average_rating
         int total_reviews
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     ORDERS {
@@ -165,6 +168,7 @@ Certified LPG retail outlets and refill depots.
 | `average_rating` | `NUMERIC(3,2)` | `DEFAULT 0.00` | Cached average star score |
 | `total_reviews` | `INTEGER` | `DEFAULT 0` | Count of customer reviews |
 | `created_at` | `TIMESTAMPTZ` | `DEFAULT CURRENT_TIMESTAMP` | Shop onboarding timestamp |
+| `updated_at` | `TIMESTAMPTZ` | `DEFAULT CURRENT_TIMESTAMP` | Last updated timestamp |
 
 ### 3.3. `orders`
 Refill and accessory orders placed by customers.
@@ -276,6 +280,12 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
 ## 5. Migration Management (`golang-migrate`)
 
 Migrations reside in `internal/database/migrations/`:
+
+The schema-normalization migration adds the user/shop/order audit timestamps,
+their automatic `updated_at` triggers, and the requested foreign keys. It is
+embedded in the application and applied during database initialization, so
+existing databases are upgraded on startup. Fresh databases are created from
+`internal/database/schema.sql`.
 
 ```bash
 # Apply all pending up migrations
