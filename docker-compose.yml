@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: halisi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-halisi}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-halisi}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - halisi_net
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: halisi-mailpit
+    restart: unless-stopped
+    ports:
+      - "${SMTP_PORT:-1025}:1025"   # SMTP port for sending test emails
+      - "8025:8025"                  # Web UI for inspecting captured emails
+    networks:
+      - halisi_net
+
+volumes:
+  postgres_data:
+    name: halisi_postgres_data
+
+networks:
+  halisi_net:
+    name: halisi_network
+    driver: bridge

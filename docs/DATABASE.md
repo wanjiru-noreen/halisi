@@ -278,9 +278,14 @@ CREATE INDEX idx_notifications_user_unread ON notifications(user_id, is_read);
 Migrations reside in `internal/database/migrations/`:
 
 ```bash
-# Apply all pending up migrations
-make migrate-up
+# Install the migration CLI (also installs templ and sqlc)
+make install-tools
 
-# Roll back the latest migration
-make migrate-down
+# Apply all pending up migrations
+DATABASE_URL="postgres://postgres:postgres@localhost:5432/halisi?sslmode=disable" make migrate-up
+
+# Roll back the latest migration (one version)
+DATABASE_URL="postgres://postgres:postgres@localhost:5432/halisi?sslmode=disable" make migrate-down
 ```
+
+The application automatically applies pending migrations at startup. Migration SQL is embedded in the binary, so production startup does not depend on migration files being present on disk.

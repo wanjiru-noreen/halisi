@@ -37,3 +37,7 @@ go.work.sum
 halisi.db
 *.db
 *.sqlite
+
+# Python bytecode
+__pycache__/
+*.pyc

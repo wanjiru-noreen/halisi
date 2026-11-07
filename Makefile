@@ -6,9 +6,11 @@
 GO ?= go
 TEMPL ?= templ
 SQLC ?= sqlc
+MIGRATE ?= migrate
 DOCKER ?= docker
 DOCKER_COMPOSE ?= docker compose
 
+MIGRATE_VERSION ?= v4.19.1
 BINARY_NAME ?= halisi-server
 BUILD_DIR ?= ./bin
 GO_PACKAGES ?= ./...
@@ -18,6 +20,9 @@ COVERAGE_FILE ?= coverage.out
 COVERAGE_SUMMARY ?= coverage-summary.txt
 GOVULNCHECK_VERSION ?= v1.8.0
 
+# Automatically detect race detector flag based on CGO support
+RACE_FLAG ?= $(if $(filter 1,$(shell go env CGO_ENABLED)),-race,)
+
 DOCKER_IMAGE ?= halisi:latest
 DOCKER_CONTAINER ?= halisi
 DOCKER_PORT ?= 8080
@@ -25,7 +30,7 @@ DOCKER_ENV_FILE ?= .env
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install-tools up down logs ps db-shell generate templ templ-watch sqlc run dev tidy build clean fmt fmt-check mod-check vet quality test security check docker-build docker-run
+.PHONY: help install-tools up down logs ps db-shell generate templ templ-watch sqlc migrate-up migrate-down run dev tidy build clean fmt fmt-check mod-check vet quality test security check docker-build docker-run ci
 
 # ------------------------------------------------------------------------------
 # 📖 Help
@@ -36,11 +41,13 @@ help: ## Show this help message
 # ------------------------------------------------------------------------------
 # 🛠️ Tools Installation
 # ------------------------------------------------------------------------------
-install-tools: ## Install development CLI tools (templ and sqlc)
+install-tools: ## Install development CLI tools (templ, sqlc, and migrate)
 	@echo "Installing templ CLI..."
 	@$(GO) install github.com/a-h/templ/cmd/templ@latest
 	@echo "Installing sqlc CLI..."
 	@$(GO) install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	@echo "Installing golang-migrate CLI..."
+	@$(GO) install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@$(MIGRATE_VERSION)
 	@echo "Tools installed successfully."
 
 # ------------------------------------------------------------------------------
@@ -75,11 +82,17 @@ templ-watch: ## Watch .templ files and automatically recompile on save
 sqlc: ## Compile SQL queries into type-safe Go repository code
 	$(SQLC) generate
 
+migrate-up: ## Apply all pending database migrations (requires DATABASE_URL)
+	$(MIGRATE) -path internal/database/migrations -database "$(DATABASE_URL)" up
+
+migrate-down: ## Roll back the latest database migration (requires DATABASE_URL)
+	$(MIGRATE) -path internal/database/migrations -database "$(DATABASE_URL)" down 1
+
 # ------------------------------------------------------------------------------
 # 🚀 Development & Build
 # ------------------------------------------------------------------------------
 dev: generate run ## Generate code and run local development server
-
+ 
 run: ## Run the HTTP server locally (requires .env)
 	$(GO) run ./cmd/api
 
@@ -118,14 +131,14 @@ vet: ## Run Go static code analysis (vet)
 
 quality: fmt-check mod-check vet ## Run formatting, dependency, and vet checks
 
-test: ## Run unit tests with race detection and coverage
-	$(GO) test -race -count=1 -timeout=5m -coverprofile=$(COVERAGE_FILE) $(GO_PACKAGES)
+test: ## Run unit tests with race detection (when supported) and coverage
+	$(GO) test $(RACE_FLAG) -count=1 -timeout=5m -coverprofile=$(COVERAGE_FILE) $(GO_PACKAGES)
 	@$(GO) tool cover -func=$(COVERAGE_FILE) | tee $(COVERAGE_SUMMARY)
 
 security: ## Check for reachable known vulnerabilities using govulncheck
 	$(GO) run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) $(GO_PACKAGES)
 
-check: quality test security ## Run all CI checks (quality, tests, and security)
+check: quality test security ## Run code quality, tests, and security scans
 
 # ------------------------------------------------------------------------------
 # 📦 Docker Container Packaging
@@ -139,3 +152,8 @@ docker-run: docker-build ## Build and run container locally with .env
 	else \
 		docker run --rm --name $(DOCKER_CONTAINER) --publish $(DOCKER_PORT):8080 $(DOCKER_IMAGE); \
 	fi
+
+# ------------------------------------------------------------------------------
+# 🚀 Continuous Integration (CI)
+# ------------------------------------------------------------------------------
+ci: quality test security docker-build ## Mirror all GitHub Actions CI checks locally
