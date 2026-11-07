@@ -149,6 +149,36 @@ Pull requests will automatically trigger the GitHub Actions CI pipeline, which e
 
 ---
 
+## 🔗 Issue Dependencies & Blocked Workflow
+
+Halisi uses an automated dependency tracking workflow to manage parent/child issues and sequential tasks.
+
+### Declaring Dependencies
+When an issue or pull request cannot be completed until another issue is resolved, declare it in the issue description using any of the following standard formats:
+
+```markdown
+# Examples:
+Blocked by #13
+blocked-by: #13, #15
+Depends on #13
+Parent: #10
+Sub-issue of #10
+```
+
+Or using a markdown list section:
+```markdown
+### Dependencies
+- #13
+- #14
+```
+
+### Automated Behavior:
+1. **`blocked` Label**: When an issue references an open blocker, the workflow automatically attaches the `blocked` label (in deep red) and leaves a comment detailing the blocking issues.
+2. **Automatic Unblocking**: When a blocking issue is completed and closed, all downstream dependent issues are automatically evaluated. If all parent issues are closed, the `blocked` label is removed automatically and an unblocking notification is posted.
+3. **Pull Request Protection**: Pull requests that declare open blockers or attempt to close an issue currently marked `blocked` (e.g. `Closes #14` when `#14` is blocked by `#13`) will fail the dependency check with a clear error until the parent issues are merged and closed.
+
+---
+
 ## 🚀 Pull Request Guidelines
 
 1. **Title**: Follow the Conventional Commit format (e.g. `feat(maps): add Google Maps interactive shop view`).

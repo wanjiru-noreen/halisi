@@ -41,6 +41,9 @@ jobs:
       - name: Verify PR Title, Description & Checklist
         run: python3 .github/scripts/verify_pr_description.py
 
+      - name: Run Issue Dependency Unit Tests
+        run: python3 .github/scripts/test_issue_dependencies.py
+
   quality:
     name: Code Quality & Vet
     runs-on: ubuntu-24.04
