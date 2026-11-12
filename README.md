@@ -63,6 +63,8 @@ the database and checks pool closure; it does not modify data.
 
 ## Build and test
 
+See [database migrations](docs/DATABASE.md) for schema setup and rollback commands.
+
 ```sh
 go build ./...
 go test ./...
