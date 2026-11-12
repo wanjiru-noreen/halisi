@@ -39,6 +39,28 @@ Missing or invalid settings stop startup with an error naming the variable.
 Configuration errors do not include database credentials. Keep real credentials
 in your local environment or deployment secret store.
 
+## PostgreSQL
+
+Start PostgreSQL and set `DATABASE_URL` to its connection URL before running the
+server. Startup creates a `pgxpool` pool and calls `Ping`; a failed connection
+stops startup with a credential-safe error. No schema or migrations are applied.
+TLS settings are supplied through `DATABASE_URL` according to your deployment.
+
+The pool allows up to 10 connections, retires connections after one hour, and
+closes idle connections after five minutes. Initial connectivity has a five-second
+timeout. On Ctrl+C or SIGTERM the server drains HTTP requests for up to ten
+seconds, then closes the pool.
+
+`GET /health` checks the HTTP server. `GET /health/db` performs a database ping
+with a two-second timeout and returns HTTP 200 with `{"status":"ok"}` or HTTP 503
+with `{"status":"unavailable"}`. Driver errors and credentials are not returned.
+
+Database integration tests require a running PostgreSQL instance. Set
+`TEST_DATABASE_URL` to its connection URL, then run `go test ./...`. Without that
+variable, only the live PostgreSQL integration test is skipped; failure, timeout,
+configuration and HTTP health tests still run. The integration test only pings
+the database and checks pool closure; it does not modify data.
+
 ## Build and test
 
 ```sh
