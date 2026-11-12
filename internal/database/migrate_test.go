@@ -83,32 +83,53 @@ func TestMigrationsPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer m.Close()
-	if err := m.Up(); err != nil {
+	if err := m.Steps(1); err != nil {
 		t.Fatal("initial migration failed")
 	}
-	version, dirty, err := m.Version()
-	if err != nil || version != 1 || dirty {
-		t.Fatal("expected clean version 1")
+	db, err := pgxpool.New(ctx, u.String())
+	if err != nil {
+		t.Fatal("cannot create schema test pool")
 	}
-	for _, table := range []string{"users", "vendors", "products", "orders", "order_items", "payments", "deliveries", "schema_migrations"} {
+	defer db.Close()
+	fixture := seedVersionOne(t, ctx, db)
+	if err := m.Up(); err != nil {
+		t.Fatalf("core schema upgrade failed: %v", err)
+	}
+	version, dirty, err := m.Version()
+	if err != nil || version != 2 || dirty {
+		t.Fatal("expected clean version 2")
+	}
+	for _, table := range []string{"users", "sessions", "vendors", "vendor_documents", "products", "vendor_inventory", "addresses", "orders", "order_items", "payments", "deliveries", "reviews", "schema_migrations"} {
 		var exists bool
 		if err := admin.QueryRow(ctx, "SELECT to_regclass($1) IS NOT NULL", schema+"."+table).Scan(&exists); err != nil || !exists {
 			t.Fatalf("expected table %s", table)
 		}
 	}
-	// Persist a row to prove repeat-up does not recreate the schema or lose data.
-	if _, err := admin.Exec(ctx, "INSERT INTO "+schema+".users (name, email, password_hash, role) VALUES ('test', 'test@example.invalid', 'not-a-real-hash', 'customer')"); err != nil {
-		t.Fatal("cannot insert migration test row")
+	var beforeCount int
+	if err := admin.QueryRow(ctx, "SELECT count(*) FROM "+schema+".users").Scan(&beforeCount); err != nil {
+		t.Fatal(err)
 	}
+	// The version-one fixtures must survive repeat-up unchanged.
 	if err := m.Up(); !errors.Is(err, migrate.ErrNoChange) {
 		t.Fatal("repeat up should report no change")
 	}
 	var count int
-	if err := admin.QueryRow(ctx, "SELECT count(*) FROM "+schema+".users").Scan(&count); err != nil || count != 1 {
+	if err := admin.QueryRow(ctx, "SELECT count(*) FROM "+schema+".users").Scan(&count); err != nil || count != beforeCount {
 		t.Fatal("repeat up changed existing data")
 	}
+	testCoreSchema(t, ctx, db, fixture)
 	if err := m.Steps(-1); err != nil {
-		t.Fatal("rollback failed")
+		t.Fatalf("core rollback failed: %v", err)
+	}
+	if version, dirty, err := m.Version(); err != nil || version != 1 || dirty {
+		t.Fatal("expected clean version 1 after core rollback")
+	}
+	var stock int
+	if err := db.QueryRow(ctx, "SELECT stock FROM products WHERE id = $1", fixture.product).Scan(&stock); err != nil || stock != 7 {
+		t.Fatal("core rollback did not restore product stock")
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("initial rollback failed: %v", err)
 	}
 	if _, _, err := m.Version(); !errors.Is(err, migrate.ErrNilVersion) {
 		t.Fatal("expected no applied version after rollback")
