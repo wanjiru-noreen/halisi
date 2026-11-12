@@ -16,8 +16,8 @@ DELETE FROM oauth_states WHERE state_hash=$1 AND browser_hash=$2 AND expires_at>
 `
 
 type ConsumeOAuthStateParams struct {
-	StateHash   string
-	BrowserHash string
+	StateHash   string `json:"state_hash"`
+	BrowserHash string `json:"browser_hash"`
 }
 
 func (q *Queries) ConsumeOAuthState(ctx context.Context, arg ConsumeOAuthStateParams) (OauthState, error) {
@@ -43,8 +43,8 @@ RETURNING id, user_id, email, token_hash, expires_at, used_at, created_at, updat
 `
 
 type ConsumeVerificationTokenParams struct {
-	TokenHash string
-	UserID    int64
+	TokenHash string `json:"token_hash"`
+	UserID    int64  `json:"user_id"`
 }
 
 func (q *Queries) ConsumeVerificationToken(ctx context.Context, arg ConsumeVerificationTokenParams) (EmailVerificationToken, error) {
@@ -69,10 +69,10 @@ VALUES ($1,$2,$3,'customer',FALSE,$4) RETURNING id, name, email, phone, password
 `
 
 type CreateGoogleUserParams struct {
-	Name            string
-	Email           string
-	PasswordHash    string
-	EmailVerifiedAt pgtype.Timestamptz
+	Name            string             `json:"name"`
+	Email           string             `json:"email"`
+	PasswordHash    string             `json:"password_hash"`
+	EmailVerifiedAt pgtype.Timestamptz `json:"email_verified_at"`
 }
 
 func (q *Queries) CreateGoogleUser(ctx context.Context, arg CreateGoogleUserParams) (User, error) {
@@ -104,12 +104,12 @@ VALUES ($1,$2,$3,$4,$5,$6)
 `
 
 type CreateOAuthStateParams struct {
-	StateHash       string
-	BrowserHash     string
-	NonceHash       string
-	CodeVerifier    string
-	LinkUserID      pgtype.Int8
-	LinkSessionHash pgtype.Text
+	StateHash       string      `json:"state_hash"`
+	BrowserHash     string      `json:"browser_hash"`
+	NonceHash       string      `json:"nonce_hash"`
+	CodeVerifier    string      `json:"code_verifier"`
+	LinkUserID      pgtype.Int8 `json:"link_user_id"`
+	LinkSessionHash pgtype.Text `json:"link_session_hash"`
 }
 
 func (q *Queries) CreateOAuthState(ctx context.Context, arg CreateOAuthStateParams) error {
@@ -130,9 +130,9 @@ VALUES ($1,$2,$3,NOW()+INTERVAL '1 hour')
 `
 
 type CreateVerificationTokenParams struct {
-	UserID    int64
-	Email     string
-	TokenHash string
+	UserID    int64  `json:"user_id"`
+	Email     string `json:"email"`
+	TokenHash string `json:"token_hash"`
 }
 
 func (q *Queries) CreateVerificationToken(ctx context.Context, arg CreateVerificationTokenParams) error {
@@ -215,8 +215,8 @@ INSERT INTO google_accounts (subject,user_id) VALUES ($1,$2)
 `
 
 type LinkGoogleAccountParams struct {
-	Subject string
-	UserID  int64
+	Subject string `json:"subject"`
+	UserID  int64  `json:"user_id"`
 }
 
 func (q *Queries) LinkGoogleAccount(ctx context.Context, arg LinkGoogleAccountParams) error {

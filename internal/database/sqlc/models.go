@@ -9,160 +9,160 @@ import (
 )
 
 type Address struct {
-	ID          int64
-	UserID      int64
-	Label       string
-	AddressLine string
-	City        string
-	Latitude    pgtype.Numeric
-	Longitude   pgtype.Numeric
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	ID          int64              `json:"id"`
+	UserID      int64              `json:"user_id"`
+	Label       string             `json:"label"`
+	AddressLine string             `json:"address_line"`
+	City        string             `json:"city"`
+	Latitude    pgtype.Numeric     `json:"latitude"`
+	Longitude   pgtype.Numeric     `json:"longitude"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Delivery struct {
-	ID          int64
-	OrderID     int64
-	RiderID     pgtype.Int8
-	Status      string
-	DeliveredAt pgtype.Timestamptz
-	CreatedAt   pgtype.Timestamptz
-	UpdatedAt   pgtype.Timestamptz
+	ID          int64              `json:"id"`
+	OrderID     int64              `json:"order_id"`
+	RiderID     pgtype.Int8        `json:"rider_id"`
+	Status      string             `json:"status"`
+	DeliveredAt pgtype.Timestamptz `json:"delivered_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
 type EmailVerificationToken struct {
-	ID        int64
-	UserID    int64
-	Email     string
-	TokenHash string
-	ExpiresAt pgtype.Timestamptz
-	UsedAt    pgtype.Timestamptz
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
+	Email     string             `json:"email"`
+	TokenHash string             `json:"token_hash"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	UsedAt    pgtype.Timestamptz `json:"used_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type GoogleAccount struct {
-	Subject   string
-	UserID    int64
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	Subject   string             `json:"subject"`
+	UserID    int64              `json:"user_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type OauthState struct {
-	StateHash       string
-	BrowserHash     string
-	NonceHash       string
-	CodeVerifier    string
-	LinkUserID      pgtype.Int8
-	LinkSessionHash pgtype.Text
-	ExpiresAt       pgtype.Timestamptz
-	CreatedAt       pgtype.Timestamptz
+	StateHash       string             `json:"state_hash"`
+	BrowserHash     string             `json:"browser_hash"`
+	NonceHash       string             `json:"nonce_hash"`
+	CodeVerifier    string             `json:"code_verifier"`
+	LinkUserID      pgtype.Int8        `json:"link_user_id"`
+	LinkSessionHash pgtype.Text        `json:"link_session_hash"`
+	ExpiresAt       pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 }
 
 type Order struct {
-	ID              int64
-	CustomerID      int64
-	VendorID        int64
-	Status          string
-	Total           pgtype.Numeric
-	DeliveryAddress string
-	CreatedAt       pgtype.Timestamptz
-	AddressID       pgtype.Int8
-	Currency        string
-	UpdatedAt       pgtype.Timestamptz
+	ID              int64              `json:"id"`
+	CustomerID      int64              `json:"customer_id"`
+	VendorID        int64              `json:"vendor_id"`
+	Status          string             `json:"status"`
+	Total           pgtype.Numeric     `json:"total"`
+	DeliveryAddress string             `json:"delivery_address"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	AddressID       pgtype.Int8        `json:"address_id"`
+	Currency        string             `json:"currency"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
 type OrderItem struct {
-	ID        int64
-	OrderID   int64
-	ProductID int64
-	Quantity  int32
-	UnitPrice pgtype.Numeric
-	VendorID  int64
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	ID        int64              `json:"id"`
+	OrderID   int64              `json:"order_id"`
+	ProductID int64              `json:"product_id"`
+	Quantity  int32              `json:"quantity"`
+	UnitPrice pgtype.Numeric     `json:"unit_price"`
+	VendorID  int64              `json:"vendor_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Payment struct {
-	ID        int64
-	OrderID   int64
-	Amount    pgtype.Numeric
-	Status    string
-	Reference pgtype.Text
-	CreatedAt pgtype.Timestamptz
-	Currency  string
-	UpdatedAt pgtype.Timestamptz
+	ID        int64              `json:"id"`
+	OrderID   int64              `json:"order_id"`
+	Amount    pgtype.Numeric     `json:"amount"`
+	Status    string             `json:"status"`
+	Reference pgtype.Text        `json:"reference"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	Currency  string             `json:"currency"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Product struct {
-	ID        int64
-	VendorID  int64
-	Name      string
-	Price     pgtype.Numeric
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	ID        int64              `json:"id"`
+	VendorID  int64              `json:"vendor_id"`
+	Name      string             `json:"name"`
+	Price     pgtype.Numeric     `json:"price"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Review struct {
-	ID         int64
-	OrderID    int64
-	CustomerID int64
-	VendorID   int64
-	Rating     int16
-	Comment    string
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
+	ID         int64              `json:"id"`
+	OrderID    int64              `json:"order_id"`
+	CustomerID int64              `json:"customer_id"`
+	VendorID   int64              `json:"vendor_id"`
+	Rating     int16              `json:"rating"`
+	Comment    string             `json:"comment"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Session struct {
-	ID        int64
-	UserID    int64
-	TokenHash string
-	ExpiresAt pgtype.Timestamptz
-	RevokedAt pgtype.Timestamptz
-	CreatedAt pgtype.Timestamptz
-	UpdatedAt pgtype.Timestamptz
+	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
+	TokenHash string             `json:"token_hash"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
 type User struct {
-	ID                   int64
-	Name                 string
-	Email                string
-	Phone                pgtype.Text
-	PasswordHash         string
-	Role                 string
-	CreatedAt            pgtype.Timestamptz
-	UpdatedAt            pgtype.Timestamptz
-	EmailVerifiedAt      pgtype.Timestamptz
-	PasswordLoginEnabled bool
+	ID                   int64              `json:"id"`
+	Name                 string             `json:"name"`
+	Email                string             `json:"email"`
+	Phone                pgtype.Text        `json:"phone"`
+	PasswordHash         string             `json:"password_hash"`
+	Role                 string             `json:"role"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
+	EmailVerifiedAt      pgtype.Timestamptz `json:"email_verified_at"`
+	PasswordLoginEnabled bool               `json:"password_login_enabled"`
 }
 
 type Vendor struct {
-	ID        int64
-	UserID    int64
-	Name      string
-	Address   string
-	CreatedAt pgtype.Timestamptz
-	Status    string
-	UpdatedAt pgtype.Timestamptz
-	AddressID pgtype.Int8
+	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
+	Name      string             `json:"name"`
+	Address   string             `json:"address"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	Status    string             `json:"status"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	AddressID pgtype.Int8        `json:"address_id"`
 }
 
 type VendorDocument struct {
-	ID           int64
-	VendorID     int64
-	DocumentType string
-	StorageKey   string
-	Status       string
-	CreatedAt    pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
+	ID           int64              `json:"id"`
+	VendorID     int64              `json:"vendor_id"`
+	DocumentType string             `json:"document_type"`
+	StorageKey   string             `json:"storage_key"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
 type VendorInventory struct {
-	ProductID        int64
-	VendorID         int64
-	Quantity         int32
-	ReservedQuantity int32
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
+	ProductID        int64              `json:"product_id"`
+	VendorID         int64              `json:"vendor_id"`
+	Quantity         int32              `json:"quantity"`
+	ReservedQuantity int32              `json:"reserved_quantity"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }

@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-//go:embed templates/auth/*.html static/js/auth.js static/css/auth.css
+//go:embed templates/auth/*.html static/js/auth.js static/js/dashboard.js static/css/auth.css
 var assets embed.FS
 
 func Page(name string) http.Handler {

@@ -260,7 +260,7 @@ func TestAuthenticationPostgres(t *testing.T) {
 	}
 	callback := "/api/auth/google/callback?state=" + providerURL.Query().Get("state") + "&code=new"
 	response, _ = do(client, "GET", callback, nil, nil)
-	if response.StatusCode != http.StatusSeeOther || response.Header.Get("Location") != "/account?google=connected" {
+	if response.StatusCode != http.StatusSeeOther || response.Header.Get("Location") != "/dashboard" {
 		t.Fatal("OAuth callback did not establish a browser session")
 	}
 	response, body = do(client, "GET", "/api/auth/me", nil, nil)

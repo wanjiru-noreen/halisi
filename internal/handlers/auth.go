@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/wanjiru-noreen/halisi/internal/middleware"
+	"github.com/wanjiru-noreen/halisi/internal/models"
 	"github.com/wanjiru-noreen/halisi/internal/services"
 	webassets "github.com/wanjiru-noreen/halisi/web"
 )
@@ -96,7 +97,11 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a.setSession(w, session)
-	writeJSON(w, http.StatusOK, map[string]any{"user": session.User})
+	redirect, ok := models.DashboardPath(models.Role(session.User.Role))
+	if !ok {
+		redirect = "/dashboard"
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"user": session.User, "redirect": redirect})
 }
 
 func (a *Auth) setSession(w http.ResponseWriter, session services.LoginSession) {

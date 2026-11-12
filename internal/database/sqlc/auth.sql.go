@@ -19,12 +19,12 @@ WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > NOW()
 `
 
 type GetSessionUserRow struct {
-	ID              int64
-	Name            string
-	Email           string
-	Phone           pgtype.Text
-	Role            string
-	EmailVerifiedAt pgtype.Timestamptz
+	ID              int64              `json:"id"`
+	Name            string             `json:"name"`
+	Email           string             `json:"email"`
+	Phone           pgtype.Text        `json:"phone"`
+	Role            string             `json:"role"`
+	EmailVerifiedAt pgtype.Timestamptz `json:"email_verified_at"`
 }
 
 func (q *Queries) GetSessionUser(ctx context.Context, tokenHash string) (GetSessionUserRow, error) {
