@@ -70,3 +70,58 @@ Set `TEST_MIGRATION_DATABASE_URL` to a disposable PostgreSQL database to enable
 the migration integration test. It creates and removes its own isolated schema,
 verifies version tracking and repeat-up behavior, then tests rollback and reapply.
 Without that variable the live migration test is skipped.
+
+## Generate Go queries with sqlc
+
+Use sqlc **v1.31.1** for reproducible output. Install the CLI with:
+
+```sh
+make sqlc-install
+# Or without Make:
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+```
+
+Add the Go binary directory (`go env GOBIN`, or `go env GOPATH` plus `/bin` when
+GOBIN is empty) to PATH. On Windows this is typically `%USERPROFILE%\go\bin`.
+Confirm `sqlc version` prints `v1.31.1`.
+
+`sqlc.yaml` configures PostgreSQL and `pgx/v5`. It reads schema migrations from
+`internal/database/migrations/` and named SQL queries from
+`internal/database/queries/`. sqlc understands the golang-migrate filename
+convention and ignores down migrations. Generation needs no running database,
+credentials, or `DATABASE_URL`.
+
+After adding a migration or changing queries, run from the repository root:
+
+```sh
+make sqlc-generate
+# Or without Make:
+sqlc generate
+go test ./...
+go build ./...
+```
+
+Commit the SQL sources, `sqlc.yaml`, and generated files together. Go code in
+`internal/database/sqlc/` is generated; change SQL and regenerate instead of
+editing it by hand. To check reproducibility, regenerate and confirm there is
+no diff in that directory.
+
+Initial queries provide create, lookup by ID/email, paginated listing, profile
+update and delete for users. Values use PostgreSQL `$1`, `$2`, etc. parameters.
+Profile updates leave password hashes and roles unchanged. List results omit
+password hashes. Lookup/create/update results are internal records that contain
+password hashes: map them to response DTOs before exposing them via HTTP.
+Delete returns the affected row count and obeys existing foreign keys.
+
+Use the generated package with the application's pool:
+
+```go
+import dbsqlc "github.com/wanjiru-noreen/halisi/internal/database/sqlc"
+
+queries := dbsqlc.New(pool)
+user, err := queries.GetUser(ctx, userID)
+```
+
+The generated `DBTX` interface accepts a pgx pool, connection, or transaction;
+`queries.WithTx(tx)` binds queries to a transaction. Missing single-row results
+return `pgx.ErrNoRows`. Nullable columns use pgx types such as `pgtype.Text`.

@@ -64,6 +64,7 @@ the database and checks pool closure; it does not modify data.
 ## Build and test
 
 See [database migrations](docs/DATABASE.md) for schema setup and rollback commands.
+The same guide documents [sqlc generation](docs/DATABASE.md#generate-go-queries-with-sqlc).
 
 ```sh
 go build ./...

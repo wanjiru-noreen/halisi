@@ -1,4 +1,10 @@
-.PHONY: migrate-up migrate-down migrate-version
+.PHONY: migrate-up migrate-down migrate-version sqlc-install sqlc-generate
+
+sqlc-install:
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+
+sqlc-generate:
+	sqlc generate
 
 migrate-up:
 	go run ./cmd/migrate up
