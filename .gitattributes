@@ -1,0 +1,2 @@
+# Keep generated Go files stable across Windows and Linux regeneration.
+internal/database/sqlc/*.go text eol=lf
