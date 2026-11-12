@@ -8,6 +8,7 @@
     "test": "tests"
   },
   "scripts": {
+	"build:css": "tailwindcss -i web/static/css/auth.input.css -o web/static/css/auth.css --minify",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
