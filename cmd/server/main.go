@@ -10,8 +10,12 @@ import (
 )
 
 func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("configuration error: %v", err)
+	}
 	server := &http.Server{
-		Addr:              ":" + config.Port(),
+		Addr:              ":" + cfg.Port,
 		Handler:           routes.New(),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
