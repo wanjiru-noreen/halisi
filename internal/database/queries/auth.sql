@@ -1,5 +1,5 @@
 -- name: GetSessionUser :one
-SELECT u.id, u.name, u.email, u.phone, u.role
+SELECT u.id, u.name, u.email, u.phone, u.role, u.email_verified_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > NOW();

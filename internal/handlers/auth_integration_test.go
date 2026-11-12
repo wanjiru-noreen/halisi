@@ -66,7 +66,9 @@ func TestAuthenticationPostgres(t *testing.T) {
 		t.Fatal("could not connect auth test pool")
 	}
 	defer pool.Close()
-	service, err := services.NewAuth(pool)
+	mailer := &captureMailer{}
+	google := &fakeGoogle{flows: make(map[string]string)}
+	service, err := services.NewAuth(pool, services.WithVerification(mailer, "https://halisi.example"), services.WithGoogle(google))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,6 +117,40 @@ func TestAuthenticationPostgres(t *testing.T) {
 	response, _ := do(client, "POST", "/api/auth/register", registration, nil)
 	if response.StatusCode != 201 {
 		t.Fatalf("registration returned %d", response.StatusCode)
+	}
+	firstToken := mailer.lastToken(t)
+	if _, err := pool.Exec(ctx, "UPDATE email_verification_tokens SET created_at=NOW()-INTERVAL '2 hours',expires_at=NOW()-INTERVAL '1 hour' WHERE token_hash=$1", services.TokenHash(firstToken)); err != nil {
+		t.Fatal(err)
+	}
+	response, _ = do(client, "POST", "/api/auth/verify-email", map[string]string{"token": firstToken}, nil)
+	if response.StatusCode != 400 {
+		t.Fatal("expired verification token accepted")
+	}
+	response, _ = do(client, "POST", "/api/auth/verification/resend", map[string]string{"email": "amina@example.com"}, nil)
+	if response.StatusCode != 202 {
+		t.Fatal("resend failed")
+	}
+	secondToken := mailer.lastToken(t)
+	response, _ = do(client, "POST", "/api/auth/verification/resend", map[string]string{"email": "amina@example.com"}, nil)
+	if response.StatusCode != 202 {
+		t.Fatal("second resend failed")
+	}
+	response, _ = do(client, "POST", "/api/auth/verify-email", map[string]string{"token": secondToken}, nil)
+	if response.StatusCode != 400 {
+		t.Fatal("superseded verification token accepted")
+	}
+	verificationToken := mailer.lastToken(t)
+	response, _ = do(client, "POST", "/api/auth/verify-email", map[string]string{"token": verificationToken}, nil)
+	if response.StatusCode != 200 {
+		t.Fatal("email verification failed")
+	}
+	response, _ = do(client, "POST", "/api/auth/verify-email", map[string]string{"token": verificationToken}, nil)
+	if response.StatusCode != 400 {
+		t.Fatal("reused verification token accepted")
+	}
+	var verified bool
+	if err := pool.QueryRow(ctx, "SELECT email_verified_at IS NOT NULL FROM users WHERE email=$1", "amina@example.com").Scan(&verified); err != nil || !verified {
+		t.Fatal("verification not persisted")
 	}
 	var hash, role, phone string
 	if err := pool.QueryRow(ctx, "SELECT password_hash,role,phone FROM users WHERE email=$1", "amina@example.com").Scan(&hash, &role, &phone); err != nil {
@@ -205,5 +241,44 @@ func TestAuthenticationPostgres(t *testing.T) {
 	response, _ = do(raw, "GET", "/api/auth/me", nil, &http.Cookie{Name: first.Name, Value: "forged-token"})
 	if response.StatusCode != 401 {
 		t.Fatal("forged token accepted")
+	}
+	runGoogleChecks(t, ctx, pool, service, mailer)
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	response, body = do(client, "POST", "/api/auth/google/start", map[string]string{}, nil)
+	if response.StatusCode != 200 || len(response.Cookies()) != 1 || response.Cookies()[0].Name != "__Host-halisi_oauth" || !response.Cookies()[0].HttpOnly || !response.Cookies()[0].Secure {
+		t.Fatal("OAuth browser binding cookie was not set securely")
+	}
+	var flowURL struct {
+		URL string `json:"url"`
+	}
+	if err := json.Unmarshal(body, &flowURL); err != nil {
+		t.Fatal(err)
+	}
+	providerURL, err := url.Parse(flowURL.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	callback := "/api/auth/google/callback?state=" + providerURL.Query().Get("state") + "&code=new"
+	response, _ = do(client, "GET", callback, nil, nil)
+	if response.StatusCode != http.StatusSeeOther || response.Header.Get("Location") != "/account?google=connected" {
+		t.Fatal("OAuth callback did not establish a browser session")
+	}
+	response, body = do(client, "GET", "/api/auth/me", nil, nil)
+	if response.StatusCode != 200 || !strings.Contains(string(body), "new@gmail.com") {
+		t.Fatal("Google browser session did not authenticate")
+	}
+	response, _ = do(client, "GET", callback, nil, nil)
+	if response.StatusCode != http.StatusSeeOther || response.Header.Get("Location") != "/login?error=google" {
+		t.Fatal("OAuth callback replay accepted")
+	}
+	mailer.fail = true
+	registration["email"] = "delivery-failure@example.com"
+	response, _ = do(client, "POST", "/api/auth/register", registration, nil)
+	if response.StatusCode != 503 {
+		t.Fatal("SMTP failure was not reported")
+	}
+	var count int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM users WHERE email=$1", "delivery-failure@example.com").Scan(&count); err != nil || count != 0 {
+		t.Fatal("failed delivery left a partially registered account")
 	}
 }

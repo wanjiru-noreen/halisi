@@ -70,8 +70,9 @@ multi-user deployment behind that proxy.
 
 Expired/revoked sessions cannot authenticate. Schedule removal of expired sessions
 as an operational retention task; no background deletion job is installed here.
-Email verification, password reset, MFA, and privileged-user provisioning are
-separate workflows and are not implemented by these endpoints.
+See [email verification and Google](EMAIL_OAUTH.md) for SMTP setup, verification,
+Google sign-in, and safe account linking. Password reset, MFA, and privileged-user
+provisioning remain separate workflows.
 
 ## Frontend assets
 

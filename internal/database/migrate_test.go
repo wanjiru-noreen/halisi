@@ -96,8 +96,8 @@ func TestMigrationsPostgres(t *testing.T) {
 		t.Fatalf("core schema upgrade failed: %v", err)
 	}
 	version, dirty, err := m.Version()
-	if err != nil || version != 2 || dirty {
-		t.Fatal("expected clean version 2")
+	if err != nil || version != 3 || dirty {
+		t.Fatal("expected clean version 3")
 	}
 	for _, table := range []string{"users", "sessions", "vendors", "vendor_documents", "products", "vendor_inventory", "addresses", "orders", "order_items", "payments", "deliveries", "reviews", "schema_migrations"} {
 		var exists bool
@@ -118,6 +118,12 @@ func TestMigrationsPostgres(t *testing.T) {
 		t.Fatal("repeat up changed existing data")
 	}
 	testCoreSchema(t, ctx, db, fixture)
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("email/OAuth rollback failed: %v", err)
+	}
+	if version, dirty, err := m.Version(); err != nil || version != 2 || dirty {
+		t.Fatal("expected clean version 2 after identity rollback")
+	}
 	if err := m.Steps(-1); err != nil {
 		t.Fatalf("core rollback failed: %v", err)
 	}

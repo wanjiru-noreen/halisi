@@ -12,18 +12,19 @@ import (
 )
 
 const getSessionUser = `-- name: GetSessionUser :one
-SELECT u.id, u.name, u.email, u.phone, u.role
+SELECT u.id, u.name, u.email, u.phone, u.role, u.email_verified_at
 FROM sessions s
 JOIN users u ON u.id = s.user_id
 WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > NOW()
 `
 
 type GetSessionUserRow struct {
-	ID    int64
-	Name  string
-	Email string
-	Phone pgtype.Text
-	Role  string
+	ID              int64
+	Name            string
+	Email           string
+	Phone           pgtype.Text
+	Role            string
+	EmailVerifiedAt pgtype.Timestamptz
 }
 
 func (q *Queries) GetSessionUser(ctx context.Context, tokenHash string) (GetSessionUserRow, error) {
@@ -35,6 +36,7 @@ func (q *Queries) GetSessionUser(ctx context.Context, tokenHash string) (GetSess
 		&i.Email,
 		&i.Phone,
 		&i.Role,
+		&i.EmailVerifiedAt,
 	)
 	return i, err
 }
