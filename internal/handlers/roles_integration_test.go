@@ -407,8 +407,11 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if err := pool.QueryRow(ctx, "SELECT commission_rate_bps FROM order_commissions WHERE order_id=$1", checkedOut.Order.ID).Scan(&commissionRate); err != nil || commissionRate != 1000 {
 		t.Fatal("commission rate change rewrote the historical commission snapshot")
 	}
-	if _, err := pool.Exec(ctx, "UPDATE deliveries SET status='delivered',delivered_at=NOW() WHERE order_id=$1", checkedOut.Order.ID); err != nil {
-		t.Fatal(err)
+	deliveredID := id("UPDATE deliveries SET status='assigned',rider_id=$2 WHERE order_id=$1 RETURNING id", checkedOut.Order.ID, users["r1"])
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", deliveredID), map[string]string{"status": "picked_up"}, 200)
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", deliveredID), map[string]string{"status": "delivered"}, 200)
+	if err := pool.QueryRow(ctx, "SELECT status FROM deliveries WHERE id=$1", deliveredID).Scan(&orderStatus); err != nil || orderStatus != "delivered" {
+		t.Fatal("test delivery did not reach its delivered state", err)
 	}
 	settlementPath := fmt.Sprintf("/api/admin/vendors/%d/settlements", v1)
 	requestWithHeaders("c1", "POST", settlementPath, nil, nil, 403)
