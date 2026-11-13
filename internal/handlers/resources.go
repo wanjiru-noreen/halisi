@@ -55,18 +55,8 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		})
 		mux.Handle(pattern, h.protect(permission, handler))
 	}
-	mount("GET /api/customer/orders", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, id int64) (any, error) {
-		v, e := h.queries.CustomerOrders(r.Context(), id)
-		return map[string]any{"orders": v}, e
-	})
-	mount("GET /api/customer/orders/{id}", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
-		id, e := resourceID(r)
-		if e != nil {
-			return nil, e
-		}
-		v, e := h.queries.CustomerOrder(r.Context(), dbsqlc.CustomerOrderParams{ID: id, CustomerID: owner})
-		return map[string]any{"order": v}, e
-	})
+	mount("GET /api/customer/orders", models.CustomerResources, h.listCustomerOrders)
+	mount("GET /api/customer/orders/{id}", models.CustomerResources, h.getCustomerOrder)
 	mount("GET /api/customer/addresses", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, id int64) (any, error) {
 		v, e := h.queries.ListUserAddresses(r.Context(), id)
 		return map[string]any{"addresses": v}, e
@@ -168,6 +158,106 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		mux.Handle("GET "+path, h.protect(permission, page))
 	}
 	mux.Handle("GET /customer/addresses", h.protect(models.CustomerResources, webassets.Page("customer/addresses")))
+	mux.Handle("GET /customer/orders", h.protect(models.CustomerResources, webassets.Page("customer/orders")))
+	mux.Handle("GET /customer/orders/{id}", h.protect(models.CustomerResources, webassets.Page("customer/order-detail")))
+}
+
+type customerOrderView struct {
+	ID              int64     `json:"id"`
+	VendorID        int64     `json:"vendor_id"`
+	VendorName      string    `json:"vendor_name"`
+	Status          string    `json:"status"`
+	Total           string    `json:"total"`
+	Currency        string    `json:"currency"`
+	DeliveryAddress string    `json:"delivery_address"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+type customerOrderItemView struct {
+	ProductID   int64  `json:"product_id"`
+	ProductName string `json:"product_name"`
+	Quantity    int32  `json:"quantity"`
+	UnitPrice   string `json:"unit_price"`
+}
+
+type deliveryView struct {
+	ID          int64      `json:"id"`
+	Status      string     `json:"status"`
+	DeliveredAt *time.Time `json:"delivered_at"`
+}
+
+func (h *Resources) listCustomerOrders(_ http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	rows, err := h.pool.Query(r.Context(), `
+		SELECT o.id,o.vendor_id,v.name,o.status,o.total::text,o.currency,o.delivery_address,o.created_at
+		FROM orders o JOIN vendors v ON v.id=o.vendor_id
+		WHERE o.customer_id=$1 ORDER BY o.id DESC LIMIT 100`, owner)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	orders := make([]customerOrderView, 0)
+	for rows.Next() {
+		var order customerOrderView
+		if err := rows.Scan(&order.ID, &order.VendorID, &order.VendorName, &order.Status, &order.Total, &order.Currency, &order.DeliveryAddress, &order.CreatedAt); err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return map[string]any{"orders": orders}, nil
+}
+
+func (h *Resources) getCustomerOrder(_ http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	id, err := resourceID(r)
+	if err != nil {
+		return nil, err
+	}
+	var order customerOrderView
+	err = h.pool.QueryRow(r.Context(), `
+		SELECT o.id,o.vendor_id,v.name,o.status,o.total::text,o.currency,o.delivery_address,o.created_at
+		FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=$1 AND o.customer_id=$2`, id, owner).
+		Scan(&order.ID, &order.VendorID, &order.VendorName, &order.Status, &order.Total, &order.Currency, &order.DeliveryAddress, &order.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errResourceForbidden
+	}
+	if err != nil {
+		return nil, err
+	}
+	rows, err := h.pool.Query(r.Context(), `
+		SELECT oi.product_id,p.name,oi.quantity,oi.unit_price::text
+		FROM order_items oi JOIN products p ON p.id=oi.product_id
+		WHERE oi.order_id=$1 ORDER BY oi.id`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]customerOrderItemView, 0)
+	for rows.Next() {
+		var item customerOrderItemView
+		if err := rows.Scan(&item.ProductID, &item.ProductName, &item.Quantity, &item.UnitPrice); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	var delivery *deliveryView
+	var deliveredAt pgtype.Timestamptz
+	var d deliveryView
+	err = h.pool.QueryRow(r.Context(), `SELECT id,status,delivered_at FROM deliveries WHERE order_id=$1`, id).Scan(&d.ID, &d.Status, &deliveredAt)
+	if err == nil {
+		if deliveredAt.Valid {
+			value := deliveredAt.Time
+			d.DeliveredAt = &value
+		}
+		delivery = &d
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	return map[string]any{"order": order, "items": items, "delivery": delivery}, nil
 }
 
 func (h *Resources) protect(permission models.Permission, next http.Handler) http.Handler {
