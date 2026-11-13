@@ -8,6 +8,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Address struct {
+	ID          int64
+	UserID      int64
+	Label       string
+	AddressLine string
+	City        string
+	Latitude    pgtype.Numeric
+	Longitude   pgtype.Numeric
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
 type Delivery struct {
 	ID          int64
 	OrderID     int64
@@ -15,6 +27,7 @@ type Delivery struct {
 	Status      string
 	DeliveredAt pgtype.Timestamptz
 	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
 }
 
 type Order struct {
@@ -25,6 +38,9 @@ type Order struct {
 	Total           pgtype.Numeric
 	DeliveryAddress string
 	CreatedAt       pgtype.Timestamptz
+	AddressID       pgtype.Int8
+	Currency        string
+	UpdatedAt       pgtype.Timestamptz
 }
 
 type OrderItem struct {
@@ -33,6 +49,9 @@ type OrderItem struct {
 	ProductID int64
 	Quantity  int32
 	UnitPrice pgtype.Numeric
+	VendorID  int64
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
 }
 
 type Payment struct {
@@ -42,6 +61,8 @@ type Payment struct {
 	Status    string
 	Reference pgtype.Text
 	CreatedAt pgtype.Timestamptz
+	Currency  string
+	UpdatedAt pgtype.Timestamptz
 }
 
 type Product struct {
@@ -49,8 +70,29 @@ type Product struct {
 	VendorID  int64
 	Name      string
 	Price     pgtype.Numeric
-	Stock     int32
 	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
+type Review struct {
+	ID         int64
+	OrderID    int64
+	CustomerID int64
+	VendorID   int64
+	Rating     int16
+	Comment    string
+	CreatedAt  pgtype.Timestamptz
+	UpdatedAt  pgtype.Timestamptz
+}
+
+type Session struct {
+	ID        int64
+	UserID    int64
+	TokenHash string
+	ExpiresAt pgtype.Timestamptz
+	RevokedAt pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
 }
 
 type User struct {
@@ -61,6 +103,7 @@ type User struct {
 	PasswordHash string
 	Role         string
 	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
 }
 
 type Vendor struct {
@@ -69,4 +112,26 @@ type Vendor struct {
 	Name      string
 	Address   string
 	CreatedAt pgtype.Timestamptz
+	Status    string
+	UpdatedAt pgtype.Timestamptz
+	AddressID pgtype.Int8
+}
+
+type VendorDocument struct {
+	ID           int64
+	VendorID     int64
+	DocumentType string
+	StorageKey   string
+	Status       string
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
+}
+
+type VendorInventory struct {
+	ProductID        int64
+	VendorID         int64
+	Quantity         int32
+	ReservedQuantity int32
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
 }
