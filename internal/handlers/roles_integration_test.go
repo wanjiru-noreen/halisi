@@ -84,6 +84,12 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	for name, role := range roles {
 		users[name] = id("INSERT INTO users(name,email,password_hash,role) VALUES($1,$2,$3,$4) RETURNING id", name, name+"@example.invalid", string(hash), role)
 	}
+	// These fixtures represent already-approved delivery partners, not new applicants.
+	for _, name := range []string{"r1", "r2"} {
+		if _, err := pool.Exec(ctx, "INSERT INTO rider_profiles(user_id,full_name,phone,city,status) VALUES($1,$2,'+254712345678','Nairobi','approved')", users[name], name); err != nil {
+			t.Fatal(err)
+		}
+	}
 	v1 := id("INSERT INTO vendors(user_id,name,address,status,is_active) VALUES($1,'Shop one','Nairobi','approved',TRUE) RETURNING id", users["v1"])
 	v2 := id("INSERT INTO vendors(user_id,name,address,status,is_active) VALUES($1,'Shop two','Mombasa','approved',TRUE) RETURNING id", users["v2"])
 	p1 := id("INSERT INTO products(vendor_id,name,price) VALUES($1,'Cylinder one',1000) RETURNING id", v1)

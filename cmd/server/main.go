@@ -79,9 +79,10 @@ func run(ctx context.Context) error {
 	resources := handlers.NewResources(pool, auth, onboardingService)
 	storefront := handlers.NewStorefront(pool)
 	checkout := handlers.NewCheckout(pool, auth)
+	riders := handlers.NewRiderRegistration(auth, services.NewRiderRegistration(pool))
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes, storefront.Routes, checkout.Routes),
+		Handler:           routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes, storefront.Routes, checkout.Routes, riders.Routes),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,

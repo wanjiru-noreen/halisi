@@ -50,8 +50,8 @@ The up and down SQL each run in a transaction. Down removes tables in reverse
 dependency order without CASCADE. The `schema_migrations` table records the
 current version and dirty flag; it remains after rollback. Advisory locking
 prevents concurrent migration execution. Do not edit a migration after it has
-been applied: add a new numbered pair, e.g. `000006_description.up.sql` and
-`000006_description.down.sql`.
+been applied: add a new numbered pair, e.g. `000007_description.up.sql` and
+`000007_description.down.sql`.
 
 On failure the command exits nonzero without printing driver errors that could
 contain credentials. Check `migrate-version` and database logs. A dirty version
@@ -127,6 +127,9 @@ The generated `DBTX` interface accepts a pgx pool, connection, or transaction;
 return `pgx.ErrNoRows`. Nullable columns use pgx types such as `pgtype.Text`.
 
 ## Core schema (version 000002)
+
+Migration `000006` adds owner-unique pending rider profiles and timestamps. See
+[rider registration](RIDER_REGISTRATION.md) for the current registration boundary.
 
 Migration `000004` extends vendors/documents and adds audited reviews and selling
 guards. See [vendor onboarding](VENDOR_ONBOARDING.md) for the current workflow,

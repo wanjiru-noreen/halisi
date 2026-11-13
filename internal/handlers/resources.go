@@ -31,10 +31,11 @@ type Resources struct {
 	pool       *pgxpool.Pool
 	queries    *dbsqlc.Queries
 	onboarding *services.VendorOnboarding
+	riders     *services.RiderRegistration
 }
 
 func NewResources(pool *pgxpool.Pool, auth *Auth, onboarding ...*services.VendorOnboarding) *Resources {
-	h := &Resources{auth: auth, pool: pool, queries: dbsqlc.New(pool)}
+	h := &Resources{auth: auth, pool: pool, queries: dbsqlc.New(pool), riders: services.NewRiderRegistration(pool)}
 	if len(onboarding) > 0 {
 		h.onboarding = onboarding[0]
 	}
@@ -267,6 +268,9 @@ func (h *Resources) getCustomerOrder(_ http.ResponseWriter, r *http.Request, own
 }
 
 func (h *Resources) protect(permission models.Permission, next http.Handler) http.Handler {
+	if permission == models.RiderAssignments {
+		next = middleware.RequireApprovedRider(h.riders, next)
+	}
 	return middleware.RequireAuth(h.auth.service, h.auth.cookieName, middleware.RequirePermission(permission, next))
 }
 
