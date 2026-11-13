@@ -27,11 +27,12 @@ var pricePattern = regexp.MustCompile(`^(0|[1-9][0-9]{0,9})(\.[0-9]{1,2})?$`)
 
 type Resources struct {
 	auth    *Auth
+	pool    *pgxpool.Pool
 	queries *dbsqlc.Queries
 }
 
 func NewResources(pool *pgxpool.Pool, auth *Auth) *Resources {
-	return &Resources{auth: auth, queries: dbsqlc.New(pool)}
+	return &Resources{auth: auth, pool: pool, queries: dbsqlc.New(pool)}
 }
 
 // Each endpoint receives the session principal, never a caller-supplied owner ID.
@@ -70,6 +71,9 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		v, e := h.queries.ListUserAddresses(r.Context(), id)
 		return map[string]any{"addresses": v}, e
 	})
+	mount("POST /api/customer/addresses", models.CustomerResources, h.createAddress)
+	mount("PATCH /api/customer/addresses/{id}", models.CustomerResources, h.updateAddress)
+	mount("DELETE /api/customer/addresses/{id}", models.CustomerResources, h.deleteAddress)
 	mount("GET /api/customer/addresses/{id}", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
 		id, e := resourceID(r)
 		if e != nil {
@@ -163,6 +167,7 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		}
 		mux.Handle("GET "+path, h.protect(permission, page))
 	}
+	mux.Handle("GET /customer/addresses", h.protect(models.CustomerResources, webassets.Page("customer/addresses")))
 }
 
 func (h *Resources) protect(permission models.Permission, next http.Handler) http.Handler {
@@ -337,4 +342,103 @@ func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, _ int64
 	}
 	v, err := h.queries.ManagementVendorStatus(r.Context(), dbsqlc.ManagementVendorStatusParams{ID: id, Status: input.Status})
 	return map[string]any{"vendor": v}, err
+}
+
+type addressInput struct {
+	Label       string   `json:"label"`
+	AddressLine string   `json:"address_line"`
+	City        string   `json:"city"`
+	Latitude    *float64 `json:"latitude"`
+	Longitude   *float64 `json:"longitude"`
+}
+
+func (input *addressInput) validate() error {
+	input.Label = strings.TrimSpace(input.Label)
+	input.AddressLine = strings.TrimSpace(input.AddressLine)
+	input.City = strings.TrimSpace(input.City)
+	if input.Label == "" {
+		input.Label = "Home"
+	}
+	if !utf8.ValidString(input.Label) || utf8.RuneCountInString(input.Label) > 100 || strings.ContainsFunc(input.Label, unicode.IsControl) ||
+		!utf8.ValidString(input.AddressLine) || len(input.AddressLine) == 0 || len(input.AddressLine) > 500 || strings.ContainsFunc(input.AddressLine, unicode.IsControl) ||
+		!utf8.ValidString(input.City) || len(input.City) == 0 || len(input.City) > 100 || strings.ContainsFunc(input.City, unicode.IsControl) {
+		return &resourceValidation{"Provide a label (up to 100 characters), street address (up to 500 bytes), and city (up to 100 bytes)."}
+	}
+	if (input.Latitude == nil) != (input.Longitude == nil) {
+		return &resourceValidation{"Provide both coordinates or leave both empty."}
+	}
+	if input.Latitude != nil && (*input.Latitude < -90 || *input.Latitude > 90 || *input.Longitude < -180 || *input.Longitude > 180) {
+		return &resourceValidation{"Coordinates are outside the valid latitude or longitude range."}
+	}
+	return nil
+}
+
+func (input addressInput) coordinates() (pgtype.Numeric, pgtype.Numeric, error) {
+	var latitude, longitude pgtype.Numeric
+	if input.Latitude == nil {
+		return latitude, longitude, nil
+	}
+	if err := latitude.Scan(strconv.FormatFloat(*input.Latitude, 'f', 6, 64)); err != nil {
+		return latitude, longitude, err
+	}
+	if err := longitude.Scan(strconv.FormatFloat(*input.Longitude, 'f', 6, 64)); err != nil {
+		return latitude, longitude, err
+	}
+	return latitude, longitude, nil
+}
+
+func (h *Resources) createAddress(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	var input addressInput
+	if !decodeJSON(w, r, &input) {
+		return nil, nil
+	}
+	if err := input.validate(); err != nil {
+		return nil, err
+	}
+	latitude, longitude, err := input.coordinates()
+	if err != nil {
+		return nil, &resourceValidation{"Coordinates must be valid numbers."}
+	}
+	address, err := h.queries.CreateAddress(r.Context(), dbsqlc.CreateAddressParams{UserID: owner, Label: input.Label, AddressLine: input.AddressLine, City: input.City, Latitude: latitude, Longitude: longitude})
+	return map[string]any{"address": address}, err
+}
+
+func (h *Resources) updateAddress(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	id, err := resourceID(r)
+	if err != nil {
+		return nil, err
+	}
+	var input addressInput
+	if !decodeJSON(w, r, &input) {
+		return nil, nil
+	}
+	if err := input.validate(); err != nil {
+		return nil, err
+	}
+	latitude, longitude, err := input.coordinates()
+	if err != nil {
+		return nil, &resourceValidation{"Coordinates must be valid numbers."}
+	}
+	var address dbsqlc.Address
+	err = h.pool.QueryRow(r.Context(), `UPDATE addresses SET label=$3,address_line=$4,city=$5,latitude=COALESCE($6,latitude),longitude=COALESCE($7,longitude) WHERE id=$1 AND user_id=$2 RETURNING id,user_id,label,address_line,city,latitude,longitude,created_at,updated_at`, id, owner, input.Label, input.AddressLine, input.City, latitude, longitude).Scan(&address.ID, &address.UserID, &address.Label, &address.AddressLine, &address.City, &address.Latitude, &address.Longitude, &address.CreatedAt, &address.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errResourceForbidden
+	}
+	return map[string]any{"address": address}, err
+}
+
+func (h *Resources) deleteAddress(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	id, err := resourceID(r)
+	if err != nil {
+		return nil, err
+	}
+	tag, err := h.pool.Exec(r.Context(), `DELETE FROM addresses WHERE id=$1 AND user_id=$2`, id, owner)
+	if err != nil {
+		return nil, err
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, errResourceForbidden
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil, nil
 }
