@@ -50,12 +50,12 @@ SELECT o.* FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE v.user_id=$1 O
 SELECT o.* FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=$1 AND v.user_id=$2;
 
 -- name: AssignedDeliveries :many
-SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,o.delivery_address,u.phone
+SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,d.dropoff_address AS delivery_address,d.pickup_address,u.phone
 FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=o.customer_id
 WHERE d.rider_id=$1 ORDER BY d.id DESC LIMIT 100;
 
 -- name: AssignedDelivery :one
-SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,o.delivery_address,u.phone
+SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,d.dropoff_address AS delivery_address,d.pickup_address,u.phone
 FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=o.customer_id
 WHERE d.id=$1 AND d.rider_id=$2;
 

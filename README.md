@@ -86,6 +86,7 @@ See [authentication](docs/AUTH.md) for registration, login, sessions and fronten
 See [role permissions](docs/PERMISSIONS.md) for dashboards and ownership-scoped APIs.
 See [vendor onboarding](docs/VENDOR_ONBOARDING.md) for verification and persistent documents.
 See [rider registration](docs/RIDER_REGISTRATION.md) for Task 6.1 APIs and pending-access rules.
+See [delivery management](docs/DELIVERIES.md) for confirmation, ownership and lifecycle rules.
 
 ```sh
 go build ./...

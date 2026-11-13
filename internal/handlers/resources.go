@@ -63,6 +63,10 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		mux.Handle(pattern, h.protect(permission, handler))
 	}
 	mount("GET /api/customer/orders", models.CustomerResources, h.listCustomerOrders)
+	mount("GET /api/customer/deliveries/{id}", models.CustomerResources, h.getDelivery)
+	mount("GET /api/vendor/deliveries/{id}", models.VendorResources, h.getDelivery)
+	mount("GET /api/admin/deliveries/{id}", models.Administration, h.getDelivery)
+	mount("POST /api/vendor/orders/{id}/confirm", models.VendorResources, h.confirmOrder)
 	mount("GET /api/customer/orders/{id}", models.CustomerResources, h.getCustomerOrder)
 	mount("GET /api/customer/addresses", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, id int64) (any, error) {
 		v, e := h.queries.ListUserAddresses(r.Context(), id)
@@ -128,14 +132,7 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		v, e := h.queries.AssignedDeliveries(r.Context(), pgtype.Int8{Int64: id, Valid: true})
 		return map[string]any{"deliveries": v}, e
 	})
-	mount("GET /api/rider/deliveries/{id}", models.RiderAssignments, func(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
-		id, e := resourceID(r)
-		if e != nil {
-			return nil, e
-		}
-		v, e := h.queries.AssignedDelivery(r.Context(), dbsqlc.AssignedDeliveryParams{ID: id, RiderID: pgtype.Int8{Int64: owner, Valid: true}})
-		return map[string]any{"delivery": v}, e
-	})
+	mount("GET /api/rider/deliveries/{id}", models.RiderAssignments, h.getDelivery)
 	mount("PATCH /api/rider/deliveries/{id}", models.RiderAssignments, h.updateDelivery)
 	mount("GET /api/admin/users", models.Administration, func(w http.ResponseWriter, r *http.Request, _ int64) (any, error) {
 		v, e := h.queries.ManagementUsers(r.Context())
@@ -481,6 +478,13 @@ func (h *Resources) updateDelivery(w http.ResponseWriter, r *http.Request, owner
 	}
 	defer tx.Rollback(r.Context())
 	q := h.queries.WithTx(tx)
+	var currentStatus string
+	if err := tx.QueryRow(r.Context(), `SELECT status FROM deliveries WHERE id=$1 AND rider_id=$2 FOR UPDATE`, id, owner).Scan(&currentStatus); err != nil {
+		return nil, err
+	}
+	if !services.DeliveryTransitionAllowed(currentStatus, input.Status) {
+		return nil, errResourceForbidden
+	}
 	delivery, err := q.UpdateAssignedDelivery(r.Context(), dbsqlc.UpdateAssignedDeliveryParams{ID: id, RiderID: pgtype.Int8{Int64: owner, Valid: true}, Status: input.Status})
 	if err != nil {
 		return nil, err

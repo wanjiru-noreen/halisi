@@ -52,8 +52,8 @@ VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
 SELECT * FROM addresses WHERE user_id = $1 ORDER BY id;
 
 -- name: CreateOrder :one
-INSERT INTO orders (customer_id, vendor_id, address_id, delivery_address, total, currency)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
+INSERT INTO orders (customer_id, vendor_id, address_id, delivery_address, total, currency, delivery_latitude, delivery_longitude)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;
 
 -- name: GetOrder :one
 SELECT * FROM orders WHERE id = $1;
