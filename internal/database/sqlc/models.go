@@ -184,6 +184,13 @@ type Settlement struct {
 	CompletedAt     pgtype.Timestamptz `json:"completed_at"`
 }
 
+type SettlementItem struct {
+	SettlementID int64              `json:"settlement_id"`
+	CommissionID int64              `json:"commission_id"`
+	Amount       pgtype.Numeric     `json:"amount"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
 type User struct {
 	ID                   int64              `json:"id"`
 	Name                 string             `json:"name"`
