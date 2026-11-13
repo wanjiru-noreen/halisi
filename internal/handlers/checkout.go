@@ -176,10 +176,6 @@ func (c *Checkout) submit(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Checkout is temporarily unavailable."})
 		return
 	}
-	if _, err := tx.Exec(ctx, `INSERT INTO deliveries (order_id) VALUES ($1)`, orderID); err != nil {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Checkout is temporarily unavailable."})
-		return
-	}
 	for _, id := range ids {
 		price := centsDecimal(prices[id])
 		var unitPrice pgtype.Numeric

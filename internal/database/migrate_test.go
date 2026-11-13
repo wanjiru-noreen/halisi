@@ -92,12 +92,16 @@ func TestMigrationsPostgres(t *testing.T) {
 	}
 	defer db.Close()
 	fixture := seedVersionOne(t, ctx, db)
+	if err := m.Steps(5); err != nil {
+		t.Fatal(err)
+	}
+	testCoreSchema(t, ctx, db, fixture)
 	if err := m.Up(); err != nil {
 		t.Fatalf("core schema upgrade failed: %v", err)
 	}
 	version, dirty, err := m.Version()
-	if err != nil || version != 6 || dirty {
-		t.Fatal("expected clean version 6")
+	if err != nil || version != 7 || dirty {
+		t.Fatal("expected clean version 7")
 	}
 	for _, table := range []string{"users", "sessions", "vendors", "vendor_documents", "products", "vendor_inventory", "addresses", "orders", "order_items", "payments", "deliveries", "reviews", "schema_migrations"} {
 		var exists bool
@@ -117,7 +121,13 @@ func TestMigrationsPostgres(t *testing.T) {
 	if err := admin.QueryRow(ctx, "SELECT count(*) FROM "+schema+".users").Scan(&count); err != nil || count != beforeCount {
 		t.Fatal("repeat up changed existing data")
 	}
-	testCoreSchema(t, ctx, db, fixture)
+	var historicalCustomer, historicalVendor int64
+	if err := db.QueryRow(ctx, "SELECT customer_id,vendor_id FROM deliveries WHERE order_id=$1", fixture.order).Scan(&historicalCustomer, &historicalVendor); err != nil || historicalCustomer != fixture.customer || historicalVendor != fixture.vendor {
+		t.Fatal("delivery migration did not preserve and backfill historical delivery")
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("delivery management rollback failed: %v", err)
+	}
 	if err := m.Steps(-1); err != nil {
 		t.Fatalf("rider registration rollback failed: %v", err)
 	}

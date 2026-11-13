@@ -21,13 +21,22 @@ type Address struct {
 }
 
 type Delivery struct {
-	ID          int64              `json:"id"`
-	OrderID     int64              `json:"order_id"`
-	RiderID     pgtype.Int8        `json:"rider_id"`
-	Status      string             `json:"status"`
-	DeliveredAt pgtype.Timestamptz `json:"delivered_at"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	ID               int64              `json:"id"`
+	OrderID          int64              `json:"order_id"`
+	RiderID          pgtype.Int8        `json:"rider_id"`
+	Status           string             `json:"status"`
+	DeliveredAt      pgtype.Timestamptz `json:"delivered_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	VendorID         int64              `json:"vendor_id"`
+	CustomerID       int64              `json:"customer_id"`
+	AddressID        pgtype.Int8        `json:"address_id"`
+	PickupAddress    string             `json:"pickup_address"`
+	DropoffAddress   string             `json:"dropoff_address"`
+	PickupLatitude   pgtype.Numeric     `json:"pickup_latitude"`
+	PickupLongitude  pgtype.Numeric     `json:"pickup_longitude"`
+	DropoffLatitude  pgtype.Numeric     `json:"dropoff_latitude"`
+	DropoffLongitude pgtype.Numeric     `json:"dropoff_longitude"`
 }
 
 type EmailVerificationToken struct {

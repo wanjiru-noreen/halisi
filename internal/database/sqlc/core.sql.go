@@ -50,7 +50,7 @@ func (q *Queries) CreateAddress(ctx context.Context, arg CreateAddressParams) (A
 }
 
 const createDelivery = `-- name: CreateDelivery :one
-INSERT INTO deliveries (order_id, rider_id) VALUES ($1, $2) RETURNING id, order_id, rider_id, status, delivered_at, created_at, updated_at
+INSERT INTO deliveries (order_id, rider_id) VALUES ($1, $2) RETURNING id, order_id, rider_id, status, delivered_at, created_at, updated_at, vendor_id, customer_id, address_id, pickup_address, dropoff_address, pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude
 `
 
 type CreateDeliveryParams struct {
@@ -69,6 +69,15 @@ func (q *Queries) CreateDelivery(ctx context.Context, arg CreateDeliveryParams) 
 		&i.DeliveredAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.VendorID,
+		&i.CustomerID,
+		&i.AddressID,
+		&i.PickupAddress,
+		&i.DropoffAddress,
+		&i.PickupLatitude,
+		&i.PickupLongitude,
+		&i.DropoffLatitude,
+		&i.DropoffLongitude,
 	)
 	return i, err
 }

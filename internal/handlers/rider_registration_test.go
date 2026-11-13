@@ -58,7 +58,7 @@ func TestRiderRegistrationPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer m.Close()
-	if err := m.Up(); err != nil {
+	if err := m.Steps(6); err != nil {
 		t.Fatal(err)
 	}
 	pool, err := pgxpool.New(ctx, parsed.String())
@@ -97,6 +97,10 @@ func TestRiderRegistrationPostgres(t *testing.T) {
 	vendor := insertID("INSERT INTO vendors(user_id,name,address,status,is_active) VALUES($1,'Rider fixture shop','Nairobi','approved',TRUE) RETURNING id", ids["vendor"])
 	order := insertID("INSERT INTO orders(customer_id,vendor_id,total,delivery_address) VALUES($1,$2,100,'Nairobi') RETURNING id", ids["applicant"], vendor)
 	delivery := insertID("INSERT INTO deliveries(order_id,rider_id,status) VALUES($1,$2,'assigned') RETURNING id", order, ids["legacy"])
+	// Preserve a pre-migration assignment to an unverified legacy rider.
+	if err := m.Up(); err != nil {
+		t.Fatal(err)
+	}
 	auth := handlers.NewAuth(authService, "production")
 	riders := services.NewRiderRegistration(pool)
 	handler := handlers.NewRiderRegistration(auth, riders)

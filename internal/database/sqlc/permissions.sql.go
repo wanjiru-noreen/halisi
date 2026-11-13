@@ -12,7 +12,7 @@ import (
 )
 
 const assignedDeliveries = `-- name: AssignedDeliveries :many
-SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,o.delivery_address,u.phone
+SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,d.dropoff_address AS delivery_address,d.pickup_address,u.phone
 FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=o.customer_id
 WHERE d.rider_id=$1 ORDER BY d.id DESC LIMIT 100
 `
@@ -25,6 +25,7 @@ type AssignedDeliveriesRow struct {
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	DeliveryAddress string             `json:"delivery_address"`
+	PickupAddress   string             `json:"pickup_address"`
 	Phone           pgtype.Text        `json:"phone"`
 }
 
@@ -45,6 +46,7 @@ func (q *Queries) AssignedDeliveries(ctx context.Context, riderID pgtype.Int8) (
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeliveryAddress,
+			&i.PickupAddress,
 			&i.Phone,
 		); err != nil {
 			return nil, err
@@ -58,7 +60,7 @@ func (q *Queries) AssignedDeliveries(ctx context.Context, riderID pgtype.Int8) (
 }
 
 const assignedDelivery = `-- name: AssignedDelivery :one
-SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,o.delivery_address,u.phone
+SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,d.dropoff_address AS delivery_address,d.pickup_address,u.phone
 FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=o.customer_id
 WHERE d.id=$1 AND d.rider_id=$2
 `
@@ -76,6 +78,7 @@ type AssignedDeliveryRow struct {
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	DeliveryAddress string             `json:"delivery_address"`
+	PickupAddress   string             `json:"pickup_address"`
 	Phone           pgtype.Text        `json:"phone"`
 }
 
@@ -90,6 +93,7 @@ func (q *Queries) AssignedDelivery(ctx context.Context, arg AssignedDeliveryPara
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeliveryAddress,
+		&i.PickupAddress,
 		&i.Phone,
 	)
 	return i, err
