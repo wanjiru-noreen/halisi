@@ -254,7 +254,8 @@ func (q *Queries) CustomerOrders(ctx context.Context, customerID int64) ([]Order
 }
 
 const customerPayment = `-- name: CustomerPayment :one
-SELECT p.id, p.order_id, p.amount, p.status, p.reference, p.created_at, p.currency, p.updated_at FROM payments p JOIN orders o ON o.id=p.order_id WHERE p.id=$1 AND o.customer_id=$2
+SELECT p.id, p.order_id, p.amount, p.status, p.reference, p.created_at, p.currency, p.updated_at
+FROM payments p JOIN orders o ON o.id=p.order_id WHERE p.id=$1 AND o.customer_id=$2
 `
 
 type CustomerPaymentParams struct {
@@ -262,9 +263,20 @@ type CustomerPaymentParams struct {
 	CustomerID int64 `json:"customer_id"`
 }
 
-func (q *Queries) CustomerPayment(ctx context.Context, arg CustomerPaymentParams) (Payment, error) {
+type CustomerPaymentRow struct {
+	ID        int64              `json:"id"`
+	OrderID   int64              `json:"order_id"`
+	Amount    pgtype.Numeric     `json:"amount"`
+	Status    string             `json:"status"`
+	Reference pgtype.Text        `json:"reference"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	Currency  string             `json:"currency"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) CustomerPayment(ctx context.Context, arg CustomerPaymentParams) (CustomerPaymentRow, error) {
 	row := q.db.QueryRow(ctx, customerPayment, arg.ID, arg.CustomerID)
-	var i Payment
+	var i CustomerPaymentRow
 	err := row.Scan(
 		&i.ID,
 		&i.OrderID,
@@ -279,18 +291,30 @@ func (q *Queries) CustomerPayment(ctx context.Context, arg CustomerPaymentParams
 }
 
 const customerPayments = `-- name: CustomerPayments :many
-SELECT p.id, p.order_id, p.amount, p.status, p.reference, p.created_at, p.currency, p.updated_at FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.customer_id=$1 ORDER BY p.id DESC LIMIT 100
+SELECT p.id, p.order_id, p.amount, p.status, p.reference, p.created_at, p.currency, p.updated_at
+FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.customer_id=$1 ORDER BY p.id DESC LIMIT 100
 `
 
-func (q *Queries) CustomerPayments(ctx context.Context, customerID int64) ([]Payment, error) {
+type CustomerPaymentsRow struct {
+	ID        int64              `json:"id"`
+	OrderID   int64              `json:"order_id"`
+	Amount    pgtype.Numeric     `json:"amount"`
+	Status    string             `json:"status"`
+	Reference pgtype.Text        `json:"reference"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	Currency  string             `json:"currency"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) CustomerPayments(ctx context.Context, customerID int64) ([]CustomerPaymentsRow, error) {
 	rows, err := q.db.Query(ctx, customerPayments, customerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Payment{}
+	items := []CustomerPaymentsRow{}
 	for rows.Next() {
-		var i Payment
+		var i CustomerPaymentsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrderID,

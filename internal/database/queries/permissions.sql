@@ -8,10 +8,12 @@ SELECT * FROM orders WHERE id=$1 AND customer_id=$2;
 SELECT * FROM addresses WHERE id=$1 AND user_id=$2;
 
 -- name: CustomerPayments :many
-SELECT p.* FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.customer_id=$1 ORDER BY p.id DESC LIMIT 100;
+SELECT p.id, p.order_id, p.amount, p.status, p.reference, p.created_at, p.currency, p.updated_at
+FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.customer_id=$1 ORDER BY p.id DESC LIMIT 100;
 
 -- name: CustomerPayment :one
-SELECT p.* FROM payments p JOIN orders o ON o.id=p.order_id WHERE p.id=$1 AND o.customer_id=$2;
+SELECT p.id, p.order_id, p.amount, p.status, p.reference, p.created_at, p.currency, p.updated_at
+FROM payments p JOIN orders o ON o.id=p.order_id WHERE p.id=$1 AND o.customer_id=$2;
 
 -- name: OwnedShop :one
 SELECT * FROM vendors WHERE user_id=$1;

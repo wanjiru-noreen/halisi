@@ -95,14 +95,22 @@ type OrderItem struct {
 }
 
 type Payment struct {
-	ID        int64              `json:"id"`
-	OrderID   int64              `json:"order_id"`
-	Amount    pgtype.Numeric     `json:"amount"`
-	Status    string             `json:"status"`
-	Reference pgtype.Text        `json:"reference"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	Currency  string             `json:"currency"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID                int64              `json:"id"`
+	OrderID           int64              `json:"order_id"`
+	Amount            pgtype.Numeric     `json:"amount"`
+	Status            string             `json:"status"`
+	Reference         pgtype.Text        `json:"reference"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	Currency          string             `json:"currency"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	Provider          string             `json:"provider"`
+	RequestKey        pgtype.Text        `json:"request_key"`
+	PhoneNumber       pgtype.Text        `json:"phone_number"`
+	MerchantRequestID pgtype.Text        `json:"merchant_request_id"`
+	CheckoutRequestID pgtype.Text        `json:"checkout_request_id"`
+	CallbackTokenHash pgtype.Text        `json:"callback_token_hash"`
+	ResultCode        pgtype.Int4        `json:"result_code"`
+	ResultDescription pgtype.Text        `json:"result_description"`
 }
 
 type Product struct {

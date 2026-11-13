@@ -164,7 +164,7 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 
 const createPayment = `-- name: CreatePayment :one
 INSERT INTO payments (order_id, amount, currency, reference)
-VALUES ($1, $2, $3, $4) RETURNING id, order_id, amount, status, reference, created_at, currency, updated_at
+VALUES ($1, $2, $3, $4) RETURNING id, order_id, amount, status, reference, created_at, currency, updated_at, provider, request_key, phone_number, merchant_request_id, checkout_request_id, callback_token_hash, result_code, result_description
 `
 
 type CreatePaymentParams struct {
@@ -191,6 +191,14 @@ func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (P
 		&i.CreatedAt,
 		&i.Currency,
 		&i.UpdatedAt,
+		&i.Provider,
+		&i.RequestKey,
+		&i.PhoneNumber,
+		&i.MerchantRequestID,
+		&i.CheckoutRequestID,
+		&i.CallbackTokenHash,
+		&i.ResultCode,
+		&i.ResultDescription,
 	)
 	return i, err
 }

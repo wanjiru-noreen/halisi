@@ -190,6 +190,11 @@ type deliveryView struct {
 	DeliveredAt *time.Time `json:"delivered_at"`
 }
 
+type customerPaymentView struct {
+	ID     int64  `json:"id"`
+	Status string `json:"status"`
+}
+
 func (h *Resources) listCustomerOrders(_ http.ResponseWriter, r *http.Request, owner int64) (any, error) {
 	rows, err := h.pool.Query(r.Context(), `
 		SELECT o.id,o.vendor_id,v.name,o.status,o.total::text,o.currency,o.delivery_address,o.created_at
@@ -261,7 +266,15 @@ func (h *Resources) getCustomerOrder(_ http.ResponseWriter, r *http.Request, own
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return nil, err
 	}
-	return map[string]any{"order": order, "items": items, "delivery": delivery}, nil
+	var payment *customerPaymentView
+	var paymentData customerPaymentView
+	err = h.pool.QueryRow(r.Context(), `SELECT id,status FROM payments WHERE order_id=$1 AND provider='mpesa' ORDER BY id DESC LIMIT 1`, id).Scan(&paymentData.ID, &paymentData.Status)
+	if err == nil {
+		payment = &paymentData
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	return map[string]any{"order": order, "items": items, "delivery": delivery, "payment": payment}, nil
 }
 
 func (h *Resources) protect(permission models.Permission, next http.Handler) http.Handler {

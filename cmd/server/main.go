@@ -80,9 +80,23 @@ func run(ctx context.Context) error {
 	storefront := handlers.NewStorefront(pool)
 	checkout := handlers.NewCheckout(pool, auth)
 	riders := handlers.NewRiderRegistration(auth, services.NewRiderRegistration(pool))
+	mpesaConfig, err := config.LoadMPesa()
+	if err != nil {
+		return fmt.Errorf("M-Pesa configuration error: %w", err)
+	}
+	var mpesaClient services.STKClient
+	var mpesaShortCode, mpesaPasskey, mpesaTransactionType string
+	if mpesaConfig != nil {
+		mpesaClient, err = services.NewDaraja(mpesaConfig.Environment, mpesaConfig.ConsumerKey, mpesaConfig.ConsumerSecret, nil)
+		if err != nil {
+			return fmt.Errorf("M-Pesa configuration error: %w", err)
+		}
+		mpesaShortCode, mpesaPasskey, mpesaTransactionType = mpesaConfig.ShortCode, mpesaConfig.Passkey, mpesaConfig.TransactionType
+	}
+	mpesa := handlers.NewMPesa(pool, auth, mpesaClient, identity.PublicBaseURL, mpesaShortCode, mpesaPasskey, mpesaTransactionType)
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes, storefront.Routes, checkout.Routes, riders.Routes),
+		Handler:           routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes, storefront.Routes, checkout.Routes, riders.Routes, mpesa.Routes),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,

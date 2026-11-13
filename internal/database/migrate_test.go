@@ -100,8 +100,8 @@ func TestMigrationsPostgres(t *testing.T) {
 		t.Fatalf("core schema upgrade failed: %v", err)
 	}
 	version, dirty, err := m.Version()
-	if err != nil || version != 8 || dirty {
-		t.Fatal("expected clean version 8")
+	if err != nil || version != 9 || dirty {
+		t.Fatal("expected clean version 9")
 	}
 	for _, table := range []string{"users", "sessions", "vendors", "vendor_documents", "products", "vendor_inventory", "addresses", "orders", "order_items", "payments", "deliveries", "reviews", "schema_migrations"} {
 		var exists bool
@@ -124,6 +124,9 @@ func TestMigrationsPostgres(t *testing.T) {
 	var historicalCustomer, historicalVendor int64
 	if err := db.QueryRow(ctx, "SELECT customer_id,vendor_id FROM deliveries WHERE order_id=$1", fixture.order).Scan(&historicalCustomer, &historicalVendor); err != nil || historicalCustomer != fixture.customer || historicalVendor != fixture.vendor {
 		t.Fatal("delivery migration did not preserve and backfill historical delivery")
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("M-Pesa rollback failed: %v", err)
 	}
 	if err := m.Steps(-1); err != nil {
 		t.Fatalf("order location snapshot rollback failed: %v", err)
