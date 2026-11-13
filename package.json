@@ -1,0 +1,30 @@
+{
+  "name": "halisi",
+  "version": "1.0.0",
+  "description": "LPG delivery and vendor management platform built with Go, PostgreSQL, HTML, JavaScript, and Tailwind CSS.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+	"build:css": "tailwindcss -i web/static/css/auth.input.css -o web/static/css/auth.css --minify",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wanjiru-noreen/halisi.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/wanjiru-noreen/halisi/issues"
+  },
+  "homepage": "https://github.com/wanjiru-noreen/halisi#readme",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.5",
+    "tailwindcss": "^4.3.5"
+  }
+}
