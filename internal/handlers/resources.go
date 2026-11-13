@@ -157,7 +157,11 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 	})))
 	for role, permission := range map[models.Role]models.Permission{models.Customer: models.CustomerResources, models.Vendor: models.VendorResources, models.Rider: models.RiderAssignments, models.Administrator: models.Administration} {
 		path, _ := models.DashboardPath(role)
-		mux.Handle("GET "+path, h.protect(permission, webassets.Page("dashboard")))
+		page := webassets.Page("dashboard")
+		if role == models.Customer {
+			page = webassets.Page("customer/dashboard")
+		}
+		mux.Handle("GET "+path, h.protect(permission, page))
 	}
 }
 
