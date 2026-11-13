@@ -267,7 +267,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const createVendor = `-- name: CreateVendor :one
-INSERT INTO vendors (user_id, name, address) VALUES ($1, $2, $3) RETURNING id, user_id, name, address, created_at, status, updated_at, address_id
+INSERT INTO vendors (user_id, name, address) VALUES ($1, $2, $3) RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
 `
 
 type CreateVendorParams struct {
@@ -288,6 +288,16 @@ func (q *Queries) CreateVendor(ctx context.Context, arg CreateVendorParams) (Ven
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }
@@ -335,7 +345,7 @@ func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
 }
 
 const getVendor = `-- name: GetVendor :one
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id FROM vendors WHERE id = $1
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version FROM vendors WHERE id = $1
 `
 
 func (q *Queries) GetVendor(ctx context.Context, id int64) (Vendor, error) {
@@ -350,6 +360,16 @@ func (q *Queries) GetVendor(ctx context.Context, id int64) (Vendor, error) {
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }
@@ -464,7 +484,7 @@ const reserveInventory = `-- name: ReserveInventory :one
 UPDATE vendor_inventory
 SET reserved_quantity = reserved_quantity + $1::integer
 WHERE product_id = $2 AND vendor_id = $3
-    AND $1::integer > 0
+    AND EXISTS (SELECT 1 FROM vendors v WHERE v.id=vendor_inventory.vendor_id AND v.status='approved' AND v.is_active) AND $1::integer > 0
     AND quantity - reserved_quantity >= $1::integer
 RETURNING product_id, vendor_id, quantity, reserved_quantity, created_at, updated_at
 `
@@ -511,7 +531,7 @@ INSERT INTO vendor_documents (vendor_id, document_type, storage_key)
 VALUES ($1, $2, $3)
 ON CONFLICT (vendor_id, document_type) DO UPDATE
 SET storage_key = EXCLUDED.storage_key, status = 'pending'
-RETURNING id, vendor_id, document_type, storage_key, status, created_at, updated_at
+RETURNING id, vendor_id, document_type, storage_key, status, created_at, updated_at, original_name, content_type, size_bytes, sha256
 `
 
 type SaveVendorDocumentParams struct {
@@ -531,6 +551,10 @@ func (q *Queries) SaveVendorDocument(ctx context.Context, arg SaveVendorDocument
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OriginalName,
+		&i.ContentType,
+		&i.SizeBytes,
+		&i.Sha256,
 	)
 	return i, err
 }
@@ -564,7 +588,7 @@ func (q *Queries) SetInventory(ctx context.Context, arg SetInventoryParams) (Ven
 }
 
 const setVendorAddress = `-- name: SetVendorAddress :one
-UPDATE vendors SET address_id = $2, address = $3 WHERE id = $1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id
+UPDATE vendors SET address_id = $2, address = $3 WHERE id = $1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
 `
 
 type SetVendorAddressParams struct {
@@ -585,6 +609,16 @@ func (q *Queries) SetVendorAddress(ctx context.Context, arg SetVendorAddressPara
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }

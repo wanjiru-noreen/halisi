@@ -1,0 +1,35 @@
+# Blueprint configuration only; provisioning requires an explicit Render deployment.
+services:
+  - type: web
+    name: halisi
+    runtime: go
+    plan: starter
+    buildCommand: go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
+    preDeployCommand: ./bin/migrate up
+    startCommand: ./bin/server
+    healthCheckPath: /health
+    disk:
+      name: vendor-documents
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: VENDOR_DOCUMENT_DIR
+        value: /var/data/vendor-documents
+      - key: DATABASE_URL
+        sync: false
+      - key: PUBLIC_BASE_URL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_TLS_MODE
+        value: starttls
+      - key: SMTP_FROM
+        sync: false
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false

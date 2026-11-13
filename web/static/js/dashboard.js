@@ -37,6 +37,8 @@ api("/api/auth/me").then(async ({ user }) => {
   if (!sections[user.role]) throw new Error("Your role has no permitted dashboard.");
   document.getElementById("role-label").textContent = `${roleNames[user.role]} dashboard`;
   document.getElementById("welcome").textContent = `Welcome, ${user.name}.`;
+  document.getElementById("vendor-onboarding").hidden = user.role !== "customer" && user.role !== "vendor";
+  document.getElementById("vendor-review").hidden = user.role !== "admin";
   await Promise.all(sections[user.role].map(loadSection));
 }).catch((error) => showError(error.message));
 document.getElementById("logout").addEventListener("click", async (event) => {

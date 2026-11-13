@@ -138,14 +138,24 @@ type User struct {
 }
 
 type Vendor struct {
-	ID        int64              `json:"id"`
-	UserID    int64              `json:"user_id"`
-	Name      string             `json:"name"`
-	Address   string             `json:"address"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	Status    string             `json:"status"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
-	AddressID pgtype.Int8        `json:"address_id"`
+	ID             int64              `json:"id"`
+	UserID         int64              `json:"user_id"`
+	Name           string             `json:"name"`
+	Address        string             `json:"address"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	Status         string             `json:"status"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	AddressID      pgtype.Int8        `json:"address_id"`
+	ContactEmail   string             `json:"contact_email"`
+	ContactPhone   string             `json:"contact_phone"`
+	City           string             `json:"city"`
+	OperatingHours []byte             `json:"operating_hours"`
+	IsActive       bool               `json:"is_active"`
+	SubmittedAt    pgtype.Timestamptz `json:"submitted_at"`
+	ReviewReason   string             `json:"review_reason"`
+	ReviewedBy     pgtype.Int8        `json:"reviewed_by"`
+	ReviewedAt     pgtype.Timestamptz `json:"reviewed_at"`
+	ReviewVersion  int64              `json:"review_version"`
 }
 
 type VendorDocument struct {
@@ -156,6 +166,10 @@ type VendorDocument struct {
 	Status       string             `json:"status"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	OriginalName string             `json:"original_name"`
+	ContentType  string             `json:"content_type"`
+	SizeBytes    int64              `json:"size_bytes"`
+	Sha256       string             `json:"sha256"`
 }
 
 type VendorInventory struct {
@@ -165,4 +179,14 @@ type VendorInventory struct {
 	ReservedQuantity int32              `json:"reserved_quantity"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+type VendorReviewEvent struct {
+	ID              int64              `json:"id"`
+	VendorID        int64              `json:"vendor_id"`
+	AdministratorID int64              `json:"administrator_id"`
+	Status          string             `json:"status"`
+	Reason          string             `json:"reason"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	ReviewVersion   pgtype.Int8        `json:"review_version"`
 }
