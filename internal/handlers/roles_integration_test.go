@@ -437,8 +437,8 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	requestWithHeaders("admin", "PATCH", settlementUpdatePath, map[string]string{"status": "paid", "payout_reference": "BATCH-2026-001"}, nil, 200)
 	requestWithHeaders("admin", "PATCH", settlementUpdatePath, map[string]string{"status": "paid", "payout_reference": "BATCH-2026-001"}, nil, 409)
 	_, body = requestWithHeaders("admin", "GET", "/api/admin/settlements", nil, nil, 200)
-	if !bytes.Contains(body, []byte(`"payout_reference":"BATCH-2026-001"`)) || !bytes.Contains(body, []byte(`"failure_reason":"Bank transfer returned an error"`)) {
-		t.Fatal("administrator settlement history omitted payout or failure audit details")
+	if !bytes.Contains(body, []byte(`"payout_reference":"BATCH-2026-001"`)) || !bytes.Contains(body, []byte(`"failure_reason":"Bank transfer returned an error"`)) || bytes.Count(body, []byte(`"commission_id"`)) < 2 {
+		t.Fatal("administrator settlement history omitted payout, failed-attempt or item audit details")
 	}
 	_, body = requestWithHeaders("v1", "GET", "/api/vendor/commissions", nil, nil, 200)
 	if !bytes.Contains(body, []byte(`"settlement_status":"paid"`)) {

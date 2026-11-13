@@ -103,7 +103,7 @@ func TestMigrationsPostgres(t *testing.T) {
 	if err != nil || version != 10 || dirty {
 		t.Fatal("expected clean version 10")
 	}
-	for _, table := range []string{"users", "sessions", "vendors", "vendor_documents", "products", "vendor_inventory", "addresses", "orders", "order_items", "payments", "deliveries", "reviews", "vendor_commission_rate_changes", "order_commissions", "settlements", "schema_migrations"} {
+	for _, table := range []string{"users", "sessions", "vendors", "vendor_documents", "products", "vendor_inventory", "addresses", "orders", "order_items", "payments", "deliveries", "reviews", "vendor_commission_rate_changes", "order_commissions", "settlements", "settlement_items", "schema_migrations"} {
 		var exists bool
 		if err := admin.QueryRow(ctx, "SELECT to_regclass($1) IS NOT NULL", schema+"."+table).Scan(&exists); err != nil || !exists {
 			t.Fatalf("expected table %s", table)

@@ -49,4 +49,13 @@ CREATE TABLE settlements (
 ALTER TABLE order_commissions ADD CONSTRAINT order_commissions_settlement_fk FOREIGN KEY (settlement_id) REFERENCES settlements(id);
 CREATE INDEX settlements_vendor_created_idx ON settlements(vendor_id, created_at DESC);
 
+CREATE TABLE settlement_items (
+    settlement_id BIGINT NOT NULL REFERENCES settlements(id),
+    commission_id BIGINT NOT NULL REFERENCES order_commissions(id),
+    amount NUMERIC(12,2) NOT NULL CHECK (amount > 0 AND amount <> 'NaN'::numeric),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (settlement_id, commission_id)
+);
+CREATE INDEX settlement_items_commission_idx ON settlement_items(commission_id);
+
 COMMIT;

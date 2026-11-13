@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"regexp"
@@ -209,7 +210,7 @@ func (h *Resources) updateCommissionRate(w http.ResponseWriter, r *http.Request,
 }
 
 func (h *Resources) listSettlements(w http.ResponseWriter, r *http.Request, _ int64) (any, error) {
-	rows, err := h.pool.Query(r.Context(), `SELECT s.id,s.vendor_id,v.name,s.amount::text,s.currency,s.status,COALESCE(s.payout_reference,''),COALESCE(s.failure_reason,''),s.created_by,COALESCE(s.updated_by,0),s.created_at,s.updated_at,s.completed_at FROM settlements s JOIN vendors v ON v.id=s.vendor_id ORDER BY s.id DESC LIMIT 100`)
+	rows, err := h.pool.Query(r.Context(), `SELECT s.id,s.vendor_id,v.name,s.amount::text,s.currency,s.status,COALESCE(s.payout_reference,''),COALESCE(s.failure_reason,''),s.created_by,COALESCE(s.updated_by,0),s.created_at,s.updated_at,s.completed_at,COALESCE((SELECT json_agg(json_build_object('commission_id',si.commission_id,'amount',si.amount::text) ORDER BY si.commission_id) FROM settlement_items si WHERE si.settlement_id=s.id),'[]'::json) FROM settlements s JOIN vendors v ON v.id=s.vendor_id ORDER BY s.id DESC LIMIT 100`)
 	if err != nil {
 		return nil, err
 	}
@@ -220,10 +221,11 @@ func (h *Resources) listSettlements(w http.ResponseWriter, r *http.Request, _ in
 		var vendorName, amount, currency, status, reference, failure string
 		var createdAt, updatedAt time.Time
 		var completedAt *time.Time
-		if err := rows.Scan(&id, &vendorID, &vendorName, &amount, &currency, &status, &reference, &failure, &createdBy, &updatedBy, &createdAt, &updatedAt, &completedAt); err != nil {
+		var items []byte
+		if err := rows.Scan(&id, &vendorID, &vendorName, &amount, &currency, &status, &reference, &failure, &createdBy, &updatedBy, &createdAt, &updatedAt, &completedAt, &items); err != nil {
 			return nil, err
 		}
-		settlements = append(settlements, map[string]any{"id": id, "vendor_id": vendorID, "vendor_name": vendorName, "amount": amount, "currency": currency, "status": status, "payout_reference": reference, "failure_reason": failure, "created_by": createdBy, "updated_by": updatedBy, "created_at": createdAt, "updated_at": updatedAt, "completed_at": completedAt})
+		settlements = append(settlements, map[string]any{"id": id, "vendor_id": vendorID, "vendor_name": vendorName, "amount": amount, "currency": currency, "status": status, "payout_reference": reference, "failure_reason": failure, "created_by": createdBy, "updated_by": updatedBy, "created_at": createdAt, "updated_at": updatedAt, "completed_at": completedAt, "items": json.RawMessage(items)})
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -316,7 +318,14 @@ func (h *Resources) createSettlement(w http.ResponseWriter, r *http.Request, adm
 	if err != nil {
 		return nil, err
 	}
-	tag, err := tx.Exec(ctx, `UPDATE order_commissions SET settlement_id=$1 WHERE id=ANY($2::bigint[]) AND settlement_id IS NULL`, settlementID, commissionIDs)
+	tag, err := tx.Exec(ctx, `INSERT INTO settlement_items(settlement_id,commission_id,amount) SELECT $1,c.id,c.vendor_amount FROM order_commissions c WHERE c.id=ANY($2::bigint[])`, settlementID, commissionIDs)
+	if err != nil {
+		return nil, err
+	}
+	if int(tag.RowsAffected()) != len(commissionIDs) {
+		return nil, errResourceConflict
+	}
+	tag, err = tx.Exec(ctx, `UPDATE order_commissions SET settlement_id=$1 WHERE id=ANY($2::bigint[]) AND settlement_id IS NULL`, settlementID, commissionIDs)
 	if err != nil {
 		return nil, err
 	}

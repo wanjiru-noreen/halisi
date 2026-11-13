@@ -1,5 +1,6 @@
 BEGIN;
 
+DROP TABLE settlement_items;
 DROP TABLE order_commissions;
 DROP TABLE settlements;
 DROP TABLE vendor_commission_rate_changes;
