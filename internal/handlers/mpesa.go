@@ -128,7 +128,7 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	if !errors.Is(err, pgx.ErrNoRows) {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Payment is temporarily unavailable."})
 		return
 	}
@@ -146,7 +146,7 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 		}
 		existingID = activeID
 	}
-	if !errors.Is(err, pgx.ErrNoRows) {
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Payment is temporarily unavailable."})
 		return
 	}
