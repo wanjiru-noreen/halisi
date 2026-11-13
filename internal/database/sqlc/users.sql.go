@@ -18,11 +18,11 @@ RETURNING id, name, email, phone, password_hash, role, created_at, updated_at, e
 `
 
 type CreateUserParams struct {
-	Name         string
-	Email        string
-	Phone        pgtype.Text
-	PasswordHash string
-	Role         string
+	Name         string      `json:"name"`
+	Email        string      `json:"email"`
+	Phone        pgtype.Text `json:"phone"`
+	PasswordHash string      `json:"password_hash"`
+	Role         string      `json:"role"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -118,20 +118,20 @@ LIMIT $1 OFFSET $2
 `
 
 type ListUsersParams struct {
-	Limit  int32
-	Offset int32
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
 }
 
 type ListUsersRow struct {
-	ID                   int64
-	Name                 string
-	Email                string
-	Phone                pgtype.Text
-	Role                 string
-	CreatedAt            pgtype.Timestamptz
-	UpdatedAt            pgtype.Timestamptz
-	EmailVerifiedAt      pgtype.Timestamptz
-	PasswordLoginEnabled bool
+	ID                   int64              `json:"id"`
+	Name                 string             `json:"name"`
+	Email                string             `json:"email"`
+	Phone                pgtype.Text        `json:"phone"`
+	Role                 string             `json:"role"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
+	EmailVerifiedAt      pgtype.Timestamptz `json:"email_verified_at"`
+	PasswordLoginEnabled bool               `json:"password_login_enabled"`
 }
 
 func (q *Queries) ListUsers(ctx context.Context, arg ListUsersParams) ([]ListUsersRow, error) {
@@ -172,10 +172,10 @@ RETURNING id, name, email, phone, password_hash, role, created_at, updated_at, e
 `
 
 type UpdateUserParams struct {
-	ID    int64
-	Name  string
-	Email string
-	Phone pgtype.Text
+	ID    int64       `json:"id"`
+	Name  string      `json:"name"`
+	Email string      `json:"email"`
+	Phone pgtype.Text `json:"phone"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {

@@ -60,9 +60,10 @@ func run(ctx context.Context) error {
 		return errors.New("could not initialize authentication")
 	}
 	auth := handlers.NewAuth(authService, cfg.AppEnv)
+	resources := handlers.NewResources(pool, auth)
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           routes.New(pool, auth.Routes),
+		Handler:           routes.New(pool, auth.Routes, resources.Routes),
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,

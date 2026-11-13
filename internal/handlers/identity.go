@@ -154,6 +154,8 @@ func (a *Auth) googleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	if !linked {
 		a.setSession(w, session)
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
 	}
 	http.Redirect(w, r, "/account?google=connected", http.StatusSeeOther)
 }

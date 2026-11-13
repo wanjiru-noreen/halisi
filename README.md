@@ -67,6 +67,7 @@ See [database migrations](docs/DATABASE.md) for schema setup and rollback comman
 The same guide documents [sqlc generation](docs/DATABASE.md#generate-go-queries-with-sqlc).
 See [CI and branch protection](docs/CI.md) for automated pull request checks.
 See [authentication](docs/AUTH.md) for registration, login, sessions and frontend builds.
+See [role permissions](docs/PERMISSIONS.md) for dashboards and ownership-scoped APIs.
 
 ```sh
 go build ./...

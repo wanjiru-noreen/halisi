@@ -36,9 +36,10 @@ if (form) {
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
     try {
-      await request(form.getAttribute("action"), data);
+      const result = await request(form.getAttribute("action"), data);
       form.reset();
-      window.location.assign(document.body.dataset.page === "register" ? "/login?registered=1" : "/account");
+      const dashboards = { customer: "/customer/dashboard", vendor: "/vendor/dashboard", rider: "/rider/dashboard", admin: "/admin/dashboard" };
+      window.location.assign(document.body.dataset.page === "register" ? "/login?registered=1" : (dashboards[result.user?.role] || "/dashboard"));
     } catch (error) {
       showError(error instanceof TypeError ? "Connection interrupted. Please try again." : error.message);
       button.disabled = false;

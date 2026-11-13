@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Your dashboard · HALISI</title><link rel="stylesheet" href="/static/css/auth.css"><script src="/static/js/dashboard.js" defer></script></head>
+<body class="min-h-screen bg-stone-50 text-stone-900 antialiased">
+<main class="mx-auto max-w-6xl px-6 py-10">
+<header class="flex flex-wrap items-center justify-between gap-6"><a href="/dashboard" class="text-2xl font-black tracking-widest text-emerald-800">HALISI<span class="text-orange-500">.</span></a><nav class="flex items-center gap-6"><a href="/account" class="text-sm font-semibold text-emerald-800 underline">Your account</a><button id="logout" class="rounded-xl border border-stone-300 px-4 py-2 text-sm hover:bg-stone-100">Log out</button></nav></header>
+<section class="mb-10 mt-16"><p id="role-label" class="text-xs font-bold uppercase tracking-widest text-emerald-700">Your workspace</p><h1 id="welcome" class="mt-3 text-4xl font-semibold tracking-tight">Loading your dashboard…</h1><p class="mt-4 max-w-2xl text-stone-600">Your latest activity, with access tailored to your role.</p></section>
+<p id="error" class="my-5 text-sm text-red-700" role="alert" hidden></p>
+<div id="sections" class="grid gap-6 lg:grid-cols-2" aria-live="polite"></div>
+<noscript><p>Enable JavaScript to load your dashboard records.</p></noscript>
+</main></body></html>

@@ -17,12 +17,12 @@ VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, user_id, label, address_line, city
 `
 
 type CreateAddressParams struct {
-	UserID      int64
-	Label       string
-	AddressLine string
-	City        string
-	Latitude    pgtype.Numeric
-	Longitude   pgtype.Numeric
+	UserID      int64          `json:"user_id"`
+	Label       string         `json:"label"`
+	AddressLine string         `json:"address_line"`
+	City        string         `json:"city"`
+	Latitude    pgtype.Numeric `json:"latitude"`
+	Longitude   pgtype.Numeric `json:"longitude"`
 }
 
 func (q *Queries) CreateAddress(ctx context.Context, arg CreateAddressParams) (Address, error) {
@@ -54,8 +54,8 @@ INSERT INTO deliveries (order_id, rider_id) VALUES ($1, $2) RETURNING id, order_
 `
 
 type CreateDeliveryParams struct {
-	OrderID int64
-	RiderID pgtype.Int8
+	OrderID int64       `json:"order_id"`
+	RiderID pgtype.Int8 `json:"rider_id"`
 }
 
 func (q *Queries) CreateDelivery(ctx context.Context, arg CreateDeliveryParams) (Delivery, error) {
@@ -79,12 +79,12 @@ VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, customer_id, vendor_id, status, to
 `
 
 type CreateOrderParams struct {
-	CustomerID      int64
-	VendorID        int64
-	AddressID       pgtype.Int8
-	DeliveryAddress string
-	Total           pgtype.Numeric
-	Currency        string
+	CustomerID      int64          `json:"customer_id"`
+	VendorID        int64          `json:"vendor_id"`
+	AddressID       pgtype.Int8    `json:"address_id"`
+	DeliveryAddress string         `json:"delivery_address"`
+	Total           pgtype.Numeric `json:"total"`
+	Currency        string         `json:"currency"`
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
@@ -118,11 +118,11 @@ VALUES ($1, $2, $3, $4, $5) RETURNING id, order_id, product_id, quantity, unit_p
 `
 
 type CreateOrderItemParams struct {
-	OrderID   int64
-	VendorID  int64
-	ProductID int64
-	Quantity  int32
-	UnitPrice pgtype.Numeric
+	OrderID   int64          `json:"order_id"`
+	VendorID  int64          `json:"vendor_id"`
+	ProductID int64          `json:"product_id"`
+	Quantity  int32          `json:"quantity"`
+	UnitPrice pgtype.Numeric `json:"unit_price"`
 }
 
 func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) (OrderItem, error) {
@@ -153,10 +153,10 @@ VALUES ($1, $2, $3, $4) RETURNING id, order_id, amount, status, reference, creat
 `
 
 type CreatePaymentParams struct {
-	OrderID   int64
-	Amount    pgtype.Numeric
-	Currency  string
-	Reference pgtype.Text
+	OrderID   int64          `json:"order_id"`
+	Amount    pgtype.Numeric `json:"amount"`
+	Currency  string         `json:"currency"`
+	Reference pgtype.Text    `json:"reference"`
 }
 
 func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (Payment, error) {
@@ -185,9 +185,9 @@ INSERT INTO products (vendor_id, name, price) VALUES ($1, $2, $3) RETURNING id, 
 `
 
 type CreateProductParams struct {
-	VendorID int64
-	Name     string
-	Price    pgtype.Numeric
+	VendorID int64          `json:"vendor_id"`
+	Name     string         `json:"name"`
+	Price    pgtype.Numeric `json:"price"`
 }
 
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
@@ -210,11 +210,11 @@ VALUES ($1, $2, $3, $4, $5) RETURNING id, order_id, customer_id, vendor_id, rati
 `
 
 type CreateReviewParams struct {
-	OrderID    int64
-	CustomerID int64
-	VendorID   int64
-	Rating     int16
-	Comment    string
+	OrderID    int64  `json:"order_id"`
+	CustomerID int64  `json:"customer_id"`
+	VendorID   int64  `json:"vendor_id"`
+	Rating     int16  `json:"rating"`
+	Comment    string `json:"comment"`
 }
 
 func (q *Queries) CreateReview(ctx context.Context, arg CreateReviewParams) (Review, error) {
@@ -246,9 +246,9 @@ RETURNING id, user_id, token_hash, expires_at, revoked_at, created_at, updated_a
 `
 
 type CreateSessionParams struct {
-	UserID    int64
-	TokenHash string
-	ExpiresAt pgtype.Timestamptz
+	UserID    int64              `json:"user_id"`
+	TokenHash string             `json:"token_hash"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
@@ -271,9 +271,9 @@ INSERT INTO vendors (user_id, name, address) VALUES ($1, $2, $3) RETURNING id, u
 `
 
 type CreateVendorParams struct {
-	UserID  int64
-	Name    string
-	Address string
+	UserID  int64  `json:"user_id"`
+	Name    string `json:"name"`
+	Address string `json:"address"`
 }
 
 func (q *Queries) CreateVendor(ctx context.Context, arg CreateVendorParams) (Vendor, error) {
@@ -426,9 +426,9 @@ SELECT id, order_id, customer_id, vendor_id, rating, comment, created_at, update
 `
 
 type ListVendorReviewsParams struct {
-	VendorID int64
-	Limit    int32
-	Offset   int32
+	VendorID int64 `json:"vendor_id"`
+	Limit    int32 `json:"limit"`
+	Offset   int32 `json:"offset"`
 }
 
 func (q *Queries) ListVendorReviews(ctx context.Context, arg ListVendorReviewsParams) ([]Review, error) {
@@ -470,9 +470,9 @@ RETURNING product_id, vendor_id, quantity, reserved_quantity, created_at, update
 `
 
 type ReserveInventoryParams struct {
-	Quantity  int32
-	ProductID int64
-	VendorID  int64
+	Quantity  int32 `json:"quantity"`
+	ProductID int64 `json:"product_id"`
+	VendorID  int64 `json:"vendor_id"`
 }
 
 func (q *Queries) ReserveInventory(ctx context.Context, arg ReserveInventoryParams) (VendorInventory, error) {
@@ -494,8 +494,8 @@ UPDATE sessions SET revoked_at = NOW() WHERE id = $1 AND user_id = $2 AND revoke
 `
 
 type RevokeSessionParams struct {
-	ID     int64
-	UserID int64
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
 }
 
 func (q *Queries) RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error) {
@@ -515,9 +515,9 @@ RETURNING id, vendor_id, document_type, storage_key, status, created_at, updated
 `
 
 type SaveVendorDocumentParams struct {
-	VendorID     int64
-	DocumentType string
-	StorageKey   string
+	VendorID     int64  `json:"vendor_id"`
+	DocumentType string `json:"document_type"`
+	StorageKey   string `json:"storage_key"`
 }
 
 func (q *Queries) SaveVendorDocument(ctx context.Context, arg SaveVendorDocumentParams) (VendorDocument, error) {
@@ -544,9 +544,9 @@ RETURNING product_id, vendor_id, quantity, reserved_quantity, created_at, update
 `
 
 type SetInventoryParams struct {
-	ProductID int64
-	VendorID  int64
-	Quantity  int32
+	ProductID int64 `json:"product_id"`
+	VendorID  int64 `json:"vendor_id"`
+	Quantity  int32 `json:"quantity"`
 }
 
 func (q *Queries) SetInventory(ctx context.Context, arg SetInventoryParams) (VendorInventory, error) {
@@ -568,9 +568,9 @@ UPDATE vendors SET address_id = $2, address = $3 WHERE id = $1 RETURNING id, use
 `
 
 type SetVendorAddressParams struct {
-	ID        int64
-	AddressID pgtype.Int8
-	Address   string
+	ID        int64       `json:"id"`
+	AddressID pgtype.Int8 `json:"address_id"`
+	Address   string      `json:"address"`
 }
 
 func (q *Queries) SetVendorAddress(ctx context.Context, arg SetVendorAddressParams) (Vendor, error) {

@@ -52,7 +52,7 @@ func authError(w http.ResponseWriter, status int, message string) {
 }
 
 func authRequired(w http.ResponseWriter, r *http.Request) {
-	if strings.Contains(r.Header.Get("Accept"), "text/html") {
+	if !strings.HasPrefix(r.URL.Path, "/api/") && strings.Contains(r.Header.Get("Accept"), "text/html") {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
