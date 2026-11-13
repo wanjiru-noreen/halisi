@@ -149,6 +149,15 @@ Both timestamps default to the insertion time. A database trigger sets
 | `deliveries` | One delivery per order; optional rider user FK; assigned/picked-up/delivered states require a rider; delivered state requires delivery timestamp at or after creation, other states require no delivery timestamp |
 | `reviews` | One review per order; composite FK requires the order's actual customer and vendor; rating 1–5; optional comment represented by empty text |
 
+## M-Pesa payment metadata (version 000004)
+
+Version 4 records the provider, request idempotency key, normalized customer
+phone, Daraja request IDs, result details, and a hash of a unique callback token
+for each M-Pesa attempt. A partial unique index prevents overlapping active
+M-Pesa attempts for one order; completed or failed attempts remain available
+for customer history and reconciliation. The raw callback token is sent only
+to Daraja and is not stored in the database.
+
 ```mermaid
 erDiagram
     users ||--o{ sessions : authenticates

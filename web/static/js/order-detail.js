@@ -3,6 +3,7 @@
 const error = document.getElementById("order-error");
 const content = document.getElementById("order-content");
 const orderID = window.location.pathname.split("/").filter(Boolean).at(-1);
+let currentPayment = null;
 
 function setText(id, value) { document.getElementById(id).textContent = value; }
 
@@ -59,6 +60,8 @@ async function loadOrder() {
     if (response.status === 401) { window.location.replace("/login"); return; }
     if (!response.ok) throw new Error(body.error || "This order could not be loaded.");
     const order = body.order;
+    document.getElementById("order-items").replaceChildren();
+    document.getElementById("tracking-steps").replaceChildren();
     setText("order-title", `Order #${order.id}`);
     setText("order-date", new Date(order.created_at).toLocaleString());
     setText("order-status", String(order.status).replaceAll("_", " "));
@@ -67,10 +70,55 @@ async function loadOrder() {
     setText("order-total", `${order.currency} ${order.total}`);
     body.items.forEach(addItem);
     tracking(order.status, body.delivery);
+    currentPayment = body.payment;
+    const paymentPanel = document.getElementById("payment-panel");
+    const availabilityResponse = await fetch("/api/mpesa/availability", { cache: "no-store", headers: { Accept: "application/json" } });
+    const availability = availabilityResponse.ok ? await availabilityResponse.json() : { enabled: false };
+    if (order.status === "pending" && availability.enabled) {
+      paymentPanel.hidden = false;
+      const paymentStatus = document.getElementById("payment-status");
+      const processing = currentPayment && ["pending", "processing"].includes(currentPayment.status);
+      paymentStatus.textContent = processing
+        ? "Payment is processing. Complete the prompt on your phone if it arrived, then refresh this page to see the result."
+        : currentPayment?.status === "failed"
+          ? "The previous payment attempt failed. You can send a new payment prompt."
+          : "Pay this order securely using M-Pesa. The amount is taken from the order total.";
+      document.getElementById("payment-form").hidden = Boolean(processing);
+    } else {
+      paymentPanel.hidden = true;
+    }
     content.hidden = false;
   } catch (err) {
     error.textContent = err.message;
     error.hidden = false;
   }
 }
+
+document.getElementById("mpesa-pay").addEventListener("click", async () => {
+  const button = document.getElementById("mpesa-pay");
+  const error = document.getElementById("payment-error");
+  const phone = document.getElementById("mpesa-phone").value;
+  error.hidden = true;
+  button.disabled = true;
+  button.textContent = "Sending prompt…";
+  try {
+    const response = await fetch(`/api/customer/orders/${encodeURIComponent(orderID)}/payments/mpesa`, {
+      method: "POST",
+      credentials: "same-origin",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json", Accept: "application/json", "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({ phone_number: phone }),
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || "M-Pesa could not start the payment.");
+    await loadOrder();
+  } catch (err) {
+    error.textContent = err.message;
+    error.hidden = false;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Send payment prompt";
+  }
+});
+
 loadOrder();

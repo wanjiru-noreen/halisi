@@ -23,6 +23,21 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type captureMPesa struct {
+	calls       int
+	callbackURL string
+}
+
+func (m *captureMPesa) Initiate(_ context.Context, input services.STKRequest) (services.STKResponse, error) {
+	m.calls++
+	m.callbackURL = input.CallbackURL
+	return services.STKResponse{
+		MerchantRequestID: fmt.Sprintf("merchant-%d", m.calls),
+		CheckoutRequestID: fmt.Sprintf("checkout-%d", m.calls),
+		ResponseCode:      "0",
+	}, nil
+}
+
 func TestRoleResourcesPostgres(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
 	if databaseURL == "" {
@@ -105,12 +120,14 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	auth := handlers.NewAuth(service, "production")
 	resources := handlers.NewResources(pool, auth)
 	checkout := handlers.NewCheckout(pool, auth)
-	server := httptest.NewTLSServer(routes.New(pool, auth.Routes, resources.Routes, checkout.Routes))
+	fakeMPesa := &captureMPesa{}
+	mpesa := handlers.NewMPesa(pool, auth, fakeMPesa, "https://halisi.example", "174379", "test-passkey", "CustomerPayBillOnline")
+	server := httptest.NewTLSServer(routes.New(pool, auth.Routes, resources.Routes, checkout.Routes, mpesa.Routes))
 	defer server.Close()
 	client := server.Client()
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	cookies := map[string]*http.Cookie{}
-	request := func(actor, method, path string, body any, want int) (*http.Response, []byte) {
+	requestWithHeaders := func(actor, method, path string, body any, headers map[string]string, want int) (*http.Response, []byte) {
 		t.Helper()
 		var reader io.Reader
 		if body != nil {
@@ -126,6 +143,9 @@ func TestRoleResourcesPostgres(t *testing.T) {
 		}
 		r.Header.Set("Accept", "text/html")
 		r.Header.Set("X-Role", "admin")
+		for name, value := range headers {
+			r.Header.Set(name, value)
+		}
 		if body != nil {
 			r.Header.Set("Content-Type", "application/json")
 		}
@@ -148,6 +168,9 @@ func TestRoleResourcesPostgres(t *testing.T) {
 			t.Fatal("private credentials exposed")
 		}
 		return response, data
+	}
+	request := func(actor, method, path string, body any, want int) (*http.Response, []byte) {
+		return requestWithHeaders(actor, method, path, body, nil, want)
 	}
 	for name, role := range roles {
 		response, body := request("", "POST", "/api/auth/login", map[string]string{"email": name + "@example.invalid", "password": password}, 200)
@@ -294,6 +317,65 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	}
 	if err := pool.QueryRow(ctx, "SELECT reserved_quantity FROM vendor_inventory WHERE product_id=$1", p1).Scan(&reserved); err != nil || reserved != 2 {
 		t.Fatal("checkout did not reserve inventory")
+	}
+	paymentPath := fmt.Sprintf("/api/customer/orders/%d/payments/mpesa", checkedOut.Order.ID)
+	failurePaymentPath := fmt.Sprintf("/api/customer/orders/%d/payments/mpesa", failedOrder)
+	paymentBody := map[string]string{"phone_number": "+254 712 345 678"}
+	paymentHeaders := map[string]string{"Idempotency-Key": "checkout-payment-1"}
+	requestWithHeaders("c2", "POST", paymentPath, paymentBody, map[string]string{"Idempotency-Key": "foreign-payment"}, 404)
+	_, body = requestWithHeaders("c1", "POST", paymentPath, paymentBody, paymentHeaders, 202)
+	var initiated struct {
+		Payment struct {
+			ID     int64  `json:"id"`
+			Status string `json:"status"`
+		} `json:"payment"`
+	}
+	if err := json.Unmarshal(body, &initiated); err != nil || initiated.Payment.Status != "processing" || fakeMPesa.calls != 1 {
+		t.Fatal("M-Pesa payment was not started")
+	}
+	requestWithHeaders("c1", "POST", paymentPath, paymentBody, paymentHeaders, 202)
+	requestWithHeaders("c1", "POST", paymentPath, map[string]string{"phone_number": "0112345678"}, paymentHeaders, 409)
+	requestWithHeaders("c1", "POST", paymentPath, paymentBody, map[string]string{"Idempotency-Key": "alternate-key"}, 202)
+	requestWithHeaders("c1", "POST", failurePaymentPath, paymentBody, paymentHeaders, 409)
+	if fakeMPesa.calls != 1 {
+		t.Fatal("duplicate payment requests initiated another STK prompt")
+	}
+	callbackToken := strings.TrimPrefix(fakeMPesa.callbackURL, "https://halisi.example/api/mpesa/callback/")
+	callback := map[string]any{"Body": map[string]any{"stkCallback": map[string]any{
+		"MerchantRequestID": "merchant-1", "CheckoutRequestID": "checkout-1", "ResultCode": 0, "ResultDesc": "Success",
+		"CallbackMetadata": map[string]any{"Item": []map[string]any{
+			{"Name": "Amount", "Value": 2000}, {"Name": "MpesaReceiptNumber", "Value": "ABC123"}, {"Name": "PhoneNumber", "Value": 254712345678},
+		}},
+	}}}
+	request("", "POST", "/api/mpesa/callback/wrong-token", callback, 404)
+	wrongAmountCallback := map[string]any{"Body": map[string]any{"stkCallback": map[string]any{
+		"MerchantRequestID": "merchant-1", "CheckoutRequestID": "checkout-1", "ResultCode": 0, "ResultDesc": "Success",
+		"CallbackMetadata": map[string]any{"Item": []map[string]any{
+			{"Name": "Amount", "Value": 2001}, {"Name": "MpesaReceiptNumber", "Value": "BAD123"}, {"Name": "PhoneNumber", "Value": 254712345678},
+		}},
+	}}}
+	request("", "POST", "/api/mpesa/callback/"+callbackToken, wrongAmountCallback, 400)
+	request("", "POST", "/api/mpesa/callback/"+callbackToken, callback, 200)
+	request("", "POST", "/api/mpesa/callback/"+callbackToken, callback, 200)
+	var paymentStatus, orderStatus, receipt string
+	if err := pool.QueryRow(ctx, "SELECT status,reference FROM payments WHERE id=$1", initiated.Payment.ID).Scan(&paymentStatus, &receipt); err != nil || paymentStatus != "completed" || receipt != "ABC123" {
+		t.Fatal("successful M-Pesa callback did not complete the payment")
+	}
+	if err := pool.QueryRow(ctx, "SELECT status FROM orders WHERE id=$1", checkedOut.Order.ID).Scan(&orderStatus); err != nil || orderStatus != "confirmed" {
+		t.Fatal("successful M-Pesa callback did not confirm the order")
+	}
+	_, body = requestWithHeaders("c1", "POST", failurePaymentPath, paymentBody, map[string]string{"Idempotency-Key": "failed-payment-1"}, 202)
+	if err := json.Unmarshal(body, &initiated); err != nil {
+		t.Fatal(err)
+	}
+	failureToken := strings.TrimPrefix(fakeMPesa.callbackURL, "https://halisi.example/api/mpesa/callback/")
+	failureCallback := map[string]any{"Body": map[string]any{"stkCallback": map[string]any{
+		"MerchantRequestID": "merchant-2", "CheckoutRequestID": "checkout-2", "ResultCode": 1032, "ResultDesc": "Cancelled by user",
+	}}}
+	request("", "POST", "/api/mpesa/callback/"+failureToken, failureCallback, 200)
+	request("", "POST", "/api/mpesa/callback/"+failureToken, failureCallback, 200)
+	if err := pool.QueryRow(ctx, "SELECT status FROM payments WHERE id=$1", initiated.Payment.ID).Scan(&paymentStatus); err != nil || paymentStatus != "failed" {
+		t.Fatal("failed M-Pesa callback did not fail the payment")
 	}
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Privilege attempt", "email": "escalation@example.invalid", "phone": "+254712345678", "password": password, "role": "admin"}, 400)
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Public user", "email": "public@example.invalid", "phone": "+254712345678", "password": password}, 201)
