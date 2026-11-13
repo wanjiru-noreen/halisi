@@ -84,8 +84,8 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	for name, role := range roles {
 		users[name] = id("INSERT INTO users(name,email,password_hash,role) VALUES($1,$2,$3,$4) RETURNING id", name, name+"@example.invalid", string(hash), role)
 	}
-	v1 := id("INSERT INTO vendors(user_id,name,address) VALUES($1,'Shop one','Nairobi') RETURNING id", users["v1"])
-	v2 := id("INSERT INTO vendors(user_id,name,address) VALUES($1,'Shop two','Mombasa') RETURNING id", users["v2"])
+	v1 := id("INSERT INTO vendors(user_id,name,address,status,is_active) VALUES($1,'Shop one','Nairobi','approved',TRUE) RETURNING id", users["v1"])
+	v2 := id("INSERT INTO vendors(user_id,name,address,status,is_active) VALUES($1,'Shop two','Mombasa','approved',TRUE) RETURNING id", users["v2"])
 	p1 := id("INSERT INTO products(vendor_id,name,price) VALUES($1,'Cylinder one',1000) RETURNING id", v1)
 	p2 := id("INSERT INTO products(vendor_id,name,price) VALUES($1,'Cylinder two',2000) RETURNING id", v2)
 	a1 := id("INSERT INTO addresses(user_id,address_line,city) VALUES($1,'Private one','Nairobi') RETURNING id", users["c1"])
@@ -250,7 +250,7 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	request("r2", "GET", fmt.Sprintf("/api/rider/deliveries/%d", d2), nil, 403)
 	request("r1", "GET", fmt.Sprintf("/api/rider/deliveries/%d", d2), nil, 200)
 	request("v1", "PATCH", fmt.Sprintf("/api/admin/vendors/%d/status", v1), map[string]string{"status": "approved"}, 403)
-	request("admin", "PATCH", fmt.Sprintf("/api/admin/vendors/%d/status", v1), map[string]string{"status": "approved"}, 200)
+	request("admin", "PATCH", fmt.Sprintf("/api/admin/vendors/%d/status", v1), map[string]string{"status": "approved"}, 422)
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Privilege attempt", "email": "escalation@example.invalid", "phone": "+254712345678", "password": password, "role": "admin"}, 400)
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Public user", "email": "public@example.invalid", "phone": "+254712345678", "password": password}, 201)
 	var registeredRole string

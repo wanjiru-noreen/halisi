@@ -122,7 +122,7 @@ func (q *Queries) CreateOwnedProduct(ctx context.Context, arg CreateOwnedProduct
 }
 
 const createOwnedShop = `-- name: CreateOwnedShop :one
-INSERT INTO vendors (user_id,name,address) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO NOTHING RETURNING id, user_id, name, address, created_at, status, updated_at, address_id
+INSERT INTO vendors (user_id,name,address) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO NOTHING RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at
 `
 
 type CreateOwnedShopParams struct {
@@ -143,6 +143,15 @@ func (q *Queries) CreateOwnedShop(ctx context.Context, arg CreateOwnedShopParams
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
 	)
 	return i, err
 }
@@ -355,7 +364,7 @@ func (q *Queries) ManagementUsers(ctx context.Context) ([]ManagementUsersRow, er
 }
 
 const managementVendorStatus = `-- name: ManagementVendorStatus :one
-UPDATE vendors SET status=$2 WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id
+UPDATE vendors SET status=$2 WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at
 `
 
 type ManagementVendorStatusParams struct {
@@ -375,12 +384,21 @@ func (q *Queries) ManagementVendorStatus(ctx context.Context, arg ManagementVend
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
 	)
 	return i, err
 }
 
 const managementVendors = `-- name: ManagementVendors :many
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id FROM vendors ORDER BY id LIMIT 100
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at FROM vendors ORDER BY id LIMIT 100
 `
 
 func (q *Queries) ManagementVendors(ctx context.Context) ([]Vendor, error) {
@@ -401,6 +419,15 @@ func (q *Queries) ManagementVendors(ctx context.Context) ([]Vendor, error) {
 			&i.Status,
 			&i.UpdatedAt,
 			&i.AddressID,
+			&i.ContactEmail,
+			&i.ContactPhone,
+			&i.City,
+			&i.OperatingHours,
+			&i.IsActive,
+			&i.SubmittedAt,
+			&i.ReviewReason,
+			&i.ReviewedBy,
+			&i.ReviewedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -467,7 +494,7 @@ func (q *Queries) OwnedProducts(ctx context.Context, userID int64) ([]Product, e
 }
 
 const ownedShop = `-- name: OwnedShop :one
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id FROM vendors WHERE user_id=$1
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at FROM vendors WHERE user_id=$1
 `
 
 func (q *Queries) OwnedShop(ctx context.Context, userID int64) (Vendor, error) {
@@ -482,6 +509,15 @@ func (q *Queries) OwnedShop(ctx context.Context, userID int64) (Vendor, error) {
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
 	)
 	return i, err
 }
@@ -554,7 +590,7 @@ func (q *Queries) UpdateOwnedProduct(ctx context.Context, arg UpdateOwnedProduct
 }
 
 const updateOwnedShop = `-- name: UpdateOwnedShop :one
-UPDATE vendors SET name=$2,address=$3,address_id=NULL WHERE user_id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id
+UPDATE vendors SET name=$2,address=$3,address_id=NULL,status='pending',is_active=FALSE,submitted_at=NULL WHERE user_id=$1 AND status<>'suspended' RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at
 `
 
 type UpdateOwnedShopParams struct {
@@ -575,6 +611,15 @@ func (q *Queries) UpdateOwnedShop(ctx context.Context, arg UpdateOwnedShopParams
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
 	)
 	return i, err
 }

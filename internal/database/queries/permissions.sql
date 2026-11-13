@@ -20,7 +20,7 @@ SELECT * FROM vendors WHERE user_id=$1;
 INSERT INTO vendors (user_id,name,address) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO NOTHING RETURNING *;
 
 -- name: UpdateOwnedShop :one
-UPDATE vendors SET name=$2,address=$3,address_id=NULL WHERE user_id=$1 RETURNING *;
+UPDATE vendors SET name=$2,address=$3,address_id=NULL,status='pending',is_active=FALSE,submitted_at=NULL WHERE user_id=$1 AND status<>'suspended' RETURNING *;
 
 -- name: OwnedProducts :many
 SELECT p.* FROM products p JOIN vendors v ON v.id=p.vendor_id WHERE v.user_id=$1 ORDER BY p.id DESC LIMIT 100;

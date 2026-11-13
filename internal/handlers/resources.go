@@ -18,6 +18,7 @@ import (
 	dbsqlc "github.com/wanjiru-noreen/halisi/internal/database/sqlc"
 	"github.com/wanjiru-noreen/halisi/internal/middleware"
 	"github.com/wanjiru-noreen/halisi/internal/models"
+	"github.com/wanjiru-noreen/halisi/internal/services"
 	webassets "github.com/wanjiru-noreen/halisi/web"
 )
 
@@ -26,12 +27,17 @@ var errResourceConflict = errors.New("resource is in use or already exists")
 var pricePattern = regexp.MustCompile(`^(0|[1-9][0-9]{0,9})(\.[0-9]{1,2})?$`)
 
 type Resources struct {
-	auth    *Auth
-	queries *dbsqlc.Queries
+	auth       *Auth
+	queries    *dbsqlc.Queries
+	onboarding *services.VendorOnboarding
 }
 
-func NewResources(pool *pgxpool.Pool, auth *Auth) *Resources {
-	return &Resources{auth: auth, queries: dbsqlc.New(pool)}
+func NewResources(pool *pgxpool.Pool, auth *Auth, onboarding ...*services.VendorOnboarding) *Resources {
+	h := &Resources{auth: auth, queries: dbsqlc.New(pool)}
+	if len(onboarding) > 0 {
+		h.onboarding = onboarding[0]
+	}
+	return h
 }
 
 // Each endpoint receives the session principal, never a caller-supplied owner ID.
@@ -315,13 +321,14 @@ func (h *Resources) updateDelivery(w http.ResponseWriter, r *http.Request, owner
 	v, err := h.queries.UpdateAssignedDelivery(r.Context(), dbsqlc.UpdateAssignedDeliveryParams{ID: id, RiderID: pgtype.Int8{Int64: owner, Valid: true}, Status: input.Status})
 	return map[string]any{"delivery": v}, err
 }
-func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, _ int64) (any, error) {
+func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, adminID int64) (any, error) {
 	id, err := resourceID(r)
 	if err != nil {
 		return nil, err
 	}
 	var input struct {
 		Status string `json:"status"`
+		Reason string `json:"reason"`
 	}
 	if !decodeJSON(w, r, &input) {
 		return nil, nil
@@ -331,6 +338,15 @@ func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, _ int64
 	default:
 		return nil, &resourceValidation{"Unsupported vendor status."}
 	}
-	v, err := h.queries.ManagementVendorStatus(r.Context(), dbsqlc.ManagementVendorStatusParams{ID: id, Status: input.Status})
+	if len(strings.TrimSpace(input.Reason)) < 3 || h.onboarding == nil {
+		return nil, &resourceValidation{"Use the verification workflow with a review reason and complete application."}
+	}
+	v, err := h.onboarding.Review(r.Context(), adminID, id, input.Status, input.Reason)
+	if err != nil {
+		if errors.Is(err, services.ErrVendorForbidden) {
+			return nil, errResourceForbidden
+		}
+		return nil, &resourceValidation{"Application is incomplete or cannot be reviewed in its current state."}
+	}
 	return map[string]any{"vendor": v}, err
 }

@@ -16,8 +16,9 @@ All roles can manage their own existing authentication/session/account flows.
 Administrator access is explicit through management routes; it does not bypass
 another role's ownership-scoped endpoints or impersonate a vendor/rider/customer.
 Public registration and first-time Google registration always create customers.
-Privileged roles must be provisioned by a trusted database operator or a future
-audited administrative provisioning workflow. No public role-change API exists.
+Rider/administrator roles require a trusted database operator or a future audited
+provisioning workflow. Verified customers can become vendors through the
+[business onboarding workflow](VENDOR_ONBOARDING.md). No arbitrary role-change API exists.
 Registration rejects a `role` field rather than silently accepting it. Shop and
 product updates similarly reject owner IDs, role fields and approval status.
 

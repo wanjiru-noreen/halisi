@@ -39,6 +39,9 @@ func seedVersionOne(t *testing.T, ctx context.Context, db *pgxpool.Pool) schemaF
 
 func testCoreSchema(t *testing.T, ctx context.Context, db *pgxpool.Pool, f schemaFixture) {
 	t.Helper()
+	if _, err := db.Exec(ctx, "UPDATE vendors SET status='approved',is_active=TRUE WHERE id=$1", f.vendor); err != nil {
+		t.Fatal(err)
+	}
 	var quantity int
 	if err := db.QueryRow(ctx, "SELECT quantity FROM vendor_inventory WHERE product_id=$1", f.product).Scan(&quantity); err != nil || quantity != 7 {
 		t.Fatal("stock was not migrated to inventory")

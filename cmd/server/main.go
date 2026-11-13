@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/wanjiru-noreen/halisi/internal/handlers"
 	"github.com/wanjiru-noreen/halisi/internal/routes"
 	"github.com/wanjiru-noreen/halisi/internal/services"
+	"github.com/wanjiru-noreen/halisi/internal/storage"
 )
 
 func main() {
@@ -60,11 +62,26 @@ func run(ctx context.Context) error {
 		return errors.New("could not initialize authentication")
 	}
 	auth := handlers.NewAuth(authService, cfg.AppEnv)
-	resources := handlers.NewResources(pool, auth)
+	documentDirectory := os.Getenv("VENDOR_DOCUMENT_DIR")
+	if cfg.AppEnv == "production" && (documentDirectory == "" || !filepath.IsAbs(documentDirectory)) {
+		return errors.New("VENDOR_DOCUMENT_DIR must be an absolute persistent-volume path in production")
+	}
+	if documentDirectory == "" {
+		documentDirectory = ".data/vendor-documents"
+	}
+	files, err := storage.OpenDocuments(documentDirectory)
+	if err != nil {
+		return errors.New("could not open private vendor document storage")
+	}
+	defer files.Close()
+	onboardingService := &services.VendorOnboarding{Pool: pool, Files: files}
+	onboarding := handlers.NewVendorOnboarding(auth, onboardingService)
+	resources := handlers.NewResources(pool, auth, onboardingService)
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           routes.New(pool, auth.Routes, resources.Routes),
+		Handler:           routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes),
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}

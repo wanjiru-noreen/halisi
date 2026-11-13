@@ -68,6 +68,7 @@ The same guide documents [sqlc generation](docs/DATABASE.md#generate-go-queries-
 See [CI and branch protection](docs/CI.md) for automated pull request checks.
 See [authentication](docs/AUTH.md) for registration, login, sessions and frontend builds.
 See [role permissions](docs/PERMISSIONS.md) for dashboards and ownership-scoped APIs.
+See [vendor onboarding](docs/VENDOR_ONBOARDING.md) for verification and persistent documents.
 
 ```sh
 go build ./...
