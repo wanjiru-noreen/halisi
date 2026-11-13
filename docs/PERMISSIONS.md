@@ -13,6 +13,10 @@ permissions. No schema migration is required for this change.
 | Administrator (`admin`) | `administration` | `/admin/dashboard` | User/vendor management and vendor approval status |
 
 All roles can manage their own existing authentication/session/account flows.
+Rider delivery access additionally requires an approved rider profile. An
+application alone never grants delivery access or changes roles; see
+[Task 6.1](RIDER_REGISTRATION.md). Any authenticated role may register its own
+pending application, but no registration endpoint can approve it.
 Administrator access is explicit through management routes; it does not bypass
 another role's ownership-scoped endpoints or impersonate a vendor/rider/customer.
 Public registration and first-time Google registration always create customers.

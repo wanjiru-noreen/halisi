@@ -50,8 +50,8 @@ The up and down SQL each run in a transaction. Down removes tables in reverse
 dependency order without CASCADE. The `schema_migrations` table records the
 current version and dirty flag; it remains after rollback. Advisory locking
 prevents concurrent migration execution. Do not edit a migration after it has
-been applied: add a new numbered pair, e.g. `000006_description.up.sql` and
-`000006_description.down.sql`.
+been applied: add a new numbered pair, e.g. `000007_description.up.sql` and
+`000007_description.down.sql`.
 
 On failure the command exits nonzero without printing driver errors that could
 contain credentials. Check `migrate-version` and database logs. A dirty version
@@ -128,6 +128,9 @@ return `pgx.ErrNoRows`. Nullable columns use pgx types such as `pgtype.Text`.
 
 ## Core schema (version 000002)
 
+Migration `000006` adds owner-unique pending rider profiles and timestamps. See
+[rider registration](RIDER_REGISTRATION.md) for the current registration boundary.
+
 Migration `000004` extends vendors/documents and adds audited reviews and selling
 guards. See [vendor onboarding](VENDOR_ONBOARDING.md) for the current workflow,
 fields, storage requirements and legacy-data upgrade behavior.
@@ -153,9 +156,9 @@ Both timestamps default to the insertion time. A database trigger sets
 | `deliveries` | One delivery per order; optional rider user FK; assigned/picked-up/delivered states require a rider; delivered state requires delivery timestamp at or after creation, other states require no delivery timestamp |
 | `reviews` | One review per order; composite FK requires the order's actual customer and vendor; rating 1–5; optional comment represented by empty text |
 
-## M-Pesa payment metadata (version 000006)
+## M-Pesa payment metadata (version 000007)
 
-Version 6 records the provider, request idempotency key, normalized customer
+Version 7 records the provider, request idempotency key, normalized customer
 phone, Daraja request IDs, result details, and a hash of a unique callback token
 for each M-Pesa attempt. A partial unique index prevents overlapping active
 M-Pesa attempts for one order; completed or failed attempts remain available
