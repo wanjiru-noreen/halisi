@@ -418,7 +418,7 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO order_commissions(order_id,payment_id,vendor_id,gross_amount,commission_rate_bps,commission_amount,vendor_amount,currency) VALUES($1,$2,$3,100,10000,100,0,'KES')`, zeroShareOrder, zeroSharePayment, v1); err != nil {
 		t.Fatal(err)
 	}
-	zeroShareDelivery := id("INSERT INTO deliveries(order_id) VALUES($1) RETURNING id", zeroShareOrder)
+	zeroShareDelivery := id("SELECT id FROM deliveries WHERE order_id=$1", zeroShareOrder)
 	if _, err := pool.Exec(ctx, "UPDATE deliveries SET status='assigned',rider_id=$2 WHERE id=$1", zeroShareDelivery, users["r1"]); err != nil {
 		t.Fatal(err)
 	}
