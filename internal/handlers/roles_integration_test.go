@@ -370,6 +370,8 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if fakeMPesa.calls != 1 {
 		t.Fatal("duplicate payment requests initiated another STK prompt")
 	}
+	ratePath := fmt.Sprintf("/api/admin/vendors/%d/commission-rate", v1)
+	requestWithHeaders("admin", "PATCH", ratePath, map[string]int{"rate_bps": 1250}, nil, 200)
 	callbackToken := strings.TrimPrefix(fakeMPesa.callbackURL, "https://halisi.example/api/mpesa/callback/")
 	callback := map[string]any{"Body": map[string]any{"stkCallback": map[string]any{
 		"MerchantRequestID": "merchant-1", "CheckoutRequestID": "checkout-1", "ResultCode": 0, "ResultDesc": "Success",
@@ -393,6 +395,65 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	}
 	if err := pool.QueryRow(ctx, "SELECT status FROM orders WHERE id=$1", checkedOut.Order.ID).Scan(&orderStatus); err != nil || orderStatus != "confirmed" {
 		t.Fatal("successful M-Pesa callback did not confirm the order")
+	}
+	var gross, fee, vendorShare string
+	var commissionRate int32
+	if err := pool.QueryRow(ctx, "SELECT gross_amount::text,commission_rate_bps,commission_amount::text,vendor_amount::text FROM order_commissions WHERE order_id=$1", checkedOut.Order.ID).Scan(&gross, &commissionRate, &fee, &vendorShare); err != nil || gross != "2000.00" || commissionRate != 1000 || fee != "200.00" || vendorShare != "1800.00" {
+		t.Fatal("successful payment did not create an auditable commission entry")
+	}
+	requestWithHeaders("v1", "PATCH", ratePath, map[string]int{"rate_bps": 1250}, nil, 403)
+	requestWithHeaders("admin", "PATCH", ratePath, map[string]int{"rate_bps": 10001}, nil, 422)
+	requestWithHeaders("admin", "PATCH", ratePath, map[string]int{"rate_bps": 1500}, nil, 200)
+	if err := pool.QueryRow(ctx, "SELECT commission_rate_bps FROM order_commissions WHERE order_id=$1", checkedOut.Order.ID).Scan(&commissionRate); err != nil || commissionRate != 1000 {
+		t.Fatal("commission rate change rewrote the historical commission snapshot")
+	}
+	deliveredID := id("UPDATE deliveries SET status='assigned',rider_id=$2 WHERE order_id=$1 RETURNING id", checkedOut.Order.ID, users["r1"])
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", deliveredID), map[string]string{"status": "picked_up"}, 200)
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", deliveredID), map[string]string{"status": "delivered"}, 200)
+	if err := pool.QueryRow(ctx, "SELECT status FROM deliveries WHERE id=$1", deliveredID).Scan(&orderStatus); err != nil || orderStatus != "delivered" {
+		t.Fatal("test delivery did not reach its delivered state", err)
+	}
+	zeroShareOrder := id("INSERT INTO orders(customer_id,vendor_id,address_id,status,total,delivery_address) VALUES($1,$2,$3,'confirmed',100,'Zero share') RETURNING id", users["c1"], v1, a1)
+	zeroSharePayment := id("INSERT INTO payments(order_id,amount,status) VALUES($1,100,'completed') RETURNING id", zeroShareOrder)
+	if _, err := pool.Exec(ctx, `INSERT INTO order_commissions(order_id,payment_id,vendor_id,gross_amount,commission_rate_bps,commission_amount,vendor_amount,currency) VALUES($1,$2,$3,100,10000,100,0,'KES')`, zeroShareOrder, zeroSharePayment, v1); err != nil {
+		t.Fatal(err)
+	}
+	zeroShareDelivery := id("SELECT id FROM deliveries WHERE order_id=$1", zeroShareOrder)
+	if _, err := pool.Exec(ctx, "UPDATE deliveries SET status='assigned',rider_id=$2 WHERE id=$1", zeroShareDelivery, users["r1"]); err != nil {
+		t.Fatal(err)
+	}
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", zeroShareDelivery), map[string]string{"status": "picked_up"}, 200)
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", zeroShareDelivery), map[string]string{"status": "delivered"}, 200)
+	settlementPath := fmt.Sprintf("/api/admin/vendors/%d/settlements", v1)
+	requestWithHeaders("c1", "POST", settlementPath, nil, nil, 403)
+	_, body = requestWithHeaders("admin", "POST", settlementPath, nil, nil, 200)
+	var createdSettlement struct {
+		Settlement struct {
+			ID     int64  `json:"id"`
+			Amount string `json:"amount"`
+			Status string `json:"status"`
+		} `json:"settlement"`
+	}
+	if err := json.Unmarshal(body, &createdSettlement); err != nil || createdSettlement.Settlement.Amount != "1800.00" || createdSettlement.Settlement.Status != "pending" {
+		t.Fatal("settlement did not capture the eligible vendor balance")
+	}
+	requestWithHeaders("admin", "POST", settlementPath, nil, nil, 409)
+	settlementUpdatePath := fmt.Sprintf("/api/admin/settlements/%d", createdSettlement.Settlement.ID)
+	requestWithHeaders("admin", "PATCH", settlementUpdatePath, map[string]string{"status": "failed", "failure_reason": "Bank transfer returned an error"}, nil, 200)
+	_, body = requestWithHeaders("admin", "POST", settlementPath, nil, nil, 200)
+	if err := json.Unmarshal(body, &createdSettlement); err != nil || createdSettlement.Settlement.Amount != "1800.00" {
+		t.Fatal("failed settlement did not release commissions for retry")
+	}
+	settlementUpdatePath = fmt.Sprintf("/api/admin/settlements/%d", createdSettlement.Settlement.ID)
+	requestWithHeaders("admin", "PATCH", settlementUpdatePath, map[string]string{"status": "paid", "payout_reference": "BATCH-2026-001"}, nil, 200)
+	requestWithHeaders("admin", "PATCH", settlementUpdatePath, map[string]string{"status": "paid", "payout_reference": "BATCH-2026-001"}, nil, 409)
+	_, body = requestWithHeaders("admin", "GET", "/api/admin/settlements", nil, nil, 200)
+	if !bytes.Contains(body, []byte(`"payout_reference":"BATCH-2026-001"`)) || !bytes.Contains(body, []byte(`"failure_reason":"Bank transfer returned an error"`)) || bytes.Count(body, []byte(`"commission_id"`)) < 2 {
+		t.Fatal("administrator settlement history omitted payout, failed-attempt or item audit details")
+	}
+	_, body = requestWithHeaders("v1", "GET", "/api/vendor/commissions", nil, nil, 200)
+	if !bytes.Contains(body, []byte(`"settlement_status":"paid"`)) || !bytes.Contains(body, []byte(`"settlement_status":"not_payable"`)) {
+		t.Fatal("vendor commission ledger did not show paid and zero-share states")
 	}
 	_, body = request("c1", "GET", fmt.Sprintf("/api/customer/payments/%d", initiated.Payment.ID), nil, 200)
 	if bytes.Contains(body, []byte("callback_token_hash")) || bytes.Contains(body, []byte("request_key")) || bytes.Contains(body, []byte("phone_number")) {

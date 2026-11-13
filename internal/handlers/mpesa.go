@@ -168,8 +168,8 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 		_, err = tx.Exec(ctx, `UPDATE payments SET request_key=$2,phone_number=$3,callback_token_hash=$4 WHERE id=$1 AND status='pending'`, paymentID, requestKey, phone, hex.EncodeToString(tokenHash[:]))
 	} else {
 		err = tx.QueryRow(ctx, `
-			INSERT INTO payments(order_id,amount,currency,status,provider,request_key,phone_number,callback_token_hash)
-			SELECT id,total,currency,'pending','mpesa',$3,$4,$5 FROM orders WHERE id=$1 AND customer_id=$2
+			INSERT INTO payments(order_id,amount,currency,status,provider,request_key,phone_number,callback_token_hash,commission_rate_bps)
+			SELECT o.id,o.total,o.currency,'pending','mpesa',$3,$4,$5,v.commission_rate_bps FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=$1 AND o.customer_id=$2
 			RETURNING id`, orderID, user.ID, requestKey, phone, hex.EncodeToString(tokenHash[:])).Scan(&paymentID)
 	}
 	if err != nil {
@@ -365,6 +365,23 @@ func (h *MPesa) callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if newStatus == "completed" {
+		var vendorID int64
+		var currency string
+		var rateBPS int32
+		if err := tx.QueryRow(ctx, `SELECT o.vendor_id,o.currency,COALESCE(p.commission_rate_bps,v.commission_rate_bps) FROM orders o JOIN vendors v ON v.id=o.vendor_id JOIN payments p ON p.order_id=o.id WHERE o.id=$1 AND p.id=$2 FOR SHARE OF v`, orderID, paymentID).Scan(&vendorID, &currency, &rateBPS); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Callback could not be processed."})
+			return
+		}
+		grossCents, _ := decimalCents(amountText)
+		commissionCents, vendorCents, err := services.CalculateCommission(grossCents, rateBPS)
+		if err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Callback could not be processed."})
+			return
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO order_commissions(order_id,payment_id,vendor_id,gross_amount,commission_rate_bps,commission_amount,vendor_amount,currency) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`, orderID, paymentID, vendorID, centsDecimal(grossCents), rateBPS, centsDecimal(commissionCents), centsDecimal(vendorCents), currency); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Callback could not be processed."})
+			return
+		}
 		if _, err := tx.Exec(ctx, `UPDATE orders SET status='confirmed' WHERE id=$1 AND status='pending'`, orderID); err != nil {
 			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Callback could not be processed."})
 			return

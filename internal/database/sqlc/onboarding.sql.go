@@ -12,7 +12,7 @@ import (
 )
 
 const applicationByOwner = `-- name: ApplicationByOwner :one
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version FROM vendors WHERE user_id=$1
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version, commission_rate_bps FROM vendors WHERE user_id=$1
 `
 
 func (q *Queries) ApplicationByOwner(ctx context.Context, userID int64) (Vendor, error) {
@@ -37,6 +37,7 @@ func (q *Queries) ApplicationByOwner(ctx context.Context, userID int64) (Vendor,
 		&i.ReviewedBy,
 		&i.ReviewedAt,
 		&i.ReviewVersion,
+		&i.CommissionRateBps,
 	)
 	return i, err
 }
@@ -90,7 +91,7 @@ func (q *Queries) ApplicationDocuments(ctx context.Context, vendorID int64) ([]A
 }
 
 const listVendorApplications = `-- name: ListVendorApplications :many
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version FROM vendors WHERE id>$1 ORDER BY id LIMIT 51
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version, commission_rate_bps FROM vendors WHERE id>$1 ORDER BY id LIMIT 51
 `
 
 func (q *Queries) ListVendorApplications(ctx context.Context, afterID int64) ([]Vendor, error) {
@@ -121,6 +122,7 @@ func (q *Queries) ListVendorApplications(ctx context.Context, afterID int64) ([]
 			&i.ReviewedBy,
 			&i.ReviewedAt,
 			&i.ReviewVersion,
+			&i.CommissionRateBps,
 		); err != nil {
 			return nil, err
 		}
@@ -133,7 +135,7 @@ func (q *Queries) ListVendorApplications(ctx context.Context, afterID int64) ([]
 }
 
 const lockVendor = `-- name: LockVendor :one
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version FROM vendors WHERE id=$1 FOR UPDATE
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version, commission_rate_bps FROM vendors WHERE id=$1 FOR UPDATE
 `
 
 func (q *Queries) LockVendor(ctx context.Context, id int64) (Vendor, error) {
@@ -158,6 +160,7 @@ func (q *Queries) LockVendor(ctx context.Context, id int64) (Vendor, error) {
 		&i.ReviewedBy,
 		&i.ReviewedAt,
 		&i.ReviewVersion,
+		&i.CommissionRateBps,
 	)
 	return i, err
 }
@@ -195,7 +198,7 @@ func (q *Queries) ResetApplicationReview(ctx context.Context, id int64) error {
 }
 
 const reviewApplication = `-- name: ReviewApplication :one
-UPDATE vendors SET status=$2,is_active=($2='approved'),review_reason=$3,reviewed_by=$4,reviewed_at=NOW() WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
+UPDATE vendors SET status=$2,is_active=($2='approved'),review_reason=$3,reviewed_by=$4,reviewed_at=NOW() WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version, commission_rate_bps
 `
 
 type ReviewApplicationParams struct {
@@ -232,6 +235,7 @@ func (q *Queries) ReviewApplication(ctx context.Context, arg ReviewApplicationPa
 		&i.ReviewedBy,
 		&i.ReviewedAt,
 		&i.ReviewVersion,
+		&i.CommissionRateBps,
 	)
 	return i, err
 }
@@ -254,7 +258,7 @@ const saveApplication = `-- name: SaveApplication :one
 INSERT INTO vendors(user_id,name,address,contact_email,contact_phone,city,operating_hours)
 VALUES($1,$2,$3,$4,$5,$6,$7)
 ON CONFLICT(user_id) DO UPDATE SET name=EXCLUDED.name,address=EXCLUDED.address,address_id=NULL,contact_email=EXCLUDED.contact_email,contact_phone=EXCLUDED.contact_phone,city=EXCLUDED.city,operating_hours=EXCLUDED.operating_hours,status='pending',is_active=FALSE,submitted_at=NULL,review_reason='',reviewed_by=NULL,reviewed_at=NULL
-WHERE vendors.status<>'suspended' RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
+WHERE vendors.status<>'suspended' RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version, commission_rate_bps
 `
 
 type SaveApplicationParams struct {
@@ -297,6 +301,7 @@ func (q *Queries) SaveApplication(ctx context.Context, arg SaveApplicationParams
 		&i.ReviewedBy,
 		&i.ReviewedAt,
 		&i.ReviewVersion,
+		&i.CommissionRateBps,
 	)
 	return i, err
 }
@@ -412,7 +417,7 @@ func (q *Queries) StoredVendorDocument(ctx context.Context, id int64) (VendorDoc
 }
 
 const submitApplication = `-- name: SubmitApplication :one
-UPDATE vendors SET status='pending',submitted_at=NOW(),is_active=FALSE,review_reason='',reviewed_by=NULL,reviewed_at=NULL WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
+UPDATE vendors SET status='pending',submitted_at=NOW(),is_active=FALSE,review_reason='',reviewed_by=NULL,reviewed_at=NULL WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version, commission_rate_bps
 `
 
 func (q *Queries) SubmitApplication(ctx context.Context, id int64) (Vendor, error) {
@@ -437,6 +442,7 @@ func (q *Queries) SubmitApplication(ctx context.Context, id int64) (Vendor, erro
 		&i.ReviewedBy,
 		&i.ReviewedAt,
 		&i.ReviewVersion,
+		&i.CommissionRateBps,
 	)
 	return i, err
 }
