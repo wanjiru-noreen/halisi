@@ -138,6 +138,7 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		v, e := h.queries.ManagementUsers(r.Context())
 		return map[string]any{"users": v}, e
 	})
+	mount("GET /api/admin/dashboard", models.Administration, h.adminDashboard)
 	mount("GET /api/admin/vendors", models.Administration, func(w http.ResponseWriter, r *http.Request, _ int64) (any, error) {
 		v, e := h.queries.ManagementVendors(r.Context())
 		return map[string]any{"vendors": v}, e
@@ -158,6 +159,9 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		page := webassets.Page("dashboard")
 		if role == models.Customer {
 			page = webassets.Page("customer/dashboard")
+		}
+		if role == models.Administrator {
+			page = webassets.Page("admin/dashboard")
 		}
 		mux.Handle("GET "+path, h.protect(permission, page))
 	}

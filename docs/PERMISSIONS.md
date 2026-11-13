@@ -65,6 +65,7 @@ Collections are limited to 100 records except the existing user-address query.
 | `/api/rider/deliveries`, `/api/rider/deliveries/{id}` | GET | Session rider's assignments; unassigned deliveries are excluded |
 | `/api/rider/deliveries/{id}` | PATCH | Assigned rider's permitted status transitions |
 | `/api/admin/users` | GET | Management projection excluding password/session data |
+| `/api/admin/dashboard` | GET | Administrator-only aggregates and recent activity; see [dashboard definitions](ADMIN_DASHBOARD.md) |
 | `/api/admin/vendors` | GET | Vendor management listing |
 | `/api/admin/vendors/{id}/status` | PATCH | Administrator-only vendor approval/status changes |
 
