@@ -30,6 +30,35 @@ type Delivery struct {
 	UpdatedAt   pgtype.Timestamptz
 }
 
+type EmailVerificationToken struct {
+	ID        int64
+	UserID    int64
+	Email     string
+	TokenHash string
+	ExpiresAt pgtype.Timestamptz
+	UsedAt    pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
+type GoogleAccount struct {
+	Subject   string
+	UserID    int64
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
+}
+
+type OauthState struct {
+	StateHash       string
+	BrowserHash     string
+	NonceHash       string
+	CodeVerifier    string
+	LinkUserID      pgtype.Int8
+	LinkSessionHash pgtype.Text
+	ExpiresAt       pgtype.Timestamptz
+	CreatedAt       pgtype.Timestamptz
+}
+
 type Order struct {
 	ID              int64
 	CustomerID      int64
@@ -96,14 +125,16 @@ type Session struct {
 }
 
 type User struct {
-	ID           int64
-	Name         string
-	Email        string
-	Phone        pgtype.Text
-	PasswordHash string
-	Role         string
-	CreatedAt    pgtype.Timestamptz
-	UpdatedAt    pgtype.Timestamptz
+	ID                   int64
+	Name                 string
+	Email                string
+	Phone                pgtype.Text
+	PasswordHash         string
+	Role                 string
+	CreatedAt            pgtype.Timestamptz
+	UpdatedAt            pgtype.Timestamptz
+	EmailVerifiedAt      pgtype.Timestamptz
+	PasswordLoginEnabled bool
 }
 
 type Vendor struct {

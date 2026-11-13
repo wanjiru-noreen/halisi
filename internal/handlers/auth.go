@@ -39,6 +39,7 @@ func NewAuth(service AuthService, appEnv string) *Auth {
 }
 
 func (a *Auth) Routes(mux *http.ServeMux) {
+	a.identityRoutes(mux)
 	mux.HandleFunc("POST /api/auth/register", a.Register)
 	mux.HandleFunc("POST /api/auth/login", a.Login)
 	mux.HandleFunc("POST /api/auth/logout", a.Logout)
@@ -94,6 +95,11 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		a.writeError(w, err)
 		return
 	}
+	a.setSession(w, session)
+	writeJSON(w, http.StatusOK, map[string]any{"user": session.User})
+}
+
+func (a *Auth) setSession(w http.ResponseWriter, session services.LoginSession) {
 	cookie := a.cookie(session.Token)
 	cookie.Expires = session.ExpiresAt.UTC()
 	cookie.MaxAge = int(time.Until(session.ExpiresAt).Seconds())
@@ -101,7 +107,6 @@ func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
 		cookie.MaxAge = 1
 	}
 	http.SetCookie(w, cookie)
-	writeJSON(w, http.StatusOK, map[string]any{"user": session.User})
 }
 
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
@@ -145,6 +150,16 @@ func (a *Auth) writeError(w http.ResponseWriter, err error) {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
 	case errors.Is(err, services.ErrInvalidCredentials):
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "Invalid email or password."})
+	case errors.Is(err, services.ErrInvalidVerification):
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+	case errors.Is(err, services.ErrRecentLogin):
+		writeJSON(w, http.StatusForbidden, map[string]string{"error": err.Error()})
+	case errors.Is(err, services.ErrLinkRequired):
+		writeJSON(w, http.StatusConflict, map[string]string{"error": err.Error()})
+	case errors.Is(err, services.ErrGoogle):
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": err.Error()})
+	case errors.Is(err, services.ErrEmailDelivery):
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
 	default:
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Authentication is temporarily unavailable. Please try again."})
 	}

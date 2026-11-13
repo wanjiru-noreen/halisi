@@ -13,6 +13,7 @@ import (
 
 	"github.com/wanjiru-noreen/halisi/internal/config"
 	"github.com/wanjiru-noreen/halisi/internal/database"
+	"github.com/wanjiru-noreen/halisi/internal/email"
 	"github.com/wanjiru-noreen/halisi/internal/handlers"
 	"github.com/wanjiru-noreen/halisi/internal/routes"
 	"github.com/wanjiru-noreen/halisi/internal/services"
@@ -37,7 +38,24 @@ func run(ctx context.Context) error {
 		return err
 	}
 	defer pool.Close()
-	authService, err := services.NewAuth(pool)
+	identity, err := config.LoadIdentity(cfg.AppEnv)
+	if err != nil {
+		return err
+	}
+	var options []services.AuthOption
+	if identity.SMTPHost != "" {
+		options = append(options, services.WithVerification(&email.SMTP{Config: identity}, identity.PublicBaseURL))
+	}
+	if identity.GoogleClientID != "" {
+		providerCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		provider, err := services.NewGoogleOIDC(providerCtx, identity.GoogleClientID, identity.GoogleClientSecret, identity.PublicBaseURL)
+		cancel()
+		if err != nil {
+			return err
+		}
+		options = append(options, services.WithGoogle(provider))
+	}
+	authService, err := services.NewAuth(pool, options...)
 	if err != nil {
 		return errors.New("could not initialize authentication")
 	}
@@ -46,7 +64,7 @@ func run(ctx context.Context) error {
 		Addr:              ":" + cfg.Port,
 		Handler:           routes.New(pool, auth.Routes),
 		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      10 * time.Second,
+		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 	serverErrors := make(chan error, 1)

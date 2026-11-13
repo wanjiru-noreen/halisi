@@ -38,11 +38,12 @@ func (e *ValidationError) Error() string { return e.Message }
 
 // User is the only user representation returned to HTTP clients.
 type User struct {
-	ID    int64  `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Phone string `json:"phone"`
-	Role  string `json:"role"`
+	ID            int64  `json:"id"`
+	Name          string `json:"name"`
+	Email         string `json:"email"`
+	Phone         string `json:"phone"`
+	Role          string `json:"role"`
+	EmailVerified bool   `json:"email_verified"`
 }
 
 type RegisterInput struct {
@@ -78,9 +79,12 @@ type Auth struct {
 	pool      *pgxpool.Pool
 	queries   *dbsqlc.Queries
 	dummyHash []byte
+	mailer    VerificationMailer
+	baseURL   string
+	google    GoogleProvider
 }
 
-func NewAuth(pool *pgxpool.Pool) (*Auth, error) {
+func NewAuth(pool *pgxpool.Pool, options ...AuthOption) (*Auth, error) {
 	dummy := make([]byte, 32)
 	if _, err := rand.Read(dummy); err != nil {
 		return nil, err
@@ -89,7 +93,11 @@ func NewAuth(pool *pgxpool.Pool) (*Auth, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Auth{pool: pool, queries: dbsqlc.New(pool), dummyHash: hash}, nil
+	a := &Auth{pool: pool, queries: dbsqlc.New(pool), dummyHash: hash}
+	for _, option := range options {
+		option(a)
+	}
+	return a, nil
 }
 
 func (a *Auth) Register(ctx context.Context, input RegisterInput) (User, error) {
@@ -101,12 +109,27 @@ func (a *Auth) Register(ctx context.Context, input RegisterInput) (User, error) 
 	if err != nil {
 		return User{}, err
 	}
-	u, err := a.queries.CreateUser(ctx, dbsqlc.CreateUserParams{Name: input.Name, Email: input.Email, Phone: pgtype.Text{String: input.Phone, Valid: true}, PasswordHash: string(hash), Role: "customer"})
+	if a.mailer == nil {
+		return User{}, ErrEmailDelivery
+	}
+	tx, err := a.pool.Begin(ctx)
+	if err != nil {
+		return User{}, err
+	}
+	defer tx.Rollback(ctx)
+	q := a.queries.WithTx(tx)
+	u, err := q.CreateUser(ctx, dbsqlc.CreateUserParams{Name: input.Name, Email: input.Email, Phone: pgtype.Text{String: input.Phone, Valid: true}, PasswordHash: string(hash), Role: "customer"})
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return User{}, ErrEmailExists
 		}
+		return User{}, err
+	}
+	if err := a.sendVerification(ctx, q, u); err != nil {
+		return User{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
 		return User{}, err
 	}
 	return publicUser(u), nil
@@ -127,18 +150,21 @@ func (a *Auth) Login(ctx context.Context, email, password, oldToken string) (Log
 		return LoginSession{}, err
 	}
 	hash := a.dummyHash
-	if err == nil {
+	if err == nil && u.PasswordLoginEnabled {
 		hash = []byte(u.PasswordHash)
 	}
 	match := bcrypt.CompareHashAndPassword(hash, []byte(password))
-	if err != nil || match != nil {
+	if err != nil || match != nil || !u.PasswordLoginEnabled {
 		return LoginSession{}, ErrInvalidCredentials
 	}
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
+	return a.createLoginSession(ctx, u, oldToken)
+}
+
+func (a *Auth) createLoginSession(ctx context.Context, u dbsqlc.User, oldToken string) (LoginSession, error) {
+	token, err := randomToken()
+	if err != nil {
 		return LoginSession{}, err
 	}
-	token := base64.RawURLEncoding.EncodeToString(bytes)
 	tx, err := a.pool.Begin(ctx)
 	if err != nil {
 		return LoginSession{}, err
@@ -171,7 +197,7 @@ func (a *Auth) Authenticate(ctx context.Context, token string) (User, error) {
 	if err != nil {
 		return User{}, err
 	}
-	return User{ID: u.ID, Name: u.Name, Email: u.Email, Phone: u.Phone.String, Role: u.Role}, nil
+	return User{ID: u.ID, Name: u.Name, Email: u.Email, Phone: u.Phone.String, Role: u.Role, EmailVerified: u.EmailVerifiedAt.Valid}, nil
 }
 
 func (a *Auth) Logout(ctx context.Context, token string) error {
@@ -195,5 +221,13 @@ func TokenHash(token string) string {
 }
 
 func publicUser(u dbsqlc.User) User {
-	return User{ID: u.ID, Name: u.Name, Email: u.Email, Phone: u.Phone.String, Role: u.Role}
+	return User{ID: u.ID, Name: u.Name, Email: u.Email, Phone: u.Phone.String, Role: u.Role, EmailVerified: u.EmailVerifiedAt.Valid}
+}
+
+func randomToken() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }

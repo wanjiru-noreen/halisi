@@ -21,12 +21,14 @@
       <h2 id="form-title" class="text-3xl font-semibold tracking-tight">Log in to your account</h2>
       <p class="mt-3 text-sm text-stone-600">New here? <a href="/register" class="font-semibold text-emerald-800 underline underline-offset-4">Create an account</a></p>
       <p id="notice" class="mt-5 text-sm text-emerald-800" role="status" hidden></p>
+      <button id="google-signin" class="button-primary mt-6" type="button" hidden>Continue with Google</button>
       <form id="auth-form" action="/api/auth/login" method="post" class="mt-8 space-y-5">
         <div><label for="email" class="mb-2 block text-sm font-medium">Email address</label><input id="email" name="email" type="email" autocomplete="username" maxlength="254" required class="field" placeholder="you@example.com"></div>
         <div><label for="password" class="mb-2 block text-sm font-medium">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="72" required class="field"></div>
         <p id="error" class="text-sm text-red-700" role="alert" hidden></p>
         <button type="submit" class="button-primary">Log in <span aria-hidden="true">→</span></button>
       </form>
+      <form id="resend-form" class="mt-6 space-y-3"><label for="verification-email" class="block text-sm font-medium">Need a new verification email?</label><input id="verification-email" name="email" type="email" autocomplete="email" required maxlength="254" class="field" placeholder="you@example.com"><button type="submit" class="text-sm font-semibold text-emerald-800 underline">Send verification link</button></form>
       <p class="mt-6 text-xs leading-relaxed text-stone-500">Your session stays private on this browser. Log out when using a shared device.</p>
       <noscript><p class="mt-4 text-sm text-red-700">Enable JavaScript to log in securely.</p></noscript>
     </section>
