@@ -18,6 +18,7 @@ var (
 	ErrGoogle       = errors.New("Google sign-in could not be completed; please try again")
 	ErrLinkRequired = errors.New("an account uses this email; log in to that account, verify your email, and connect Google from your account page")
 	ErrRecentLogin  = errors.New("log in again and verify your email before connecting Google")
+	ErrEmailVerificationRequired = errors.New("verify your email address before signing in with Google")
 )
 
 type GoogleIdentity struct {
@@ -130,6 +131,9 @@ func (a *Auth) FinishGoogle(ctx context.Context, state, browser, code, sessionTo
 	}
 	if err != nil {
 		return LoginSession{}, false, err
+	}
+	if !u.EmailVerifiedAt.Valid {
+		return LoginSession{}, false, ErrEmailVerificationRequired
 	}
 	session, err := a.createLoginSession(ctx, u, sessionToken)
 	return session, false, err

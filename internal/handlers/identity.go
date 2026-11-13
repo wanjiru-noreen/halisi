@@ -146,6 +146,9 @@ func (a *Auth) googleCallback(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, services.ErrRecentLogin) {
 			reason = "reauth"
 		}
+		if errors.Is(err, services.ErrEmailVerificationRequired) {
+			reason = "verify_email"
+		}
 		http.Redirect(w, r, "/login?error="+reason, http.StatusSeeOther)
 		return
 	}
