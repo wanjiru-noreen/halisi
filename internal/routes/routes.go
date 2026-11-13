@@ -16,7 +16,7 @@ type Pinger interface {
 // New creates the server's HTTP routes.
 func New(database Pinger, register ...func(*http.ServeMux)) http.Handler {
 	mux := http.NewServeMux()
-	mux.Handle("GET /", webassets.Page("pages/home"))
+	mux.Handle("GET /{$}", webassets.Page("pages/home"))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
