@@ -92,12 +92,16 @@ func TestMigrationsPostgres(t *testing.T) {
 	}
 	defer db.Close()
 	fixture := seedVersionOne(t, ctx, db)
+	if err := m.Steps(5); err != nil {
+		t.Fatal(err)
+	}
+	testCoreSchema(t, ctx, db, fixture)
 	if err := m.Up(); err != nil {
 		t.Fatalf("core schema upgrade failed: %v", err)
 	}
 	version, dirty, err := m.Version()
-	if err != nil || version != 6 || dirty {
-		t.Fatal("expected clean version 6")
+	if err != nil || version != 8 || dirty {
+		t.Fatal("expected clean version 8")
 	}
 	for _, table := range []string{"users", "sessions", "vendors", "vendor_documents", "products", "vendor_inventory", "addresses", "orders", "order_items", "payments", "deliveries", "reviews", "schema_migrations"} {
 		var exists bool
@@ -117,7 +121,27 @@ func TestMigrationsPostgres(t *testing.T) {
 	if err := admin.QueryRow(ctx, "SELECT count(*) FROM "+schema+".users").Scan(&count); err != nil || count != beforeCount {
 		t.Fatal("repeat up changed existing data")
 	}
-	testCoreSchema(t, ctx, db, fixture)
+	var historicalCustomer, historicalVendor int64
+	if err := db.QueryRow(ctx, "SELECT customer_id,vendor_id FROM deliveries WHERE order_id=$1", fixture.order).Scan(&historicalCustomer, &historicalVendor); err != nil || historicalCustomer != fixture.customer || historicalVendor != fixture.vendor {
+		t.Fatal("delivery migration did not preserve and backfill historical delivery")
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("order location snapshot rollback failed: %v", err)
+	}
+	// The downgrade must restore a working version-7 creation function, not leave
+	// a function referring to the now-removed order snapshot columns.
+	if _, err := db.Exec(ctx, "UPDATE vendors SET status='approved',is_active=TRUE WHERE id=$1", fixture.vendor); err != nil {
+		t.Fatal(err)
+	}
+	rollbackAddress := insertID(t, ctx, db, "INSERT INTO addresses(user_id,address_line,city,latitude,longitude) VALUES($1,'Rollback street','Nairobi',-1.2,36.8) RETURNING id", fixture.customer)
+	rollbackOrder := insertID(t, ctx, db, "INSERT INTO orders(customer_id,vendor_id,address_id,status,total,delivery_address) VALUES($1,$2,$3,'confirmed',100,'Rollback street') RETURNING id", fixture.customer, fixture.vendor, rollbackAddress)
+	var restored bool
+	if err := db.QueryRow(ctx, "SELECT dropoff_latitude=-1.2 AND dropoff_longitude=36.8 FROM deliveries WHERE order_id=$1", rollbackOrder).Scan(&restored); err != nil || !restored {
+		t.Fatal("downgrade did not restore version-7 delivery creation", err)
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("delivery management rollback failed: %v", err)
+	}
 	if err := m.Steps(-1); err != nil {
 		t.Fatalf("rider registration rollback failed: %v", err)
 	}

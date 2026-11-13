@@ -1,5 +1,11 @@
 # Database migrations
 
+Migration 7 adds delivery ownership and location snapshots, automatic creation
+on order confirmation, and database-enforced lifecycle transitions. See
+[delivery management](DELIVERIES.md) for eligibility, APIs and rollback behavior.
+Migration 8 saves checkout coordinates on orders and uses those snapshots for
+delivery drop-off locations, so later saved-address edits cannot redirect them.
+
 HALISI uses golang-migrate v4 with its pgx/v5 driver. The version is pinned in
 `go.mod`; `go mod download` installs the dependencies. The Go migration command
 embeds SQL from `internal/database/migrations/`, so no global migrate CLI is
@@ -50,8 +56,8 @@ The up and down SQL each run in a transaction. Down removes tables in reverse
 dependency order without CASCADE. The `schema_migrations` table records the
 current version and dirty flag; it remains after rollback. Advisory locking
 prevents concurrent migration execution. Do not edit a migration after it has
-been applied: add a new numbered pair, e.g. `000007_description.up.sql` and
-`000007_description.down.sql`.
+been applied: add a new numbered pair, e.g. `000009_description.up.sql` and
+`000009_description.down.sql`.
 
 On failure the command exits nonzero without printing driver errors that could
 contain credentials. Check `migrate-version` and database logs. A dirty version
@@ -206,7 +212,8 @@ Application services remain responsible for authorization (including vendor/ride
 role checks), password hashing, status-transition rules, review eligibility,
 calculating totals from items, payment reconciliation, reservation release, and
 currency pricing policy. The database constrains allowed values and ownership,
-not these workflows. A product can have no inventory row until stocked; missing
+with migration 7 additionally enforcing delivery eligibility and lifecycle
+transitions. A product can have no inventory row until stocked; missing
 inventory means unavailable. User records and session hashes are internal data,
 not public API response objects.
 

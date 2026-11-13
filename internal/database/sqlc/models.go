@@ -21,13 +21,22 @@ type Address struct {
 }
 
 type Delivery struct {
-	ID          int64              `json:"id"`
-	OrderID     int64              `json:"order_id"`
-	RiderID     pgtype.Int8        `json:"rider_id"`
-	Status      string             `json:"status"`
-	DeliveredAt pgtype.Timestamptz `json:"delivered_at"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	ID               int64              `json:"id"`
+	OrderID          int64              `json:"order_id"`
+	RiderID          pgtype.Int8        `json:"rider_id"`
+	Status           string             `json:"status"`
+	DeliveredAt      pgtype.Timestamptz `json:"delivered_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	VendorID         int64              `json:"vendor_id"`
+	CustomerID       int64              `json:"customer_id"`
+	AddressID        pgtype.Int8        `json:"address_id"`
+	PickupAddress    string             `json:"pickup_address"`
+	DropoffAddress   string             `json:"dropoff_address"`
+	PickupLatitude   pgtype.Numeric     `json:"pickup_latitude"`
+	PickupLongitude  pgtype.Numeric     `json:"pickup_longitude"`
+	DropoffLatitude  pgtype.Numeric     `json:"dropoff_latitude"`
+	DropoffLongitude pgtype.Numeric     `json:"dropoff_longitude"`
 }
 
 type EmailVerificationToken struct {
@@ -60,16 +69,18 @@ type OauthState struct {
 }
 
 type Order struct {
-	ID              int64              `json:"id"`
-	CustomerID      int64              `json:"customer_id"`
-	VendorID        int64              `json:"vendor_id"`
-	Status          string             `json:"status"`
-	Total           pgtype.Numeric     `json:"total"`
-	DeliveryAddress string             `json:"delivery_address"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	AddressID       pgtype.Int8        `json:"address_id"`
-	Currency        string             `json:"currency"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	ID                int64              `json:"id"`
+	CustomerID        int64              `json:"customer_id"`
+	VendorID          int64              `json:"vendor_id"`
+	Status            string             `json:"status"`
+	Total             pgtype.Numeric     `json:"total"`
+	DeliveryAddress   string             `json:"delivery_address"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AddressID         pgtype.Int8        `json:"address_id"`
+	Currency          string             `json:"currency"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	DeliveryLatitude  pgtype.Numeric     `json:"delivery_latitude"`
+	DeliveryLongitude pgtype.Numeric     `json:"delivery_longitude"`
 }
 
 type OrderItem struct {

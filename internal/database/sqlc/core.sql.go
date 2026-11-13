@@ -50,7 +50,7 @@ func (q *Queries) CreateAddress(ctx context.Context, arg CreateAddressParams) (A
 }
 
 const createDelivery = `-- name: CreateDelivery :one
-INSERT INTO deliveries (order_id, rider_id) VALUES ($1, $2) RETURNING id, order_id, rider_id, status, delivered_at, created_at, updated_at
+INSERT INTO deliveries (order_id, rider_id) VALUES ($1, $2) RETURNING id, order_id, rider_id, status, delivered_at, created_at, updated_at, vendor_id, customer_id, address_id, pickup_address, dropoff_address, pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude
 `
 
 type CreateDeliveryParams struct {
@@ -69,22 +69,33 @@ func (q *Queries) CreateDelivery(ctx context.Context, arg CreateDeliveryParams) 
 		&i.DeliveredAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.VendorID,
+		&i.CustomerID,
+		&i.AddressID,
+		&i.PickupAddress,
+		&i.DropoffAddress,
+		&i.PickupLatitude,
+		&i.PickupLongitude,
+		&i.DropoffLatitude,
+		&i.DropoffLongitude,
 	)
 	return i, err
 }
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (customer_id, vendor_id, address_id, delivery_address, total, currency)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at
+INSERT INTO orders (customer_id, vendor_id, address_id, delivery_address, total, currency, delivery_latitude, delivery_longitude)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at, delivery_latitude, delivery_longitude
 `
 
 type CreateOrderParams struct {
-	CustomerID      int64          `json:"customer_id"`
-	VendorID        int64          `json:"vendor_id"`
-	AddressID       pgtype.Int8    `json:"address_id"`
-	DeliveryAddress string         `json:"delivery_address"`
-	Total           pgtype.Numeric `json:"total"`
-	Currency        string         `json:"currency"`
+	CustomerID        int64          `json:"customer_id"`
+	VendorID          int64          `json:"vendor_id"`
+	AddressID         pgtype.Int8    `json:"address_id"`
+	DeliveryAddress   string         `json:"delivery_address"`
+	Total             pgtype.Numeric `json:"total"`
+	Currency          string         `json:"currency"`
+	DeliveryLatitude  pgtype.Numeric `json:"delivery_latitude"`
+	DeliveryLongitude pgtype.Numeric `json:"delivery_longitude"`
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
@@ -95,6 +106,8 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		arg.DeliveryAddress,
 		arg.Total,
 		arg.Currency,
+		arg.DeliveryLatitude,
+		arg.DeliveryLongitude,
 	)
 	var i Order
 	err := row.Scan(
@@ -108,6 +121,8 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		&i.AddressID,
 		&i.Currency,
 		&i.UpdatedAt,
+		&i.DeliveryLatitude,
+		&i.DeliveryLongitude,
 	)
 	return i, err
 }
@@ -323,7 +338,7 @@ func (q *Queries) GetActiveSession(ctx context.Context, tokenHash string) (Sessi
 }
 
 const getOrder = `-- name: GetOrder :one
-SELECT id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at FROM orders WHERE id = $1
+SELECT id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at, delivery_latitude, delivery_longitude FROM orders WHERE id = $1
 `
 
 func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
@@ -340,6 +355,8 @@ func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
 		&i.AddressID,
 		&i.Currency,
 		&i.UpdatedAt,
+		&i.DeliveryLatitude,
+		&i.DeliveryLongitude,
 	)
 	return i, err
 }

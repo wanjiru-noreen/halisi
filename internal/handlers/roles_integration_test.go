@@ -58,7 +58,7 @@ func TestRoleResourcesPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer m.Close()
-	if err := m.Up(); err != nil {
+	if err := m.Steps(6); err != nil {
 		t.Fatal("test migrations failed")
 	}
 	pool, err := pgxpool.New(ctx, u.String())
@@ -96,14 +96,17 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	p2 := id("INSERT INTO products(vendor_id,name,price) VALUES($1,'Cylinder two',2000) RETURNING id", v2)
 	a1 := id("INSERT INTO addresses(user_id,address_line,city) VALUES($1,'Private one','Nairobi') RETURNING id", users["c1"])
 	a2 := id("INSERT INTO addresses(user_id,address_line,city) VALUES($1,'Private two','Mombasa') RETURNING id", users["c2"])
-	o1 := id("INSERT INTO orders(customer_id,vendor_id,total,delivery_address) VALUES($1,$2,1000,'Private one') RETURNING id", users["c1"], v1)
-	o2 := id("INSERT INTO orders(customer_id,vendor_id,total,delivery_address) VALUES($1,$2,2000,'Private two') RETURNING id", users["c2"], v2)
+	o1 := id("INSERT INTO orders(customer_id,vendor_id,status,total,delivery_address) VALUES($1,$2,'confirmed',1000,'Private one') RETURNING id", users["c1"], v1)
+	o2 := id("INSERT INTO orders(customer_id,vendor_id,status,total,delivery_address) VALUES($1,$2,'confirmed',2000,'Private two') RETURNING id", users["c2"], v2)
 	payment1 := id("INSERT INTO payments(order_id,amount) VALUES($1,1000) RETURNING id", o1)
 	payment2 := id("INSERT INTO payments(order_id,amount) VALUES($1,2000) RETURNING id", o2)
 	d1 := id("INSERT INTO deliveries(order_id,rider_id,status) VALUES($1,$2,'assigned') RETURNING id", o1, users["r1"])
 	d2 := id("INSERT INTO deliveries(order_id,rider_id,status) VALUES($1,$2,'assigned') RETURNING id", o2, users["r2"])
 	o3 := id("INSERT INTO orders(customer_id,vendor_id,total,delivery_address) VALUES($1,$2,100,'Unassigned') RETURNING id", users["c2"], v2)
 	unassigned := id("INSERT INTO deliveries(order_id) VALUES($1) RETURNING id", o3)
+	if err := m.Up(); err != nil {
+		t.Fatal(err)
+	}
 	service, err := services.NewAuth(pool, services.WithVerification(&captureMailer{}, "https://halisi.example"))
 	if err != nil {
 		t.Fatal(err)
@@ -266,11 +269,11 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if _, err := pool.Exec(ctx, "UPDATE vendors SET status='approved',is_active=TRUE WHERE id=$1", v1); err != nil {
 		t.Fatal(err)
 	}
-	failedOrder := id("INSERT INTO orders(customer_id,vendor_id,total,delivery_address) VALUES($1,$2,2000,'Failure test') RETURNING id", users["c1"], v1)
+	failedOrder := id("INSERT INTO orders(customer_id,vendor_id,address_id,status,total,delivery_address) VALUES($1,$2,$3,'confirmed',2000,'Failure test') RETURNING id", users["c1"], v1, a1)
 	if _, err := pool.Exec(ctx, `INSERT INTO order_items(order_id,vendor_id,product_id,quantity,unit_price) VALUES($1,$2,$3,2,1000)`, failedOrder, v1, p1); err != nil {
 		t.Fatal(err)
 	}
-	failedDelivery := id("INSERT INTO deliveries(order_id,rider_id,status) VALUES($1,$2,'assigned') RETURNING id", failedOrder, users["r1"])
+	failedDelivery := id("UPDATE deliveries SET rider_id=$2,status='assigned' WHERE order_id=$1 RETURNING id", failedOrder, users["r1"])
 	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", failedDelivery), map[string]string{"status": "failed"}, 200)
 	var reserved int32
 	if err := pool.QueryRow(ctx, "SELECT reserved_quantity FROM vendor_inventory WHERE product_id=$1", p1).Scan(&reserved); err != nil || reserved != 0 {
@@ -303,8 +306,12 @@ func TestRoleResourcesPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	var pendingDeliveries int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM deliveries WHERE order_id=$1", checkedOut.Order.ID).Scan(&pendingDeliveries); err != nil || pendingDeliveries != 0 {
+		t.Fatal("unconfirmed checkout created a delivery")
+	}
+	request("v1", "POST", fmt.Sprintf("/api/vendor/orders/%d/confirm", checkedOut.Order.ID), nil, 200)
 	if err := pool.QueryRow(ctx, "SELECT count(*) FROM deliveries WHERE order_id=$1 AND status='pending'", checkedOut.Order.ID).Scan(&pendingDeliveries); err != nil || pendingDeliveries != 1 {
-		t.Fatal("checkout did not create its pending delivery")
+		t.Fatal("confirmation did not create exactly one pending delivery")
 	}
 	if err := pool.QueryRow(ctx, "SELECT reserved_quantity FROM vendor_inventory WHERE product_id=$1", p1).Scan(&reserved); err != nil || reserved != 2 {
 		t.Fatal("checkout did not reserve inventory")
