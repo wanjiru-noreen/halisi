@@ -156,12 +156,16 @@ func runGoogleChecks(t *testing.T, ctx context.Context, pool *pgxpool.Pool, a *s
 		t.Fatal("Google email change altered stable-subject identity")
 	}
 	flow, _ = a.StartGoogle(ctx, "", false)
-	third, _, err := finish(flow, "third", "")
-	if err != nil || third.User.EmailVerified {
+	if _, _, err := finish(flow, "third", ""); !errors.Is(err, services.ErrEmailVerificationRequired) {
 		t.Fatal("third-party Google email was incorrectly treated as authoritative")
 	}
 	if err := a.VerifyEmail(ctx, mailer.lastToken(t)); err != nil {
 		t.Fatal("third-party Google email could not be verified")
+	}
+	flow, _ = a.StartGoogle(ctx, "", false)
+	third, _, err := finish(flow, "third", "")
+	if err != nil || !third.User.EmailVerified {
+		t.Fatal("verified third-party Google email could not sign in")
 	}
 	if _, err := pool.Exec(ctx, "UPDATE users SET email='different@example.invalid' WHERE id=$1", third.User.ID); err != nil {
 		t.Fatal(err)

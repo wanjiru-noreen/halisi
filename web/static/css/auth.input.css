@@ -1,7 +1,6 @@
 @import "tailwindcss" source(none);
-@source "../../templates/auth/*.html";
-@source "../js/dashboard.js";
-@source "../js/vendor.js";
+@source "../../templates";
+@source "../js";
 
 @layer components {
   .field {

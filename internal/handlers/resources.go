@@ -28,12 +28,13 @@ var pricePattern = regexp.MustCompile(`^(0|[1-9][0-9]{0,9})(\.[0-9]{1,2})?$`)
 
 type Resources struct {
 	auth       *Auth
+	pool       *pgxpool.Pool
 	queries    *dbsqlc.Queries
 	onboarding *services.VendorOnboarding
 }
 
 func NewResources(pool *pgxpool.Pool, auth *Auth, onboarding ...*services.VendorOnboarding) *Resources {
-	h := &Resources{auth: auth, queries: dbsqlc.New(pool)}
+	h := &Resources{auth: auth, pool: pool, queries: dbsqlc.New(pool)}
 	if len(onboarding) > 0 {
 		h.onboarding = onboarding[0]
 	}
@@ -60,22 +61,15 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		})
 		mux.Handle(pattern, h.protect(permission, handler))
 	}
-	mount("GET /api/customer/orders", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, id int64) (any, error) {
-		v, e := h.queries.CustomerOrders(r.Context(), id)
-		return map[string]any{"orders": v}, e
-	})
-	mount("GET /api/customer/orders/{id}", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
-		id, e := resourceID(r)
-		if e != nil {
-			return nil, e
-		}
-		v, e := h.queries.CustomerOrder(r.Context(), dbsqlc.CustomerOrderParams{ID: id, CustomerID: owner})
-		return map[string]any{"order": v}, e
-	})
+	mount("GET /api/customer/orders", models.CustomerResources, h.listCustomerOrders)
+	mount("GET /api/customer/orders/{id}", models.CustomerResources, h.getCustomerOrder)
 	mount("GET /api/customer/addresses", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, id int64) (any, error) {
 		v, e := h.queries.ListUserAddresses(r.Context(), id)
 		return map[string]any{"addresses": v}, e
 	})
+	mount("POST /api/customer/addresses", models.CustomerResources, h.createAddress)
+	mount("PATCH /api/customer/addresses/{id}", models.CustomerResources, h.updateAddress)
+	mount("DELETE /api/customer/addresses/{id}", models.CustomerResources, h.deleteAddress)
 	mount("GET /api/customer/addresses/{id}", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
 		id, e := resourceID(r)
 		if e != nil {
@@ -163,8 +157,113 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 	})))
 	for role, permission := range map[models.Role]models.Permission{models.Customer: models.CustomerResources, models.Vendor: models.VendorResources, models.Rider: models.RiderAssignments, models.Administrator: models.Administration} {
 		path, _ := models.DashboardPath(role)
-		mux.Handle("GET "+path, h.protect(permission, webassets.Page("dashboard")))
+		page := webassets.Page("dashboard")
+		if role == models.Customer {
+			page = webassets.Page("customer/dashboard")
+		}
+		mux.Handle("GET "+path, h.protect(permission, page))
 	}
+	mux.Handle("GET /customer/addresses", h.protect(models.CustomerResources, webassets.Page("customer/addresses")))
+	mux.Handle("GET /customer/orders", h.protect(models.CustomerResources, webassets.Page("customer/orders")))
+	mux.Handle("GET /customer/orders/{id}", h.protect(models.CustomerResources, webassets.Page("customer/order-detail")))
+}
+
+type customerOrderView struct {
+	ID              int64     `json:"id"`
+	VendorID        int64     `json:"vendor_id"`
+	VendorName      string    `json:"vendor_name"`
+	Status          string    `json:"status"`
+	Total           string    `json:"total"`
+	Currency        string    `json:"currency"`
+	DeliveryAddress string    `json:"delivery_address"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+type customerOrderItemView struct {
+	ProductID   int64  `json:"product_id"`
+	ProductName string `json:"product_name"`
+	Quantity    int32  `json:"quantity"`
+	UnitPrice   string `json:"unit_price"`
+}
+
+type deliveryView struct {
+	ID          int64      `json:"id"`
+	Status      string     `json:"status"`
+	DeliveredAt *time.Time `json:"delivered_at"`
+}
+
+func (h *Resources) listCustomerOrders(_ http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	rows, err := h.pool.Query(r.Context(), `
+		SELECT o.id,o.vendor_id,v.name,o.status,o.total::text,o.currency,o.delivery_address,o.created_at
+		FROM orders o JOIN vendors v ON v.id=o.vendor_id
+		WHERE o.customer_id=$1 ORDER BY o.id DESC LIMIT 100`, owner)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	orders := make([]customerOrderView, 0)
+	for rows.Next() {
+		var order customerOrderView
+		if err := rows.Scan(&order.ID, &order.VendorID, &order.VendorName, &order.Status, &order.Total, &order.Currency, &order.DeliveryAddress, &order.CreatedAt); err != nil {
+			return nil, err
+		}
+		orders = append(orders, order)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return map[string]any{"orders": orders}, nil
+}
+
+func (h *Resources) getCustomerOrder(_ http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	id, err := resourceID(r)
+	if err != nil {
+		return nil, err
+	}
+	var order customerOrderView
+	err = h.pool.QueryRow(r.Context(), `
+		SELECT o.id,o.vendor_id,v.name,o.status,o.total::text,o.currency,o.delivery_address,o.created_at
+		FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=$1 AND o.customer_id=$2`, id, owner).
+		Scan(&order.ID, &order.VendorID, &order.VendorName, &order.Status, &order.Total, &order.Currency, &order.DeliveryAddress, &order.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errResourceForbidden
+	}
+	if err != nil {
+		return nil, err
+	}
+	rows, err := h.pool.Query(r.Context(), `
+		SELECT oi.product_id,p.name,oi.quantity,oi.unit_price::text
+		FROM order_items oi JOIN products p ON p.id=oi.product_id
+		WHERE oi.order_id=$1 ORDER BY oi.id`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]customerOrderItemView, 0)
+	for rows.Next() {
+		var item customerOrderItemView
+		if err := rows.Scan(&item.ProductID, &item.ProductName, &item.Quantity, &item.UnitPrice); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	var delivery *deliveryView
+	var deliveredAt pgtype.Timestamptz
+	var d deliveryView
+	err = h.pool.QueryRow(r.Context(), `SELECT id,status,delivered_at FROM deliveries WHERE order_id=$1`, id).Scan(&d.ID, &d.Status, &deliveredAt)
+	if err == nil {
+		if deliveredAt.Valid {
+			value := deliveredAt.Time
+			d.DeliveredAt = &value
+		}
+		delivery = &d
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+	return map[string]any{"order": order, "items": items, "delivery": delivery}, nil
 }
 
 func (h *Resources) protect(permission models.Permission, next http.Handler) http.Handler {
@@ -247,8 +346,9 @@ func (h *Resources) updateShop(w http.ResponseWriter, r *http.Request, id int64)
 }
 
 type productInput struct {
-	Name  string `json:"name"`
-	Price string `json:"price"`
+	Name     string `json:"name"`
+	Price    string `json:"price"`
+	Quantity *int32 `json:"quantity"`
 }
 
 func (input *productInput) numeric() (pgtype.Numeric, error) {
@@ -267,12 +367,30 @@ func (h *Resources) createProduct(w http.ResponseWriter, r *http.Request, id int
 	if !decodeJSON(w, r, &input) {
 		return nil, nil
 	}
+	if input.Quantity == nil || *input.Quantity < 1 || *input.Quantity > 100000 {
+		return nil, &resourceValidation{"Initial stock quantity must be between 1 and 100000."}
+	}
 	price, err := input.numeric()
 	if err != nil {
 		return nil, err
 	}
-	v, err := h.queries.CreateOwnedProduct(r.Context(), dbsqlc.CreateOwnedProductParams{UserID: id, Name: input.Name, Price: price})
-	return map[string]any{"product": v}, err
+	tx, err := h.pool.Begin(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(r.Context())
+	q := h.queries.WithTx(tx)
+	product, err := q.CreateOwnedProduct(r.Context(), dbsqlc.CreateOwnedProductParams{UserID: id, Name: input.Name, Price: price})
+	if err != nil {
+		return nil, err
+	}
+	if _, err := q.SetInventory(r.Context(), dbsqlc.SetInventoryParams{ProductID: product.ID, VendorID: product.VendorID, Quantity: *input.Quantity}); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		return nil, err
+	}
+	return map[string]any{"product": product}, nil
 }
 func (h *Resources) updateProduct(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
 	id, err := resourceID(r)
@@ -287,8 +405,28 @@ func (h *Resources) updateProduct(w http.ResponseWriter, r *http.Request, owner 
 	if err != nil {
 		return nil, err
 	}
-	v, err := h.queries.UpdateOwnedProduct(r.Context(), dbsqlc.UpdateOwnedProductParams{ID: id, UserID: owner, Name: input.Name, Price: price})
-	return map[string]any{"product": v}, err
+	if input.Quantity != nil && (*input.Quantity < 0 || *input.Quantity > 100000) {
+		return nil, &resourceValidation{"Stock quantity must be between 0 and 100000."}
+	}
+	tx, err := h.pool.Begin(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(r.Context())
+	q := h.queries.WithTx(tx)
+	product, err := q.UpdateOwnedProduct(r.Context(), dbsqlc.UpdateOwnedProductParams{ID: id, UserID: owner, Name: input.Name, Price: price})
+	if err != nil {
+		return nil, err
+	}
+	if input.Quantity != nil {
+		if _, err := q.SetInventory(r.Context(), dbsqlc.SetInventoryParams{ProductID: product.ID, VendorID: product.VendorID, Quantity: *input.Quantity}); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		return nil, err
+	}
+	return map[string]any{"product": product}, nil
 }
 func (h *Resources) deleteProduct(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
 	id, err := resourceID(r)
@@ -320,8 +458,38 @@ func (h *Resources) updateDelivery(w http.ResponseWriter, r *http.Request, owner
 	if input.Status != "picked_up" && input.Status != "delivered" && input.Status != "failed" {
 		return nil, &resourceValidation{"Unsupported delivery transition."}
 	}
-	v, err := h.queries.UpdateAssignedDelivery(r.Context(), dbsqlc.UpdateAssignedDeliveryParams{ID: id, RiderID: pgtype.Int8{Int64: owner, Valid: true}, Status: input.Status})
-	return map[string]any{"delivery": v}, err
+	tx, err := h.pool.Begin(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(r.Context())
+	q := h.queries.WithTx(tx)
+	delivery, err := q.UpdateAssignedDelivery(r.Context(), dbsqlc.UpdateAssignedDeliveryParams{ID: id, RiderID: pgtype.Int8{Int64: owner, Valid: true}, Status: input.Status})
+	if err != nil {
+		return nil, err
+	}
+	if input.Status == "failed" {
+		var itemCount int64
+		if err := tx.QueryRow(r.Context(), `SELECT count(*) FROM order_items WHERE order_id=$1`, delivery.OrderID).Scan(&itemCount); err != nil {
+			return nil, err
+		}
+		tag, err := tx.Exec(r.Context(), `
+			UPDATE vendor_inventory vi
+			SET reserved_quantity=vi.reserved_quantity-oi.quantity
+			FROM order_items oi
+			WHERE oi.order_id=$1 AND vi.product_id=oi.product_id
+			  AND vi.reserved_quantity >= oi.quantity`, delivery.OrderID)
+		if err != nil {
+			return nil, err
+		}
+		if tag.RowsAffected() != itemCount {
+			return nil, errors.New("could not reconcile reserved inventory for failed delivery")
+		}
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		return nil, err
+	}
+	return map[string]any{"delivery": delivery}, nil
 }
 func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, adminID int64) (any, error) {
 	id, err := resourceID(r)
@@ -355,4 +523,103 @@ func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, adminID
 		return nil, &resourceValidation{"Application is incomplete or cannot be reviewed in its current state."}
 	}
 	return map[string]any{"vendor": v}, err
+}
+
+type addressInput struct {
+	Label       string   `json:"label"`
+	AddressLine string   `json:"address_line"`
+	City        string   `json:"city"`
+	Latitude    *float64 `json:"latitude"`
+	Longitude   *float64 `json:"longitude"`
+}
+
+func (input *addressInput) validate() error {
+	input.Label = strings.TrimSpace(input.Label)
+	input.AddressLine = strings.TrimSpace(input.AddressLine)
+	input.City = strings.TrimSpace(input.City)
+	if input.Label == "" {
+		input.Label = "Home"
+	}
+	if !utf8.ValidString(input.Label) || utf8.RuneCountInString(input.Label) > 100 || strings.ContainsFunc(input.Label, unicode.IsControl) ||
+		!utf8.ValidString(input.AddressLine) || len(input.AddressLine) == 0 || len(input.AddressLine) > 500 || strings.ContainsFunc(input.AddressLine, unicode.IsControl) ||
+		!utf8.ValidString(input.City) || len(input.City) == 0 || len(input.City) > 100 || strings.ContainsFunc(input.City, unicode.IsControl) {
+		return &resourceValidation{"Provide a label (up to 100 characters), street address (up to 500 bytes), and city (up to 100 bytes)."}
+	}
+	if (input.Latitude == nil) != (input.Longitude == nil) {
+		return &resourceValidation{"Provide both coordinates or leave both empty."}
+	}
+	if input.Latitude != nil && (*input.Latitude < -90 || *input.Latitude > 90 || *input.Longitude < -180 || *input.Longitude > 180) {
+		return &resourceValidation{"Coordinates are outside the valid latitude or longitude range."}
+	}
+	return nil
+}
+
+func (input addressInput) coordinates() (pgtype.Numeric, pgtype.Numeric, error) {
+	var latitude, longitude pgtype.Numeric
+	if input.Latitude == nil {
+		return latitude, longitude, nil
+	}
+	if err := latitude.Scan(strconv.FormatFloat(*input.Latitude, 'f', 6, 64)); err != nil {
+		return latitude, longitude, err
+	}
+	if err := longitude.Scan(strconv.FormatFloat(*input.Longitude, 'f', 6, 64)); err != nil {
+		return latitude, longitude, err
+	}
+	return latitude, longitude, nil
+}
+
+func (h *Resources) createAddress(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	var input addressInput
+	if !decodeJSON(w, r, &input) {
+		return nil, nil
+	}
+	if err := input.validate(); err != nil {
+		return nil, err
+	}
+	latitude, longitude, err := input.coordinates()
+	if err != nil {
+		return nil, &resourceValidation{"Coordinates must be valid numbers."}
+	}
+	address, err := h.queries.CreateAddress(r.Context(), dbsqlc.CreateAddressParams{UserID: owner, Label: input.Label, AddressLine: input.AddressLine, City: input.City, Latitude: latitude, Longitude: longitude})
+	return map[string]any{"address": address}, err
+}
+
+func (h *Resources) updateAddress(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	id, err := resourceID(r)
+	if err != nil {
+		return nil, err
+	}
+	var input addressInput
+	if !decodeJSON(w, r, &input) {
+		return nil, nil
+	}
+	if err := input.validate(); err != nil {
+		return nil, err
+	}
+	latitude, longitude, err := input.coordinates()
+	if err != nil {
+		return nil, &resourceValidation{"Coordinates must be valid numbers."}
+	}
+	var address dbsqlc.Address
+	err = h.pool.QueryRow(r.Context(), `UPDATE addresses SET label=$3,address_line=$4,city=$5,latitude=COALESCE($6,latitude),longitude=COALESCE($7,longitude) WHERE id=$1 AND user_id=$2 RETURNING id,user_id,label,address_line,city,latitude,longitude,created_at,updated_at`, id, owner, input.Label, input.AddressLine, input.City, latitude, longitude).Scan(&address.ID, &address.UserID, &address.Label, &address.AddressLine, &address.City, &address.Latitude, &address.Longitude, &address.CreatedAt, &address.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, errResourceForbidden
+	}
+	return map[string]any{"address": address}, err
+}
+
+func (h *Resources) deleteAddress(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
+	id, err := resourceID(r)
+	if err != nil {
+		return nil, err
+	}
+	tag, err := h.pool.Exec(r.Context(), `DELETE FROM addresses WHERE id=$1 AND user_id=$2`, id, owner)
+	if err != nil {
+		return nil, err
+	}
+	if tag.RowsAffected() == 0 {
+		return nil, errResourceForbidden
+	}
+	w.WriteHeader(http.StatusNoContent)
+	return nil, nil
 }

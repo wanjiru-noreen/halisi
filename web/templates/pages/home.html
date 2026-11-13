@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Find trusted cooking gas vendors, compare prices, and arrange convenient delivery with HALISI.">
+  <title>HALISI — Cooking gas, made easier</title>
+  <link rel="stylesheet" href="/static/css/auth.css">
+</head>
+<body class="min-h-screen bg-stone-50 text-stone-900 antialiased">
+{{template "navbar.html" .}}
+<main>
+  <section class="relative overflow-hidden bg-emerald-950 text-white">
+    <div class="absolute -right-24 -top-40 h-96 w-96 rounded-full bg-emerald-800/70 blur-3xl" aria-hidden="true"></div>
+    <div class="relative mx-auto grid max-w-7xl gap-12 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+      <div>
+        <p class="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-700 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-200"><span class="h-2 w-2 rounded-full bg-orange-400"></span>Gas delivery that fits your day</p>
+        <h1 class="max-w-2xl text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">Cooking gas, made <span class="text-orange-300">easier.</span></h1>
+        <p class="mt-6 max-w-xl text-base leading-7 text-emerald-100 sm:text-lg">Find trusted local suppliers, compare cylinder options, and get cooking gas delivered when you need it.</p>
+        <div class="mt-9 flex flex-wrap gap-3">
+          <a href="/customer/vendors" class="rounded-full bg-orange-400 px-6 py-3.5 text-sm font-bold text-emerald-950 shadow-sm hover:bg-orange-300">Find a vendor <span aria-hidden="true">→</span></a>
+          <a href="/register" class="rounded-full border border-emerald-600 px-6 py-3.5 text-sm font-semibold text-white hover:bg-emerald-900">Create your account</a>
+        </div>
+        <div class="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm text-emerald-200"><span>✓ Verified local vendors</span><span>✓ Clear product pricing</span><span>✓ Convenient delivery</span></div>
+      </div>
+      <div class="mx-auto w-full max-w-lg rounded-[2rem] border border-emerald-700/70 bg-emerald-900/80 p-6 shadow-2xl sm:p-8">
+        <div class="flex items-start justify-between"><div><p class="text-sm font-semibold text-emerald-200">Your next refill</p><h2 class="mt-2 text-2xl font-semibold">A simpler way to restock</h2></div><span class="rounded-2xl bg-orange-400/15 px-3 py-2 text-2xl text-orange-300" aria-hidden="true">◉</span></div>
+        <div class="my-7 rounded-2xl bg-white p-5 text-stone-900"><p class="text-xs font-bold uppercase tracking-widest text-stone-500">How HALISI works</p><ol class="mt-4 space-y-4 text-sm"><li class="flex gap-3"><span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-900">1</span><span><strong>Choose a trusted shop</strong><br><span class="text-stone-500">Explore vendors near you.</span></span></li><li class="flex gap-3"><span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-900">2</span><span><strong>Pick your gas products</strong><br><span class="text-stone-500">See prices before adding to cart.</span></span></li><li class="flex gap-3"><span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-900">3</span><span><strong>Arrange delivery</strong><br><span class="text-stone-500">Follow your order from your account.</span></span></li></ol></div>
+        <p class="text-center text-sm text-emerald-200">A dependable refill is just a few steps away.</p>
+      </div>
+    </div>
+  </section>
+  <section class="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20">
+    <div class="mb-9 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Shop with confidence</p><h2 class="mt-2 text-3xl font-semibold tracking-tight">Everything for your next refill</h2></div><a href="/customer/vendors" class="text-sm font-bold text-emerald-800 hover:underline">Start exploring →</a></div>
+    <div class="grid gap-5 md:grid-cols-2">{{template "vendor-card.html" .}}{{template "product-card.html" .}}</div>
+  </section>
+  <section id="why-halisi" class="border-y border-stone-200 bg-white">
+    <div class="mx-auto grid max-w-7xl gap-8 px-5 py-12 sm:px-8 md:grid-cols-3">
+      <div><p class="text-2xl font-semibold text-emerald-900">Local</p><p class="mt-2 text-sm leading-6 text-stone-600">Connect with vendors serving your community.</p></div>
+      <div><p class="text-2xl font-semibold text-emerald-900">Transparent</p><p class="mt-2 text-sm leading-6 text-stone-600">Review product options and prices before checkout.</p></div>
+      <div><p class="text-2xl font-semibold text-emerald-900">Convenient</p><p class="mt-2 text-sm leading-6 text-stone-600">Keep addresses, orders, and delivery updates together.</p></div>
+    </div>
+  </section>
+</main>
+{{template "footer.html" .}}
+</body>
+</html>

@@ -84,7 +84,8 @@ func TestVendorOnboardingPostgres(t *testing.T) {
 	auth := handlers.NewAuth(authService, "production")
 	onboarding := handlers.NewVendorOnboarding(auth, service)
 	resources := handlers.NewResources(pool, auth, service)
-	server := httptest.NewTLSServer(routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes))
+	storefront := handlers.NewStorefront(pool)
+	server := httptest.NewTLSServer(routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes, storefront.Routes))
 	defer server.Close()
 	client := server.Client()
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
@@ -247,6 +248,10 @@ func TestVendorOnboardingPostgres(t *testing.T) {
 		}
 		if err := json.Unmarshal(body, &search); err != nil || len(search.Vendors) != expected {
 			t.Fatalf("search visibility mismatch: %s", body)
+		}
+		_, body = request("", "GET", "/api/storefront/vendors?q=Nairobi", nil, 200)
+		if err := json.Unmarshal(body, &search); err != nil || len(search.Vendors) != expected {
+			t.Fatalf("public storefront visibility mismatch: %s", body)
 		}
 	}
 	assertSale := func(allowed bool) {

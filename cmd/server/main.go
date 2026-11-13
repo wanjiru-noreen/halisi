@@ -77,9 +77,11 @@ func run(ctx context.Context) error {
 	onboardingService := &services.VendorOnboarding{Pool: pool, Files: files}
 	onboarding := handlers.NewVendorOnboarding(auth, onboardingService)
 	resources := handlers.NewResources(pool, auth, onboardingService)
+	storefront := handlers.NewStorefront(pool)
+	checkout := handlers.NewCheckout(pool, auth)
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes),
+		Handler:           routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes, storefront.Routes, checkout.Routes),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,

@@ -104,7 +104,8 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	}
 	auth := handlers.NewAuth(service, "production")
 	resources := handlers.NewResources(pool, auth)
-	server := httptest.NewTLSServer(routes.New(pool, auth.Routes, resources.Routes))
+	checkout := handlers.NewCheckout(pool, auth)
+	server := httptest.NewTLSServer(routes.New(pool, auth.Routes, resources.Routes, checkout.Routes))
 	defer server.Close()
 	client := server.Client()
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
@@ -219,7 +220,7 @@ func TestRoleResourcesPostgres(t *testing.T) {
 		t.Fatal("shop update changed another owner")
 	}
 	request("v1", "POST", "/api/vendor/products", map[string]any{"name": "Hijack", "price": "2.00", "vendor_id": v2}, 400)
-	_, body = request("v1", "POST", "/api/vendor/products", map[string]string{"name": "Owned new product", "price": "123.45"}, 200)
+	_, body = request("v1", "POST", "/api/vendor/products", map[string]any{"name": "Owned new product", "price": "123.45", "quantity": 4}, 200)
 	var created struct {
 		Product struct {
 			ID       int64 `json:"id"`
@@ -232,7 +233,14 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if created.Product.VendorID != v1 {
 		t.Fatal("product creation trusted an unowned vendor")
 	}
-	request("v1", "PATCH", fmt.Sprintf("/api/vendor/products/%d", created.Product.ID), map[string]string{"name": "Owned edited product", "price": "125.50"}, 200)
+	var initialQuantity int32
+	if err := pool.QueryRow(ctx, "SELECT quantity FROM vendor_inventory WHERE product_id=$1", created.Product.ID).Scan(&initialQuantity); err != nil || initialQuantity != 4 {
+		t.Fatal("product creation did not initialize inventory")
+	}
+	request("v1", "PATCH", fmt.Sprintf("/api/vendor/products/%d", created.Product.ID), map[string]any{"name": "Owned edited product", "price": "125.50", "quantity": 6}, 200)
+	if err := pool.QueryRow(ctx, "SELECT quantity FROM vendor_inventory WHERE product_id=$1", created.Product.ID).Scan(&initialQuantity); err != nil || initialQuantity != 6 {
+		t.Fatal("product update did not update inventory")
+	}
 	request("v1", "DELETE", fmt.Sprintf("/api/vendor/products/%d", created.Product.ID), nil, 204)
 	request("v1", "GET", fmt.Sprintf("/api/vendor/products/%d", created.Product.ID), nil, 403)
 	request("r1", "GET", fmt.Sprintf("/api/rider/deliveries/%d", d1), nil, 200)
@@ -244,6 +252,28 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", d1), map[string]string{"status": "picked_up"}, 200)
 	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", d1), map[string]string{"status": "delivered"}, 200)
 	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", d1), map[string]string{"status": "picked_up"}, 403)
+	if _, err := pool.Exec(ctx, `INSERT INTO vendor_inventory(product_id,vendor_id,quantity,reserved_quantity) VALUES($1,$2,10,2)`, p1, v1); err != nil {
+		t.Fatal(err)
+	}
+	// Restore the reviewed commerce fixture after the owner-edit isolation test.
+	// The onboarding integration test covers the real administrator approval flow.
+	if _, err := pool.Exec(ctx, "UPDATE vendors SET status='approved',is_active=TRUE WHERE id=$1", v1); err != nil {
+		t.Fatal(err)
+	}
+	failedOrder := id("INSERT INTO orders(customer_id,vendor_id,total,delivery_address) VALUES($1,$2,2000,'Failure test') RETURNING id", users["c1"], v1)
+	if _, err := pool.Exec(ctx, `INSERT INTO order_items(order_id,vendor_id,product_id,quantity,unit_price) VALUES($1,$2,$3,2,1000)`, failedOrder, v1, p1); err != nil {
+		t.Fatal(err)
+	}
+	failedDelivery := id("INSERT INTO deliveries(order_id,rider_id,status) VALUES($1,$2,'assigned') RETURNING id", failedOrder, users["r1"])
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", failedDelivery), map[string]string{"status": "failed"}, 200)
+	var reserved int32
+	if err := pool.QueryRow(ctx, "SELECT reserved_quantity FROM vendor_inventory WHERE product_id=$1", p1).Scan(&reserved); err != nil || reserved != 0 {
+		t.Fatal("failed delivery did not release reserved stock")
+	}
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", failedDelivery), map[string]string{"status": "failed"}, 403)
+	if err := pool.QueryRow(ctx, "SELECT reserved_quantity FROM vendor_inventory WHERE product_id=$1", p1).Scan(&reserved); err != nil || reserved != 0 {
+		t.Fatal("repeated failed transition changed reserved stock")
+	}
 	if _, err := pool.Exec(ctx, "UPDATE deliveries SET rider_id=$1 WHERE id=$2", users["r1"], d2); err != nil {
 		t.Fatal(err)
 	}
@@ -251,6 +281,28 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	request("r1", "GET", fmt.Sprintf("/api/rider/deliveries/%d", d2), nil, 200)
 	request("v1", "PATCH", fmt.Sprintf("/api/admin/vendors/%d/status", v1), map[string]string{"status": "approved"}, 403)
 	request("admin", "PATCH", fmt.Sprintf("/api/admin/vendors/%d/status", v1), map[string]string{"status": "approved"}, 422)
+	if _, err := pool.Exec(ctx, "UPDATE vendors SET status='approved',is_active=TRUE WHERE id=$1", v1); err != nil {
+		t.Fatal(err)
+	}
+	_, body = request("c1", "POST", "/api/customer/checkout", map[string]any{
+		"address_id": a1,
+		"items":      []map[string]any{{"product_id": p1, "quantity": 2}},
+	}, 201)
+	var checkedOut struct {
+		Order struct {
+			ID int64 `json:"id"`
+		} `json:"order"`
+	}
+	if err := json.Unmarshal(body, &checkedOut); err != nil {
+		t.Fatal(err)
+	}
+	var pendingDeliveries int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM deliveries WHERE order_id=$1 AND status='pending'", checkedOut.Order.ID).Scan(&pendingDeliveries); err != nil || pendingDeliveries != 1 {
+		t.Fatal("checkout did not create its pending delivery")
+	}
+	if err := pool.QueryRow(ctx, "SELECT reserved_quantity FROM vendor_inventory WHERE product_id=$1", p1).Scan(&reserved); err != nil || reserved != 2 {
+		t.Fatal("checkout did not reserve inventory")
+	}
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Privilege attempt", "email": "escalation@example.invalid", "phone": "+254712345678", "password": password, "role": "admin"}, 400)
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Public user", "email": "public@example.invalid", "phone": "+254712345678", "password": password}, 201)
 	var registeredRole string
