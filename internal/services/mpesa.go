@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	_ "time/tzdata"
 )
 
 type STKRequest struct {
@@ -45,6 +46,18 @@ type Daraja struct {
 	HTTPClient     *http.Client
 }
 
+var nairobiTime = func() *time.Location {
+	location, err := time.LoadLocation("Africa/Nairobi")
+	if err != nil {
+		return time.FixedZone("EAT", 3*60*60)
+	}
+	return location
+}()
+
+func darajaTimestamp(now time.Time) string {
+	return now.In(nairobiTime).Format("20060102150405")
+}
+
 func NewDaraja(environment, key, secret string, client *http.Client) (*Daraja, error) {
 	var baseURL string
 	switch environment {
@@ -69,7 +82,7 @@ func (d *Daraja) Initiate(ctx context.Context, input STKRequest) (STKResponse, e
 	if err != nil {
 		return STKResponse{}, fmt.Errorf("%w: %v", ErrSTKNotSubmitted, err)
 	}
-	timestamp := time.Now().UTC().Format("20060102150405")
+	timestamp := darajaTimestamp(time.Now())
 	password := base64.StdEncoding.EncodeToString([]byte(input.ShortCode + input.Passkey + timestamp))
 	body := map[string]any{
 		"BusinessShortCode": input.ShortCode,

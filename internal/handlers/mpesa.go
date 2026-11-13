@@ -184,7 +184,13 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 			if errors.Is(err, services.ErrSTKNotSubmitted) {
 				reason = "Payment prompt was not submitted to M-Pesa"
 			}
-			_, _ = h.pool.Exec(requestCtx, `UPDATE payments SET status='failed',result_description=$2 WHERE id=$1 AND status='processing'`, paymentID, reason)
+			if cleanupErr := h.markPaymentFailed(paymentID, reason); cleanupErr != nil {
+				writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+					"payment": paymentJSON(paymentID, orderID, "processing")["payment"],
+					"error":   "We couldn't confirm the payment attempt's status. Do not submit another payment yet; refresh this order shortly or contact support.",
+				})
+				return
+			}
 			writeJSON(w, http.StatusBadGateway, map[string]any{"payment": map[string]any{"id": paymentID, "order_id": orderID, "status": "failed"}, "error": "M-Pesa could not start this payment. You can try again."})
 			return
 		}
@@ -195,6 +201,32 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 	}
 	_, _ = h.pool.Exec(requestCtx, `UPDATE payments SET merchant_request_id=$2,checkout_request_id=$3 WHERE id=$1 AND status='processing'`, paymentID, response.MerchantRequestID, response.CheckoutRequestID)
 	writeJSON(w, http.StatusAccepted, paymentJSON(paymentID, orderID, "processing"))
+}
+
+func (h *MPesa) markPaymentFailed(paymentID int64, reason string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		tag, err := h.pool.Exec(ctx, `UPDATE payments SET status='failed',result_description=$2 WHERE id=$1 AND status='processing'`, paymentID, reason)
+		if err == nil {
+			if tag.RowsAffected() != 1 {
+				return errors.New("payment attempt was not in a failed-transition state")
+			}
+			return nil
+		}
+		lastErr = err
+		if attempt < 2 {
+			timer := time.NewTimer(time.Duration(attempt+1) * 200 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return lastErr
+			case <-timer.C:
+			}
+		}
+	}
+	return lastErr
 }
 
 func paymentJSON(id, orderID int64, status string) map[string]any {

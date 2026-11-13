@@ -110,7 +110,13 @@ document.getElementById("mpesa-pay").addEventListener("click", async () => {
       body: JSON.stringify({ phone_number: phone }),
     });
     const body = await response.json();
-    if (!response.ok) throw new Error(body.error || "M-Pesa could not start the payment.");
+    if (!response.ok) {
+      if (body.payment?.status === "processing") {
+        document.getElementById("payment-form").hidden = true;
+        document.getElementById("payment-status").textContent = body.error || "Payment status is being checked. Do not submit another payment yet.";
+      }
+      throw new Error(body.error || "M-Pesa could not start the payment.");
+    }
     await loadOrder();
   } catch (err) {
     error.textContent = err.message;

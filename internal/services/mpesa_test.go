@@ -9,7 +9,15 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestDarajaTimestampUsesNairobiTime(t *testing.T) {
+	utc := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	if got, want := darajaTimestamp(utc), "20260101030000"; got != want {
+		t.Fatalf("Daraja timestamp = %q, want Nairobi time %q", got, want)
+	}
+}
 
 func TestDarajaInitiate(t *testing.T) {
 	var sawSTK bool
@@ -37,7 +45,8 @@ func TestDarajaInitiate(t *testing.T) {
 			}
 			password, _ := payload["Password"].(string)
 			decoded, err := base64.StdEncoding.DecodeString(password)
-			if err != nil || !strings.HasPrefix(string(decoded), "123456") || len(string(decoded)) != len("123456passkey20060102150405") {
+			timestamp, _ := payload["Timestamp"].(string)
+			if err != nil || !strings.HasPrefix(string(decoded), "123456passkey") || !strings.HasSuffix(string(decoded), timestamp) || len(timestamp) != 14 || len(string(decoded)) != len("123456passkey20060102150405") {
 				t.Errorf("invalid STK password field")
 			}
 			sawSTK = true
