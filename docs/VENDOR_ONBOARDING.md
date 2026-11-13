@@ -1,6 +1,6 @@
 # Vendor onboarding (Task 4.1)
 
-Apply migration `000004`, then start the server. The workflow links to the role
+Apply migrations through `000005`, then start the server. The workflow links to the role
 dashboard shell; the full Milestone 4 inventory/order/analytics tasks are separate.
 
 ## Workflow
@@ -34,7 +34,8 @@ to pending; a fresh submission and approval are still required.
 | `/api/vendor/application/submit` | POST | Owner; JSON `{}`; validates profile and both stored documents |
 | `/api/vendor/documents/{id}` | GET | Owner/admin; private attachment |
 | `/api/admin/vendor-applications/{id}` | GET | Administrator; application and document metadata |
-| `/api/admin/vendor-applications/{id}/review` | POST | Administrator; JSON `status` and `reason` (3–1000 bytes) |
+| `/api/admin/vendor-applications` | GET | Administrator; cursor pagination using `after_id`, 50 applications per page |
+| `/api/admin/vendor-applications/{id}/review` | POST | Administrator; JSON `status`, `reason` (3–1000 bytes), and `review_version` |
 | `/api/admin/vendors/{id}/status` | PATCH | Legacy route delegates to the same review policy |
 | `/api/customer/vendors?q=...` | GET | Customer; approved AND active only; name/city search, maximum 50 results |
 
@@ -47,6 +48,24 @@ approved business; use pending to lift suspension. Each decision records the
 administrator, reason and timestamp in `vendor_review_events`. An owner cannot
 review their own business even if their user later becomes an administrator.
 Application updates, uploads, submission and reviews serialize on the vendor row.
+
+The detail response includes a monotonic `review_version`. Every vendor-row
+update advances it, including document-upload invalidation, profile edits,
+resubmission and legacy updates. Decisions must send the version returned when
+the administrator opened the application. Under the vendor row lock, a changed
+version causes HTTP 409 without changing approval or recording a decision.
+Missing/nonpositive versions return 422. The legacy status endpoint requires the
+same version. The UI disables a stale decision until the administrator reopens
+and reviews the application. Audit events record the reviewed version; events
+created before migration 5 retain a null version instead of invented history.
+
+The review interface uses the paginated applications endpoint, not the legacy
+100-vendor dashboard overview. Its response contains `applications` and
+`next_after_id` (zero at the end). Pass that cursor for the next page. Previous
+and Next controls allow later applications to remain reachable regardless of
+how many already-reviewed vendors precede them. Migration 5's rollback removes
+the version column, trigger and audit version field; run it only with compatible
+application code.
 
 ## Private persistent files
 

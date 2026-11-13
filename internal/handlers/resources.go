@@ -193,6 +193,8 @@ func (h *Resources) resourceError(w http.ResponseWriter, err error) {
 		writeJSON(w, 422, map[string]string{"error": validation.Error()})
 	case errors.Is(err, errResourceConflict):
 		writeJSON(w, 409, map[string]string{"error": "Resource is in use or already exists."})
+	case errors.Is(err, services.ErrVendorReviewStale):
+		writeJSON(w, 409, map[string]string{"error": err.Error()})
 	case errors.As(err, &pgErr) && (pgErr.Code == "23503" || pgErr.Code == "23505"):
 		writeJSON(w, 409, map[string]string{"error": "Resource is in use or already exists."})
 	case errors.As(err, &pgErr) && (pgErr.Code == "23514" || pgErr.Code == "22003"):
@@ -327,8 +329,9 @@ func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, adminID
 		return nil, err
 	}
 	var input struct {
-		Status string `json:"status"`
-		Reason string `json:"reason"`
+		Status        string `json:"status"`
+		Reason        string `json:"reason"`
+		ReviewVersion int64  `json:"review_version"`
 	}
 	if !decodeJSON(w, r, &input) {
 		return nil, nil
@@ -341,8 +344,11 @@ func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, adminID
 	if len(strings.TrimSpace(input.Reason)) < 3 || h.onboarding == nil {
 		return nil, &resourceValidation{"Use the verification workflow with a review reason and complete application."}
 	}
-	v, err := h.onboarding.Review(r.Context(), adminID, id, input.Status, input.Reason)
+	v, err := h.onboarding.Review(r.Context(), adminID, id, input.Status, input.Reason, input.ReviewVersion)
 	if err != nil {
+		if errors.Is(err, services.ErrVendorReviewStale) {
+			return nil, err
+		}
 		if errors.Is(err, services.ErrVendorForbidden) {
 			return nil, errResourceForbidden
 		}

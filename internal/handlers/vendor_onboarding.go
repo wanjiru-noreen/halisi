@@ -5,6 +5,7 @@ import (
 	"errors"
 	"mime"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -57,6 +58,7 @@ func (h *VendorOnboarding) Routes(mux *http.ServeMux) {
 	mux.Handle("POST /api/vendor/documents/{type}", protect(middleware.RequirePermission(models.VendorResources, http.HandlerFunc(h.upload))))
 	mux.Handle("GET /api/vendor/documents/{id}", protect(http.HandlerFunc(h.download)))
 	mux.Handle("GET /api/admin/vendor-applications/{id}", admin(http.HandlerFunc(h.adminApplication)))
+	mux.Handle("GET /api/admin/vendor-applications", admin(http.HandlerFunc(h.listApplications)))
 	mux.Handle("POST /api/admin/vendor-applications/{id}/review", admin(http.HandlerFunc(h.review)))
 	mux.Handle("GET /api/customer/vendors", protect(middleware.RequirePermission(models.CustomerResources, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		search := strings.TrimSpace(r.URL.Query().Get("q"))
@@ -75,6 +77,8 @@ func (h *VendorOnboarding) Routes(mux *http.ServeMux) {
 func (h *VendorOnboarding) fail(w http.ResponseWriter, err error) {
 	var validation *services.ValidationError
 	switch {
+	case errors.Is(err, services.ErrVendorReviewStale):
+		writeJSON(w, 409, map[string]string{"error": err.Error()})
 	case errors.Is(err, services.ErrVendorForbidden), errors.Is(err, pgx.ErrNoRows):
 		writeJSON(w, 403, map[string]string{"error": "Vendor application or action is not permitted."})
 	case errors.Is(err, services.ErrVendorIncomplete):
@@ -226,13 +230,7 @@ func (h *VendorOnboarding) adminApplication(w http.ResponseWriter, r *http.Reque
 		h.fail(w, services.ErrVendorForbidden)
 		return
 	}
-	var v dbsqlc.Vendor
-	err = h.service.Pool.QueryRow(r.Context(), "SELECT id FROM vendors WHERE id=$1", id).Scan(&v.ID)
-	if err != nil {
-		h.fail(w, err)
-		return
-	}
-	v, err = h.queries.GetVendor(r.Context(), id)
+	v, err := h.queries.GetVendor(r.Context(), id)
 	if err != nil {
 		h.fail(w, err)
 		return
@@ -251,8 +249,9 @@ func (h *VendorOnboarding) review(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input struct {
-		Status string `json:"status"`
-		Reason string `json:"reason"`
+		Status        string `json:"status"`
+		Reason        string `json:"reason"`
+		ReviewVersion int64  `json:"review_version"`
 	}
 	if !decodeJSON(w, r, &input) {
 		return
@@ -260,10 +259,33 @@ func (h *VendorOnboarding) review(w http.ResponseWriter, r *http.Request) {
 	u, _ := middleware.CurrentUser(r.Context())
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
-	v, err := h.service.Review(ctx, u.ID, id, input.Status, strings.TrimSpace(input.Reason))
+	v, err := h.service.Review(ctx, u.ID, id, input.Status, strings.TrimSpace(input.Reason), input.ReviewVersion)
 	if err != nil {
 		h.fail(w, err)
 		return
 	}
 	writeJSON(w, 200, map[string]any{"application": v})
+}
+
+func (h *VendorOnboarding) listApplications(w http.ResponseWriter, r *http.Request) {
+	after := int64(0)
+	if raw := r.URL.Query().Get("after_id"); raw != "" {
+		var err error
+		after, err = strconv.ParseInt(raw, 10, 64)
+		if err != nil || after < 0 {
+			h.fail(w, &services.ValidationError{Message: "after_id must be a nonnegative integer."})
+			return
+		}
+	}
+	rows, err := h.queries.ListVendorApplications(r.Context(), after)
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	next := int64(0)
+	if len(rows) > 50 {
+		rows = rows[:50]
+		next = rows[len(rows)-1].ID
+	}
+	writeJSON(w, 200, map[string]any{"applications": rows, "next_after_id": next})
 }

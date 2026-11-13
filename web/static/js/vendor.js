@@ -5,7 +5,7 @@ async function api(path, method = "GET", body) {
   const multipart = body instanceof FormData;
   const response = await fetch(path, { method, credentials: "same-origin", cache: "no-store", headers: body && !multipart ? { "Content-Type": "application/json" } : {}, body: body ? (multipart ? body : JSON.stringify(body)) : undefined });
   if (response.status === 401) { window.location.replace("/login"); throw new Error("Please log in."); }
-  const result = await response.json(); if (!response.ok) throw new Error(result.error || "Request failed."); return result;
+  const result = await response.json(); if (!response.ok) { const error = new Error(result.error || "Request failed."); error.status = response.status; throw error; } return result;
 }
 function documents(rows) {
   const container = document.getElementById("documents"); container.replaceChildren();
@@ -35,7 +35,54 @@ if (page === "status") {
   document.getElementById("submit-application").addEventListener("click", async (event) => { const button = event.currentTarget; button.disabled = true; try { await api("/api/vendor/application/submit", "POST", {}); window.location.reload(); } catch (error) { fail(error); button.disabled = false; } });
 }
 if (page === "review") {
-  let current;
-  api("/api/admin/vendors").then(({ vendors }) => { for (const vendor of vendors) { const button = document.createElement("button"); button.className = "rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm"; button.textContent = `${vendor.name} · ${vendor.status}`; button.addEventListener("click", async () => { try { const result = await api(`/api/admin/vendor-applications/${vendor.id}`); current = vendor.id; document.getElementById("business-name").textContent = result.application.name; document.getElementById("business-details").textContent = JSON.stringify(result.application, null, 2); documents(result.documents); document.getElementById("review-panel").hidden = false; } catch (error) { fail(error); } }); document.getElementById("applications").append(button); } }).catch(fail);
-  document.getElementById("review-form").addEventListener("submit", async (event) => { event.preventDefault(); if (!current) return; const button = event.currentTarget.querySelector("button"); button.disabled = true; try { await api(`/api/admin/vendor-applications/${current}/review`, "POST", Object.fromEntries(new FormData(event.currentTarget))); window.location.reload(); } catch (error) { fail(error); button.disabled = false; } });
+  let current, reviewVersion, nextCursor = 0, selection = 0;
+  const cursors = [0];
+  const previous = document.getElementById("applications-previous");
+  const next = document.getElementById("applications-next");
+  const reviewButton = document.getElementById("review-form").querySelector("button");
+  async function openApplication(id) {
+    const ticket = ++selection;
+    current = undefined; reviewButton.disabled = true;
+    document.getElementById("review-panel").hidden = true;
+    try {
+      const result = await api(`/api/admin/vendor-applications/${id}`);
+      if (ticket !== selection) return;
+      errorBox.hidden = true;
+      current = result.application.id; reviewVersion = result.application.review_version;
+      document.getElementById("review-form").reset();
+      document.getElementById("business-name").textContent = result.application.name;
+      document.getElementById("business-details").textContent = JSON.stringify(result.application, null, 2);
+      documents(result.documents); document.getElementById("review-panel").hidden = false;
+      reviewButton.disabled = false;
+    } catch (error) { fail(error); }
+  }
+  async function loadPage() {
+    ++selection; current = undefined; reviewButton.disabled = true;
+    previous.disabled = true; next.disabled = true;
+    document.getElementById("review-panel").hidden = true;
+    document.getElementById("applications").replaceChildren();
+    try {
+      const result = await api(`/api/admin/vendor-applications?after_id=${cursors[cursors.length - 1]}`);
+      nextCursor = result.next_after_id;
+      for (const vendor of result.applications) {
+        const button = document.createElement("button");
+        button.className = "rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm";
+        button.textContent = `${vendor.name} · ${vendor.status}`;
+        button.addEventListener("click", () => openApplication(vendor.id));
+        document.getElementById("applications").append(button);
+      }
+      document.getElementById("applications-page").textContent = `Page ${cursors.length} · ${result.applications.length} applications`;
+    } catch (error) { nextCursor = 0; fail(error); }
+    previous.disabled = cursors.length === 1; next.disabled = !nextCursor;
+  }
+  previous.addEventListener("click", () => { if (cursors.length > 1) { cursors.pop(); loadPage(); } });
+  next.addEventListener("click", () => { if (nextCursor) { cursors.push(nextCursor); loadPage(); } });
+  loadPage();
+  document.getElementById("review-form").addEventListener("submit", async (event) => {
+    event.preventDefault(); if (!current) return;
+    reviewButton.disabled = true;
+    const decision = { ...Object.fromEntries(new FormData(event.currentTarget)), review_version: reviewVersion };
+    try { await api(`/api/admin/vendor-applications/${current}/review`, "POST", decision); window.location.reload(); }
+    catch (error) { fail(error); if (error.status === 409) current = undefined; reviewButton.disabled = !current; }
+  });
 }

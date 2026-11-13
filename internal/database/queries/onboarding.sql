@@ -35,7 +35,10 @@ UPDATE vendors SET status=$2,is_active=($2='approved'),review_reason=$3,reviewed
 UPDATE vendor_documents SET status=$2 WHERE vendor_id=$1;
 
 -- name: RecordVendorReview :exec
-INSERT INTO vendor_review_events(vendor_id,administrator_id,status,reason) VALUES($1,$2,$3,$4);
+INSERT INTO vendor_review_events(vendor_id,administrator_id,status,reason,review_version) VALUES($1,$2,$3,$4,$5);
+
+-- name: ListVendorApplications :many
+SELECT * FROM vendors WHERE id>sqlc.arg(after_id) ORDER BY id LIMIT 51;
 
 -- name: SearchApprovedVendors :many
 SELECT id,name,address,city,contact_email,contact_phone,operating_hours FROM vendors

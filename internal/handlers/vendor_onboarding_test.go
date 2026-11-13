@@ -176,8 +176,17 @@ func TestVendorOnboardingPostgres(t *testing.T) {
 	}
 	request("owner", "POST", "/api/vendor/application/submit", map[string]string{}, 422)
 	reviewPath := fmt.Sprintf("/api/admin/vendor-applications/%d/review", vendorID)
-	decision := func(status string) map[string]string {
-		return map[string]string{"status": status, "reason": "Reviewed business information and documents"}
+	decision := func(status string) map[string]any {
+		_, body := request("admin", "GET", fmt.Sprintf("/api/admin/vendor-applications/%d", vendorID), nil, 200)
+		var detail struct {
+			Application struct {
+				ReviewVersion int64 `json:"review_version"`
+			} `json:"application"`
+		}
+		if err := json.Unmarshal(body, &detail); err != nil {
+			t.Fatal(err)
+		}
+		return map[string]any{"status": status, "reason": "Reviewed business information and documents", "review_version": detail.Application.ReviewVersion}
 	}
 	request("owner", "POST", reviewPath, decision("approved"), 403)
 	request("admin", "POST", reviewPath, decision("approved"), 403)
@@ -256,6 +265,18 @@ func TestVendorOnboardingPostgres(t *testing.T) {
 	}
 	assertSearch(0)
 	assertSale(false)
+	request("admin", "POST", reviewPath, map[string]string{"status": "approved", "reason": "Missing submission version"}, 422)
+	stale := decision("approved")
+	upload("owner", "lpg_license", "replacement-after-review.pdf", "application/pdf", pdf, 201)
+	request("owner", "POST", "/api/vendor/application/submit", map[string]string{}, 200)
+	request("admin", "POST", reviewPath, stale, 409)
+	request("admin", "PATCH", fmt.Sprintf("/api/admin/vendors/%d/status", vendorID), stale, 409)
+	assertSearch(0)
+	assertSale(false)
+	var prematureReviews int
+	if err := pool.QueryRow(ctx, "SELECT count(*) FROM vendor_review_events WHERE vendor_id=$1", vendorID).Scan(&prematureReviews); err != nil || prematureReviews != 0 {
+		t.Fatal("stale decision created a review event")
+	}
 	request("admin", "POST", reviewPath, decision("rejected"), 200)
 	_, body = request("owner", "GET", "/api/vendor/application", nil, 200)
 	if !strings.Contains(string(body), "rejected") {
@@ -273,6 +294,11 @@ func TestVendorOnboardingPostgres(t *testing.T) {
 		t.Fatal("replaced private document was retained")
 	}
 	request("owner", "POST", "/api/vendor/application/submit", map[string]string{}, 200)
+	stale = decision("approved")
+	profile.Address = "Changed after the administrator opened the application"
+	request("owner", "PUT", "/api/vendor/application", profile, 200)
+	request("owner", "POST", "/api/vendor/application/submit", map[string]string{}, 200)
+	request("admin", "POST", reviewPath, stale, 409)
 	if _, err := pool.Exec(ctx, "UPDATE users SET role='admin' WHERE id=$1", ids["owner"]); err != nil {
 		t.Fatal(err)
 	}
@@ -306,4 +332,61 @@ func TestVendorOnboardingPostgres(t *testing.T) {
 	request("owner", "GET", "/vendor/verification", nil, 200)
 	request("admin", "GET", "/admin/vendor-verification", nil, 200)
 	request("owner", "GET", "/admin/vendor-verification", nil, 403)
+	// More than 100 vendors must remain reachable through the review list.
+	if _, err := pool.Exec(ctx, `WITH owners AS (
+INSERT INTO users(name,email,password_hash,role)
+SELECT 'Review fixture '||g,'review-fixture-'||g||'@example.invalid','test-only-hash','vendor' FROM generate_series(1,120) g RETURNING id
+) INSERT INTO vendors(user_id,name,address) SELECT id,'Later application '||id,'Nairobi' FROM owners`); err != nil {
+		t.Fatal(err)
+	}
+	seen := map[int64]bool{}
+	after := int64(0)
+	pages := 0
+	for {
+		_, body := request("admin", "GET", fmt.Sprintf("/api/admin/vendor-applications?after_id=%d", after), nil, 200)
+		var page struct {
+			Applications []struct {
+				ID int64 `json:"id"`
+			} `json:"applications"`
+			Next int64 `json:"next_after_id"`
+		}
+		if err := json.Unmarshal(body, &page); err != nil {
+			t.Fatal(err)
+		}
+		if len(page.Applications) > 50 {
+			t.Fatal("review page exceeded limit")
+		}
+		for _, v := range page.Applications {
+			if seen[v.ID] {
+				t.Fatal("duplicate application across pages")
+			}
+			seen[v.ID] = true
+		}
+		pages++
+		if pages > 4 {
+			t.Fatal("pagination did not terminate")
+		}
+		if page.Next == 0 {
+			break
+		}
+		if page.Next <= after {
+			t.Fatal("pagination cursor did not advance")
+		}
+		after = page.Next
+	}
+	if len(seen) != 121 || pages != 3 {
+		t.Fatalf("later applications unreachable: %d applications, %d pages", len(seen), pages)
+	}
+	var lastID int64
+	if err := pool.QueryRow(ctx, "SELECT max(id) FROM vendors").Scan(&lastID); err != nil {
+		t.Fatal(err)
+	}
+	if !seen[lastID] {
+		t.Fatal("latest application missing")
+	}
+	request("admin", "GET", fmt.Sprintf("/api/admin/vendor-applications/%d", lastID), nil, 200)
+	request("customer", "GET", "/api/admin/vendor-applications", nil, 403)
+	request("", "GET", "/api/admin/vendor-applications", nil, 401)
+	request("admin", "GET", "/api/admin/vendor-applications?after_id=-1", nil, 422)
+	request("admin", "GET", "/api/admin/vendor-applications?after_id=invalid", nil, 422)
 }

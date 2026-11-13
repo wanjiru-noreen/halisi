@@ -267,7 +267,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const createVendor = `-- name: CreateVendor :one
-INSERT INTO vendors (user_id, name, address) VALUES ($1, $2, $3) RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at
+INSERT INTO vendors (user_id, name, address) VALUES ($1, $2, $3) RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
 `
 
 type CreateVendorParams struct {
@@ -297,6 +297,7 @@ func (q *Queries) CreateVendor(ctx context.Context, arg CreateVendorParams) (Ven
 		&i.ReviewReason,
 		&i.ReviewedBy,
 		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }
@@ -344,7 +345,7 @@ func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
 }
 
 const getVendor = `-- name: GetVendor :one
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at FROM vendors WHERE id = $1
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version FROM vendors WHERE id = $1
 `
 
 func (q *Queries) GetVendor(ctx context.Context, id int64) (Vendor, error) {
@@ -368,6 +369,7 @@ func (q *Queries) GetVendor(ctx context.Context, id int64) (Vendor, error) {
 		&i.ReviewReason,
 		&i.ReviewedBy,
 		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }
@@ -586,7 +588,7 @@ func (q *Queries) SetInventory(ctx context.Context, arg SetInventoryParams) (Ven
 }
 
 const setVendorAddress = `-- name: SetVendorAddress :one
-UPDATE vendors SET address_id = $2, address = $3 WHERE id = $1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at
+UPDATE vendors SET address_id = $2, address = $3 WHERE id = $1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
 `
 
 type SetVendorAddressParams struct {
@@ -616,6 +618,7 @@ func (q *Queries) SetVendorAddress(ctx context.Context, arg SetVendorAddressPara
 		&i.ReviewReason,
 		&i.ReviewedBy,
 		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }

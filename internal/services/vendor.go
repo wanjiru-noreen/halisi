@@ -19,6 +19,7 @@ import (
 
 var ErrVendorForbidden = errors.New("vendor application or action is not permitted")
 var ErrVendorIncomplete = errors.New("complete the business profile and upload business registration and LPG licensing documents before submission or approval")
+var ErrVendorReviewStale = errors.New("application changed; reopen it and review the latest information and documents before deciding")
 
 type Hours struct {
 	Open   string `json:"open"`
@@ -234,8 +235,11 @@ func (s *VendorOnboarding) Submit(ctx context.Context, userID int64) (dbsqlc.Ven
 	}
 	return v, tx.Commit(ctx)
 }
-func (s *VendorOnboarding) Review(ctx context.Context, adminID, vendorID int64, status, reason string) (dbsqlc.Vendor, error) {
+func (s *VendorOnboarding) Review(ctx context.Context, adminID, vendorID int64, status, reason string, expectedVersion int64) (dbsqlc.Vendor, error) {
 	reason = strings.TrimSpace(reason)
+	if expectedVersion <= 0 {
+		return dbsqlc.Vendor{}, &ValidationError{Message: "Provide the review_version returned when opening the application."}
+	}
 	if (status != "approved" && status != "rejected" && status != "suspended" && status != "pending") || len(reason) < 3 || len(reason) > 1000 {
 		return dbsqlc.Vendor{}, &ValidationError{"Provide an allowed status and a review reason (3–1000 bytes)."}
 	}
@@ -258,6 +262,9 @@ func (s *VendorOnboarding) Review(ctx context.Context, adminID, vendorID int64, 
 	}
 	if v.UserID == adminID {
 		return v, ErrVendorForbidden
+	}
+	if v.ReviewVersion != expectedVersion {
+		return v, ErrVendorReviewStale
 	}
 	if status == "approved" || status == "rejected" {
 		if v.Status != "pending" || !v.SubmittedAt.Valid {
@@ -284,6 +291,10 @@ func (s *VendorOnboarding) Review(ctx context.Context, adminID, vendorID int64, 
 			return v, err
 		}
 		v.SubmittedAt = pgtype.Timestamptz{}
+		v, err = q.GetVendor(ctx, v.ID)
+		if err != nil {
+			return v, err
+		}
 	}
 	docStatus := "pending"
 	if status == "approved" {
@@ -295,7 +306,7 @@ func (s *VendorOnboarding) Review(ctx context.Context, adminID, vendorID int64, 
 	if err := q.ReviewDocuments(ctx, dbsqlc.ReviewDocumentsParams{VendorID: v.ID, Status: docStatus}); err != nil {
 		return v, err
 	}
-	if err := q.RecordVendorReview(ctx, dbsqlc.RecordVendorReviewParams{VendorID: v.ID, AdministratorID: adminID, Status: status, Reason: reason}); err != nil {
+	if err := q.RecordVendorReview(ctx, dbsqlc.RecordVendorReviewParams{VendorID: v.ID, AdministratorID: adminID, Status: status, Reason: reason, ReviewVersion: pgtype.Int8{Int64: expectedVersion, Valid: true}}); err != nil {
 		return v, err
 	}
 	return v, tx.Commit(ctx)

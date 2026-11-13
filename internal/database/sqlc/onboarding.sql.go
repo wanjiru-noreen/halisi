@@ -12,7 +12,7 @@ import (
 )
 
 const applicationByOwner = `-- name: ApplicationByOwner :one
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at FROM vendors WHERE user_id=$1
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version FROM vendors WHERE user_id=$1
 `
 
 func (q *Queries) ApplicationByOwner(ctx context.Context, userID int64) (Vendor, error) {
@@ -36,6 +36,7 @@ func (q *Queries) ApplicationByOwner(ctx context.Context, userID int64) (Vendor,
 		&i.ReviewReason,
 		&i.ReviewedBy,
 		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }
@@ -88,8 +89,51 @@ func (q *Queries) ApplicationDocuments(ctx context.Context, vendorID int64) ([]A
 	return items, nil
 }
 
+const listVendorApplications = `-- name: ListVendorApplications :many
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version FROM vendors WHERE id>$1 ORDER BY id LIMIT 51
+`
+
+func (q *Queries) ListVendorApplications(ctx context.Context, afterID int64) ([]Vendor, error) {
+	rows, err := q.db.Query(ctx, listVendorApplications, afterID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Vendor{}
+	for rows.Next() {
+		var i Vendor
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Name,
+			&i.Address,
+			&i.CreatedAt,
+			&i.Status,
+			&i.UpdatedAt,
+			&i.AddressID,
+			&i.ContactEmail,
+			&i.ContactPhone,
+			&i.City,
+			&i.OperatingHours,
+			&i.IsActive,
+			&i.SubmittedAt,
+			&i.ReviewReason,
+			&i.ReviewedBy,
+			&i.ReviewedAt,
+			&i.ReviewVersion,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockVendor = `-- name: LockVendor :one
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at FROM vendors WHERE id=$1 FOR UPDATE
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version FROM vendors WHERE id=$1 FOR UPDATE
 `
 
 func (q *Queries) LockVendor(ctx context.Context, id int64) (Vendor, error) {
@@ -113,19 +157,21 @@ func (q *Queries) LockVendor(ctx context.Context, id int64) (Vendor, error) {
 		&i.ReviewReason,
 		&i.ReviewedBy,
 		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }
 
 const recordVendorReview = `-- name: RecordVendorReview :exec
-INSERT INTO vendor_review_events(vendor_id,administrator_id,status,reason) VALUES($1,$2,$3,$4)
+INSERT INTO vendor_review_events(vendor_id,administrator_id,status,reason,review_version) VALUES($1,$2,$3,$4,$5)
 `
 
 type RecordVendorReviewParams struct {
-	VendorID        int64  `json:"vendor_id"`
-	AdministratorID int64  `json:"administrator_id"`
-	Status          string `json:"status"`
-	Reason          string `json:"reason"`
+	VendorID        int64       `json:"vendor_id"`
+	AdministratorID int64       `json:"administrator_id"`
+	Status          string      `json:"status"`
+	Reason          string      `json:"reason"`
+	ReviewVersion   pgtype.Int8 `json:"review_version"`
 }
 
 func (q *Queries) RecordVendorReview(ctx context.Context, arg RecordVendorReviewParams) error {
@@ -134,6 +180,7 @@ func (q *Queries) RecordVendorReview(ctx context.Context, arg RecordVendorReview
 		arg.AdministratorID,
 		arg.Status,
 		arg.Reason,
+		arg.ReviewVersion,
 	)
 	return err
 }
@@ -148,7 +195,7 @@ func (q *Queries) ResetApplicationReview(ctx context.Context, id int64) error {
 }
 
 const reviewApplication = `-- name: ReviewApplication :one
-UPDATE vendors SET status=$2,is_active=($2='approved'),review_reason=$3,reviewed_by=$4,reviewed_at=NOW() WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at
+UPDATE vendors SET status=$2,is_active=($2='approved'),review_reason=$3,reviewed_by=$4,reviewed_at=NOW() WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
 `
 
 type ReviewApplicationParams struct {
@@ -184,6 +231,7 @@ func (q *Queries) ReviewApplication(ctx context.Context, arg ReviewApplicationPa
 		&i.ReviewReason,
 		&i.ReviewedBy,
 		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }
@@ -206,7 +254,7 @@ const saveApplication = `-- name: SaveApplication :one
 INSERT INTO vendors(user_id,name,address,contact_email,contact_phone,city,operating_hours)
 VALUES($1,$2,$3,$4,$5,$6,$7)
 ON CONFLICT(user_id) DO UPDATE SET name=EXCLUDED.name,address=EXCLUDED.address,address_id=NULL,contact_email=EXCLUDED.contact_email,contact_phone=EXCLUDED.contact_phone,city=EXCLUDED.city,operating_hours=EXCLUDED.operating_hours,status='pending',is_active=FALSE,submitted_at=NULL,review_reason='',reviewed_by=NULL,reviewed_at=NULL
-WHERE vendors.status<>'suspended' RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at
+WHERE vendors.status<>'suspended' RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
 `
 
 type SaveApplicationParams struct {
@@ -248,6 +296,7 @@ func (q *Queries) SaveApplication(ctx context.Context, arg SaveApplicationParams
 		&i.ReviewReason,
 		&i.ReviewedBy,
 		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }
@@ -363,7 +412,7 @@ func (q *Queries) StoredVendorDocument(ctx context.Context, id int64) (VendorDoc
 }
 
 const submitApplication = `-- name: SubmitApplication :one
-UPDATE vendors SET status='pending',submitted_at=NOW(),is_active=FALSE,review_reason='',reviewed_by=NULL,reviewed_at=NULL WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at
+UPDATE vendors SET status='pending',submitted_at=NOW(),is_active=FALSE,review_reason='',reviewed_by=NULL,reviewed_at=NULL WHERE id=$1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version
 `
 
 func (q *Queries) SubmitApplication(ctx context.Context, id int64) (Vendor, error) {
@@ -387,6 +436,7 @@ func (q *Queries) SubmitApplication(ctx context.Context, id int64) (Vendor, erro
 		&i.ReviewReason,
 		&i.ReviewedBy,
 		&i.ReviewedAt,
+		&i.ReviewVersion,
 	)
 	return i, err
 }

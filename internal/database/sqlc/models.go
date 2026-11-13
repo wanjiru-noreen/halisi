@@ -155,6 +155,7 @@ type Vendor struct {
 	ReviewReason   string             `json:"review_reason"`
 	ReviewedBy     pgtype.Int8        `json:"reviewed_by"`
 	ReviewedAt     pgtype.Timestamptz `json:"reviewed_at"`
+	ReviewVersion  int64              `json:"review_version"`
 }
 
 type VendorDocument struct {
@@ -187,4 +188,5 @@ type VendorReviewEvent struct {
 	Status          string             `json:"status"`
 	Reason          string             `json:"reason"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	ReviewVersion   pgtype.Int8        `json:"review_version"`
 }
