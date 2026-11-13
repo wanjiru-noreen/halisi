@@ -51,6 +51,11 @@ async function loadDashboard() {
     document.getElementById("welcome").textContent = `Welcome back, ${user.name}.`;
     document.getElementById("order-count").textContent = String(orders.length);
     document.getElementById("address-count").textContent = String(addresses.length);
+    try {
+      const cart = JSON.parse(localStorage.getItem("halisi-cart") || "[]");
+      const cartCard = document.querySelector('a[href="/customer/cart"]');
+      if (cartCard && Array.isArray(cart)) cartCard.querySelector("p.text-xl").textContent = `${cart.reduce((sum, item) => sum + Math.max(0, Number(item.quantity) || 0), 0)} items in your cart`;
+    } catch { /* Ignore invalid local cart data and keep the default label. */ }
     const recent = document.getElementById("recent-orders");
     recent.replaceChildren();
     if (orders.length === 0) {

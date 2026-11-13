@@ -29,7 +29,36 @@ function productCard(product) {
   link.className = "mt-6 inline-flex items-center gap-2 text-sm font-bold text-emerald-800 hover:underline";
   link.href = `/customer/vendors?q=${encodeURIComponent(product.vendor_name)}`;
   link.textContent = "View vendor →";
-  card.append(mark, vendor, name, price, stock, link);
+  card.append(mark, vendor, name, price, stock);
+  if (product.available_quantity > 0) {
+    const add = document.createElement("button");
+    add.type = "button";
+    add.className = "mt-5 rounded-full bg-emerald-800 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-900";
+    add.textContent = "Add to cart";
+    add.addEventListener("click", () => {
+      let cart = [];
+      try { cart = JSON.parse(localStorage.getItem("halisi-cart") || "[]"); } catch { cart = []; }
+      if (!Array.isArray(cart)) cart = [];
+      const otherVendor = cart.some((item) => Number(item.vendor_id) !== Number(product.vendor_id));
+      if (otherVendor && !window.confirm("Your cart contains items from another vendor. Clear it and start a cart for this shop?")) return;
+      if (otherVendor) cart = [];
+      const existing = cart.find((item) => Number(item.product_id) === Number(product.id));
+      if (existing) {
+        if (Number(existing.quantity) >= Number(product.available_quantity)) {
+          add.textContent = "Maximum available added";
+          return;
+        }
+        existing.quantity = Number(existing.quantity) + 1;
+      } else {
+        cart.push({ product_id: product.id, vendor_id: product.vendor_id, name: product.name, vendor_name: product.vendor_name, price: product.price, quantity: 1, available_quantity: product.available_quantity });
+      }
+      localStorage.setItem("halisi-cart", JSON.stringify(cart));
+      add.textContent = "Added to cart ✓";
+      window.setTimeout(() => { add.textContent = "Add to cart"; }, 1400);
+    });
+    card.append(add);
+  }
+  card.append(link);
   return card;
 }
 
