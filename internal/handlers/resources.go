@@ -142,6 +142,11 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		v, e := h.queries.ManagementVendors(r.Context())
 		return map[string]any{"vendors": v}, e
 	})
+	mount("GET /api/vendor/commissions", models.VendorResources, h.vendorCommissions)
+	mount("POST /api/admin/vendors/{id}/settlements", models.Administration, h.createSettlement)
+	mount("PATCH /api/admin/vendors/{id}/commission-rate", models.Administration, h.updateCommissionRate)
+	mount("GET /api/admin/settlements", models.Administration, h.listSettlements)
+	mount("PATCH /api/admin/settlements/{id}", models.Administration, h.updateSettlement)
 	mount("PATCH /api/admin/vendors/{id}/status", models.Administration, h.vendorStatus)
 
 	mux.Handle("GET /dashboard", middleware.RequireAuth(h.auth.service, h.auth.cookieName, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -164,6 +169,219 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 	mux.Handle("GET /customer/addresses", h.protect(models.CustomerResources, webassets.Page("customer/addresses")))
 	mux.Handle("GET /customer/orders", h.protect(models.CustomerResources, webassets.Page("customer/orders")))
 	mux.Handle("GET /customer/orders/{id}", h.protect(models.CustomerResources, webassets.Page("customer/order-detail")))
+}
+
+func (h *Resources) updateCommissionRate(w http.ResponseWriter, r *http.Request, adminID int64) (any, error) {
+	vendorID, err := resourceID(r)
+	if err != nil {
+		return nil, err
+	}
+	var input struct {
+		RateBPS int32 `json:"rate_bps"`
+	}
+	if !decodeJSON(w, r, &input) {
+		return nil, nil
+	}
+	if input.RateBPS < 0 || input.RateBPS > 10000 {
+		return nil, &resourceValidation{"Commission rate must be between 0 and 10000 basis points."}
+	}
+	tx, err := h.pool.Begin(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(r.Context())
+	var previousRate int32
+	if err := tx.QueryRow(r.Context(), `SELECT commission_rate_bps FROM vendors WHERE id=$1 FOR UPDATE`, vendorID).Scan(&previousRate); err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(r.Context(), `UPDATE vendors SET commission_rate_bps=$2 WHERE id=$1`, vendorID, input.RateBPS); err != nil {
+		return nil, err
+	}
+	if previousRate != input.RateBPS {
+		if _, err := tx.Exec(r.Context(), `INSERT INTO vendor_commission_rate_changes(vendor_id,previous_rate_bps,new_rate_bps,changed_by) VALUES($1,$2,$3,$4)`, vendorID, previousRate, input.RateBPS, adminID); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		return nil, err
+	}
+	return map[string]any{"vendor_id": vendorID, "commission_rate_bps": input.RateBPS}, nil
+}
+
+func (h *Resources) listSettlements(w http.ResponseWriter, r *http.Request, _ int64) (any, error) {
+	rows, err := h.pool.Query(r.Context(), `SELECT s.id,s.vendor_id,v.name,s.amount::text,s.currency,s.status,COALESCE(s.payout_reference,''),COALESCE(s.failure_reason,''),s.created_by,COALESCE(s.updated_by,0),s.created_at,s.updated_at,s.completed_at FROM settlements s JOIN vendors v ON v.id=s.vendor_id ORDER BY s.id DESC LIMIT 100`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	settlements := make([]map[string]any, 0)
+	for rows.Next() {
+		var id, vendorID, createdBy, updatedBy int64
+		var vendorName, amount, currency, status, reference, failure string
+		var createdAt, updatedAt time.Time
+		var completedAt *time.Time
+		if err := rows.Scan(&id, &vendorID, &vendorName, &amount, &currency, &status, &reference, &failure, &createdBy, &updatedBy, &createdAt, &updatedAt, &completedAt); err != nil {
+			return nil, err
+		}
+		settlements = append(settlements, map[string]any{"id": id, "vendor_id": vendorID, "vendor_name": vendorName, "amount": amount, "currency": currency, "status": status, "payout_reference": reference, "failure_reason": failure, "created_by": createdBy, "updated_by": updatedBy, "created_at": createdAt, "updated_at": updatedAt, "completed_at": completedAt})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return map[string]any{"settlements": settlements}, nil
+}
+
+func (h *Resources) vendorCommissions(w http.ResponseWriter, r *http.Request, userID int64) (any, error) {
+	rows, err := h.pool.Query(r.Context(), `SELECT c.id,c.order_id,c.gross_amount::text,c.commission_rate_bps,c.commission_amount::text,c.vendor_amount::text,c.currency,COALESCE(s.status,'available'),c.created_at FROM order_commissions c JOIN vendors v ON v.id=c.vendor_id LEFT JOIN settlements s ON s.id=c.settlement_id WHERE v.user_id=$1 ORDER BY c.created_at DESC,c.id DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	commissions := make([]map[string]any, 0)
+	for rows.Next() {
+		var id, orderID int64
+		var gross, fee, net, currency, status string
+		var rate int32
+		var created time.Time
+		if err := rows.Scan(&id, &orderID, &gross, &rate, &fee, &net, &currency, &status, &created); err != nil {
+			return nil, err
+		}
+		commissions = append(commissions, map[string]any{"id": id, "order_id": orderID, "gross_amount": gross, "commission_rate_bps": rate, "commission_amount": fee, "vendor_amount": net, "currency": currency, "settlement_status": status, "created_at": created})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return map[string]any{"commissions": commissions}, nil
+}
+
+func (h *Resources) createSettlement(w http.ResponseWriter, r *http.Request, adminID int64) (any, error) {
+	vendorID, err := resourceID(r)
+	if err != nil {
+		return nil, err
+	}
+	ctx := r.Context()
+	tx, err := h.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	var vendorExists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM vendors WHERE id=$1)`, vendorID).Scan(&vendorExists); err != nil {
+		return nil, err
+	}
+	if !vendorExists {
+		return nil, pgx.ErrNoRows
+	}
+	rows, err := tx.Query(ctx, `SELECT c.id,c.vendor_amount::text,c.currency FROM order_commissions c JOIN deliveries d ON d.order_id=c.order_id JOIN payments p ON p.id=c.payment_id WHERE c.vendor_id=$1 AND c.settlement_id IS NULL AND d.status='delivered' AND p.status='completed' ORDER BY c.created_at,c.id FOR UPDATE OF c`, vendorID)
+	if err != nil {
+		return nil, err
+	}
+	var commissionIDs []int64
+	var amountCents int64
+	currency := ""
+	for rows.Next() {
+		var id int64
+		var amountText, rowCurrency string
+		if err := rows.Scan(&id, &amountText, &rowCurrency); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		cents, err := decimalCents(amountText)
+		if err != nil || cents < 0 {
+			rows.Close()
+			return nil, errors.New("invalid commission amount")
+		}
+		if currency != "" && currency != rowCurrency {
+			rows.Close()
+			return nil, &resourceValidation{"A settlement cannot combine different currencies."}
+		}
+		currency = rowCurrency
+		if amountCents > int64(^uint64(0)>>1)-cents {
+			rows.Close()
+			return nil, &resourceValidation{"Settlement amount is too large."}
+		}
+		amountCents += cents
+		commissionIDs = append(commissionIDs, id)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return nil, err
+	}
+	rows.Close()
+	if len(commissionIDs) == 0 || amountCents == 0 {
+		return nil, errResourceConflict
+	}
+	var settlementID int64
+	err = tx.QueryRow(ctx, `INSERT INTO settlements(vendor_id,amount,currency,created_by) VALUES($1,$2,$3,$4) RETURNING id`, vendorID, centsDecimal(amountCents), currency, adminID).Scan(&settlementID)
+	if err != nil {
+		return nil, err
+	}
+	tag, err := tx.Exec(ctx, `UPDATE order_commissions SET settlement_id=$1 WHERE id=ANY($2::bigint[]) AND settlement_id IS NULL`, settlementID, commissionIDs)
+	if err != nil {
+		return nil, err
+	}
+	if int(tag.RowsAffected()) != len(commissionIDs) {
+		return nil, errResourceConflict
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return map[string]any{"settlement": map[string]any{"id": settlementID, "vendor_id": vendorID, "amount": centsDecimal(amountCents), "currency": currency, "status": "pending", "commission_count": len(commissionIDs)}}, nil
+}
+
+func (h *Resources) updateSettlement(w http.ResponseWriter, r *http.Request, adminID int64) (any, error) {
+	_ = adminID
+	settlementID, err := resourceID(r)
+	if err != nil {
+		return nil, err
+	}
+	var input struct {
+		Status          string `json:"status"`
+		PayoutReference string `json:"payout_reference"`
+		FailureReason   string `json:"failure_reason"`
+	}
+	if !decodeJSON(w, r, &input) {
+		return nil, nil
+	}
+	input.PayoutReference = strings.TrimSpace(input.PayoutReference)
+	input.FailureReason = strings.TrimSpace(input.FailureReason)
+	if input.Status != "paid" && input.Status != "failed" {
+		return nil, &resourceValidation{"Settlement status must be paid or failed."}
+	}
+	if input.Status == "paid" && !requestKeyPattern.MatchString(input.PayoutReference) {
+		return nil, &resourceValidation{"A valid payout reference is required."}
+	}
+	if input.Status == "failed" && (len(input.FailureReason) < 3 || len(input.FailureReason) > 500) {
+		return nil, &resourceValidation{"Provide a failure reason between 3 and 500 characters."}
+	}
+	ctx := r.Context()
+	tx, err := h.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	var status string
+	if err := tx.QueryRow(ctx, `SELECT status FROM settlements WHERE id=$1 FOR UPDATE`, settlementID).Scan(&status); err != nil {
+		return nil, err
+	}
+	if status != "pending" {
+		return nil, errResourceConflict
+	}
+	if input.Status == "paid" {
+		_, err = tx.Exec(ctx, `UPDATE settlements SET status='paid',payout_reference=$2,completed_at=NOW(),updated_by=$3,updated_at=NOW() WHERE id=$1 AND status='pending'`, settlementID, input.PayoutReference, adminID)
+	} else {
+		_, err = tx.Exec(ctx, `UPDATE settlements SET status='failed',failure_reason=$2,updated_by=$3,updated_at=NOW() WHERE id=$1 AND status='pending'`, settlementID, input.FailureReason, adminID)
+		if err == nil {
+			_, err = tx.Exec(ctx, `UPDATE order_commissions SET settlement_id=NULL WHERE settlement_id=$1`, settlementID)
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return map[string]any{"settlement": map[string]any{"id": settlementID, "status": input.Status}}, nil
 }
 
 type customerOrderView struct {

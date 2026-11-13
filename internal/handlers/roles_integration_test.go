@@ -370,6 +370,8 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if fakeMPesa.calls != 1 {
 		t.Fatal("duplicate payment requests initiated another STK prompt")
 	}
+	ratePath := fmt.Sprintf("/api/admin/vendors/%d/commission-rate", v1)
+	requestWithHeaders("admin", "PATCH", ratePath, map[string]int{"rate_bps": 1250}, nil, 200)
 	callbackToken := strings.TrimPrefix(fakeMPesa.callbackURL, "https://halisi.example/api/mpesa/callback/")
 	callback := map[string]any{"Body": map[string]any{"stkCallback": map[string]any{
 		"MerchantRequestID": "merchant-1", "CheckoutRequestID": "checkout-1", "ResultCode": 0, "ResultDesc": "Success",
@@ -393,6 +395,51 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	}
 	if err := pool.QueryRow(ctx, "SELECT status FROM orders WHERE id=$1", checkedOut.Order.ID).Scan(&orderStatus); err != nil || orderStatus != "confirmed" {
 		t.Fatal("successful M-Pesa callback did not confirm the order")
+	}
+	var gross, fee, vendorShare string
+	var commissionRate int32
+	if err := pool.QueryRow(ctx, "SELECT gross_amount::text,commission_rate_bps,commission_amount::text,vendor_amount::text FROM order_commissions WHERE order_id=$1", checkedOut.Order.ID).Scan(&gross, &commissionRate, &fee, &vendorShare); err != nil || gross != "2000.00" || commissionRate != 1000 || fee != "200.00" || vendorShare != "1800.00" {
+		t.Fatal("successful payment did not create an auditable commission entry")
+	}
+	requestWithHeaders("v1", "PATCH", ratePath, map[string]int{"rate_bps": 1250}, nil, 403)
+	requestWithHeaders("admin", "PATCH", ratePath, map[string]int{"rate_bps": 10001}, nil, 422)
+	requestWithHeaders("admin", "PATCH", ratePath, map[string]int{"rate_bps": 1500}, nil, 200)
+	if err := pool.QueryRow(ctx, "SELECT commission_rate_bps FROM order_commissions WHERE order_id=$1", checkedOut.Order.ID).Scan(&commissionRate); err != nil || commissionRate != 1000 {
+		t.Fatal("commission rate change rewrote the historical commission snapshot")
+	}
+	if _, err := pool.Exec(ctx, "UPDATE deliveries SET status='delivered',delivered_at=NOW() WHERE order_id=$1", checkedOut.Order.ID); err != nil {
+		t.Fatal(err)
+	}
+	settlementPath := fmt.Sprintf("/api/admin/vendors/%d/settlements", v1)
+	requestWithHeaders("c1", "POST", settlementPath, nil, nil, 403)
+	_, body = requestWithHeaders("admin", "POST", settlementPath, nil, nil, 200)
+	var createdSettlement struct {
+		Settlement struct {
+			ID     int64  `json:"id"`
+			Amount string `json:"amount"`
+			Status string `json:"status"`
+		} `json:"settlement"`
+	}
+	if err := json.Unmarshal(body, &createdSettlement); err != nil || createdSettlement.Settlement.Amount != "1800.00" || createdSettlement.Settlement.Status != "pending" {
+		t.Fatal("settlement did not capture the eligible vendor balance")
+	}
+	requestWithHeaders("admin", "POST", settlementPath, nil, nil, 409)
+	settlementUpdatePath := fmt.Sprintf("/api/admin/settlements/%d", createdSettlement.Settlement.ID)
+	requestWithHeaders("admin", "PATCH", settlementUpdatePath, map[string]string{"status": "failed", "failure_reason": "Bank transfer returned an error"}, nil, 200)
+	_, body = requestWithHeaders("admin", "POST", settlementPath, nil, nil, 200)
+	if err := json.Unmarshal(body, &createdSettlement); err != nil || createdSettlement.Settlement.Amount != "1800.00" {
+		t.Fatal("failed settlement did not release commissions for retry")
+	}
+	settlementUpdatePath = fmt.Sprintf("/api/admin/settlements/%d", createdSettlement.Settlement.ID)
+	requestWithHeaders("admin", "PATCH", settlementUpdatePath, map[string]string{"status": "paid", "payout_reference": "BATCH-2026-001"}, nil, 200)
+	requestWithHeaders("admin", "PATCH", settlementUpdatePath, map[string]string{"status": "paid", "payout_reference": "BATCH-2026-001"}, nil, 409)
+	_, body = requestWithHeaders("admin", "GET", "/api/admin/settlements", nil, nil, 200)
+	if !bytes.Contains(body, []byte(`"payout_reference":"BATCH-2026-001"`)) || !bytes.Contains(body, []byte(`"failure_reason":"Bank transfer returned an error"`)) {
+		t.Fatal("administrator settlement history omitted payout or failure audit details")
+	}
+	_, body = requestWithHeaders("v1", "GET", "/api/vendor/commissions", nil, nil, 200)
+	if !bytes.Contains(body, []byte(`"settlement_status":"paid"`)) {
+		t.Fatal("vendor commission ledger did not show the paid settlement")
 	}
 	_, body = request("c1", "GET", fmt.Sprintf("/api/customer/payments/%d", initiated.Payment.ID), nil, 200)
 	if bytes.Contains(body, []byte("callback_token_hash")) || bytes.Contains(body, []byte("request_key")) || bytes.Contains(body, []byte("phone_number")) {
