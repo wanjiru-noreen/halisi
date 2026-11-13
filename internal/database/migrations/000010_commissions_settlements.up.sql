@@ -4,6 +4,11 @@ ALTER TABLE vendors ADD COLUMN commission_rate_bps INTEGER NOT NULL DEFAULT 1000
     CHECK (commission_rate_bps BETWEEN 0 AND 10000);
 ALTER TABLE payments ADD COLUMN commission_rate_bps INTEGER
     CHECK (commission_rate_bps BETWEEN 0 AND 10000);
+UPDATE payments p
+SET commission_rate_bps=v.commission_rate_bps
+FROM orders o JOIN vendors v ON v.id=o.vendor_id
+WHERE p.order_id=o.id AND p.provider='mpesa'
+  AND p.status IN ('pending','processing') AND p.commission_rate_bps IS NULL;
 CREATE TABLE vendor_commission_rate_changes (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     vendor_id BIGINT NOT NULL REFERENCES vendors(id),

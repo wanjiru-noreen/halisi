@@ -96,8 +96,16 @@ func TestMigrationsPostgres(t *testing.T) {
 		t.Fatal(err)
 	}
 	testCoreSchema(t, ctx, db, fixture)
+	if err := m.Steps(3); err != nil {
+		t.Fatalf("delivery, M-Pesa and location migrations failed: %v", err)
+	}
+	activePaymentID := insertID(t, ctx, db, `INSERT INTO payments(order_id,amount,status,provider,request_key,phone_number,callback_token_hash) VALUES($1,100,'processing','mpesa','pre-migration-active-attempt','254712345678',repeat('b',64)) RETURNING id`, fixture.order)
 	if err := m.Up(); err != nil {
 		t.Fatalf("core schema upgrade failed: %v", err)
+	}
+	var frozenRate int32
+	if err := db.QueryRow(ctx, `SELECT commission_rate_bps FROM payments WHERE id=$1`, activePaymentID).Scan(&frozenRate); err != nil || frozenRate != 1000 {
+		t.Fatal("migration did not freeze the rate for an active M-Pesa attempt", err)
 	}
 	version, dirty, err := m.Version()
 	if err != nil || version != 10 || dirty {

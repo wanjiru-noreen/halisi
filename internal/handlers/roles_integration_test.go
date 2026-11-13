@@ -413,6 +413,17 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if err := pool.QueryRow(ctx, "SELECT status FROM deliveries WHERE id=$1", deliveredID).Scan(&orderStatus); err != nil || orderStatus != "delivered" {
 		t.Fatal("test delivery did not reach its delivered state", err)
 	}
+	zeroShareOrder := id("INSERT INTO orders(customer_id,vendor_id,address_id,status,total,delivery_address) VALUES($1,$2,$3,'confirmed',100,'Zero share') RETURNING id", users["c1"], v1, a1)
+	zeroSharePayment := id("INSERT INTO payments(order_id,amount,status) VALUES($1,100,'completed') RETURNING id", zeroShareOrder)
+	if _, err := pool.Exec(ctx, `INSERT INTO order_commissions(order_id,payment_id,vendor_id,gross_amount,commission_rate_bps,commission_amount,vendor_amount,currency) VALUES($1,$2,$3,100,10000,100,0,'KES')`, zeroShareOrder, zeroSharePayment, v1); err != nil {
+		t.Fatal(err)
+	}
+	zeroShareDelivery := id("INSERT INTO deliveries(order_id) VALUES($1) RETURNING id", zeroShareOrder)
+	if _, err := pool.Exec(ctx, "UPDATE deliveries SET status='assigned',rider_id=$2 WHERE id=$1", zeroShareDelivery, users["r1"]); err != nil {
+		t.Fatal(err)
+	}
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", zeroShareDelivery), map[string]string{"status": "picked_up"}, 200)
+	request("r1", "PATCH", fmt.Sprintf("/api/rider/deliveries/%d", zeroShareDelivery), map[string]string{"status": "delivered"}, 200)
 	settlementPath := fmt.Sprintf("/api/admin/vendors/%d/settlements", v1)
 	requestWithHeaders("c1", "POST", settlementPath, nil, nil, 403)
 	_, body = requestWithHeaders("admin", "POST", settlementPath, nil, nil, 200)
@@ -441,8 +452,8 @@ func TestRoleResourcesPostgres(t *testing.T) {
 		t.Fatal("administrator settlement history omitted payout, failed-attempt or item audit details")
 	}
 	_, body = requestWithHeaders("v1", "GET", "/api/vendor/commissions", nil, nil, 200)
-	if !bytes.Contains(body, []byte(`"settlement_status":"paid"`)) {
-		t.Fatal("vendor commission ledger did not show the paid settlement")
+	if !bytes.Contains(body, []byte(`"settlement_status":"paid"`)) || !bytes.Contains(body, []byte(`"settlement_status":"not_payable"`)) {
+		t.Fatal("vendor commission ledger did not show paid and zero-share states")
 	}
 	_, body = request("c1", "GET", fmt.Sprintf("/api/customer/payments/%d", initiated.Payment.ID), nil, 200)
 	if bytes.Contains(body, []byte("callback_token_hash")) || bytes.Contains(body, []byte("request_key")) || bytes.Contains(body, []byte("phone_number")) {

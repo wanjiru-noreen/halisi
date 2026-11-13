@@ -234,7 +234,7 @@ func (h *Resources) listSettlements(w http.ResponseWriter, r *http.Request, _ in
 }
 
 func (h *Resources) vendorCommissions(w http.ResponseWriter, r *http.Request, userID int64) (any, error) {
-	rows, err := h.pool.Query(r.Context(), `SELECT c.id,c.order_id,c.gross_amount::text,c.commission_rate_bps,c.commission_amount::text,c.vendor_amount::text,c.currency,COALESCE(s.status,'available'),c.created_at FROM order_commissions c JOIN vendors v ON v.id=c.vendor_id LEFT JOIN settlements s ON s.id=c.settlement_id WHERE v.user_id=$1 ORDER BY c.created_at DESC,c.id DESC`, userID)
+	rows, err := h.pool.Query(r.Context(), `SELECT c.id,c.order_id,c.gross_amount::text,c.commission_rate_bps,c.commission_amount::text,c.vendor_amount::text,c.currency,CASE WHEN c.vendor_amount=0 THEN 'not_payable' ELSE COALESCE(s.status,'available') END,c.created_at FROM order_commissions c JOIN vendors v ON v.id=c.vendor_id LEFT JOIN settlements s ON s.id=c.settlement_id WHERE v.user_id=$1 ORDER BY c.created_at DESC,c.id DESC`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func (h *Resources) createSettlement(w http.ResponseWriter, r *http.Request, adm
 	if !vendorExists {
 		return nil, pgx.ErrNoRows
 	}
-	rows, err := tx.Query(ctx, `SELECT c.id,c.vendor_amount::text,c.currency FROM order_commissions c JOIN deliveries d ON d.order_id=c.order_id JOIN payments p ON p.id=c.payment_id WHERE c.vendor_id=$1 AND c.settlement_id IS NULL AND d.status='delivered' AND p.status='completed' ORDER BY c.created_at,c.id FOR UPDATE OF c`, vendorID)
+	rows, err := tx.Query(ctx, `SELECT c.id,c.vendor_amount::text,c.currency FROM order_commissions c JOIN deliveries d ON d.order_id=c.order_id JOIN payments p ON p.id=c.payment_id WHERE c.vendor_id=$1 AND c.vendor_amount>0 AND c.settlement_id IS NULL AND d.status='delivered' AND p.status='completed' ORDER BY c.created_at,c.id FOR UPDATE OF c`, vendorID)
 	if err != nil {
 		return nil, err
 	}
