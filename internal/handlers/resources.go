@@ -338,8 +338,9 @@ func (h *Resources) updateShop(w http.ResponseWriter, r *http.Request, id int64)
 }
 
 type productInput struct {
-	Name  string `json:"name"`
-	Price string `json:"price"`
+	Name     string `json:"name"`
+	Price    string `json:"price"`
+	Quantity *int32 `json:"quantity"`
 }
 
 func (input *productInput) numeric() (pgtype.Numeric, error) {
@@ -358,12 +359,30 @@ func (h *Resources) createProduct(w http.ResponseWriter, r *http.Request, id int
 	if !decodeJSON(w, r, &input) {
 		return nil, nil
 	}
+	if input.Quantity == nil || *input.Quantity < 1 || *input.Quantity > 100000 {
+		return nil, &resourceValidation{"Initial stock quantity must be between 1 and 100000."}
+	}
 	price, err := input.numeric()
 	if err != nil {
 		return nil, err
 	}
-	v, err := h.queries.CreateOwnedProduct(r.Context(), dbsqlc.CreateOwnedProductParams{UserID: id, Name: input.Name, Price: price})
-	return map[string]any{"product": v}, err
+	tx, err := h.pool.Begin(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(r.Context())
+	q := h.queries.WithTx(tx)
+	product, err := q.CreateOwnedProduct(r.Context(), dbsqlc.CreateOwnedProductParams{UserID: id, Name: input.Name, Price: price})
+	if err != nil {
+		return nil, err
+	}
+	if _, err := q.SetInventory(r.Context(), dbsqlc.SetInventoryParams{ProductID: product.ID, VendorID: product.VendorID, Quantity: *input.Quantity}); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		return nil, err
+	}
+	return map[string]any{"product": product}, nil
 }
 func (h *Resources) updateProduct(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
 	id, err := resourceID(r)
@@ -378,8 +397,28 @@ func (h *Resources) updateProduct(w http.ResponseWriter, r *http.Request, owner 
 	if err != nil {
 		return nil, err
 	}
-	v, err := h.queries.UpdateOwnedProduct(r.Context(), dbsqlc.UpdateOwnedProductParams{ID: id, UserID: owner, Name: input.Name, Price: price})
-	return map[string]any{"product": v}, err
+	if input.Quantity != nil && (*input.Quantity < 0 || *input.Quantity > 100000) {
+		return nil, &resourceValidation{"Stock quantity must be between 0 and 100000."}
+	}
+	tx, err := h.pool.Begin(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(r.Context())
+	q := h.queries.WithTx(tx)
+	product, err := q.UpdateOwnedProduct(r.Context(), dbsqlc.UpdateOwnedProductParams{ID: id, UserID: owner, Name: input.Name, Price: price})
+	if err != nil {
+		return nil, err
+	}
+	if input.Quantity != nil {
+		if _, err := q.SetInventory(r.Context(), dbsqlc.SetInventoryParams{ProductID: product.ID, VendorID: product.VendorID, Quantity: *input.Quantity}); err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		return nil, err
+	}
+	return map[string]any{"product": product}, nil
 }
 func (h *Resources) deleteProduct(w http.ResponseWriter, r *http.Request, owner int64) (any, error) {
 	id, err := resourceID(r)
@@ -411,8 +450,38 @@ func (h *Resources) updateDelivery(w http.ResponseWriter, r *http.Request, owner
 	if input.Status != "picked_up" && input.Status != "delivered" && input.Status != "failed" {
 		return nil, &resourceValidation{"Unsupported delivery transition."}
 	}
-	v, err := h.queries.UpdateAssignedDelivery(r.Context(), dbsqlc.UpdateAssignedDeliveryParams{ID: id, RiderID: pgtype.Int8{Int64: owner, Valid: true}, Status: input.Status})
-	return map[string]any{"delivery": v}, err
+	tx, err := h.pool.Begin(r.Context())
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(r.Context())
+	q := h.queries.WithTx(tx)
+	delivery, err := q.UpdateAssignedDelivery(r.Context(), dbsqlc.UpdateAssignedDeliveryParams{ID: id, RiderID: pgtype.Int8{Int64: owner, Valid: true}, Status: input.Status})
+	if err != nil {
+		return nil, err
+	}
+	if input.Status == "failed" {
+		var itemCount int64
+		if err := tx.QueryRow(r.Context(), `SELECT count(*) FROM order_items WHERE order_id=$1`, delivery.OrderID).Scan(&itemCount); err != nil {
+			return nil, err
+		}
+		tag, err := tx.Exec(r.Context(), `
+			UPDATE vendor_inventory vi
+			SET reserved_quantity=vi.reserved_quantity-oi.quantity
+			FROM order_items oi
+			WHERE oi.order_id=$1 AND vi.product_id=oi.product_id
+			  AND vi.reserved_quantity >= oi.quantity`, delivery.OrderID)
+		if err != nil {
+			return nil, err
+		}
+		if tag.RowsAffected() != itemCount {
+			return nil, errors.New("could not reconcile reserved inventory for failed delivery")
+		}
+	}
+	if err := tx.Commit(r.Context()); err != nil {
+		return nil, err
+	}
+	return map[string]any{"delivery": delivery}, nil
 }
 func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, _ int64) (any, error) {
 	id, err := resourceID(r)
