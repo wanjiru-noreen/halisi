@@ -61,7 +61,12 @@ func TestDarajaInitiate(t *testing.T) {
 		t.Fatal(err)
 	}
 	client.BaseURL = server.URL
-	response, err := client.Initiate(context.Background(), STKRequest{
+	ctx := context.Background()
+	token, err := client.Authorize(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := client.Initiate(ctx, token, STKRequest{
 		ShortCode: "123456", Passkey: "passkey", TransactionType: "CustomerPayBillOnline",
 		PhoneNumber: "254712345678", Amount: 2450, AccountReference: "HALISI-1", Description: "Order 1",
 		CallbackURL: "https://halisi.example/api/mpesa/callback/token",
@@ -88,7 +93,11 @@ func TestDarajaRejectsUnacceptedSTKRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 	client.BaseURL = server.URL
-	_, err = client.Initiate(context.Background(), STKRequest{ShortCode: "123456", Passkey: "pass", TransactionType: "CustomerPayBillOnline", PhoneNumber: "254712345678", Amount: 10, CallbackURL: "https://halisi.example/callback"})
+	token, err := client.Authorize(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.Initiate(context.Background(), token, STKRequest{ShortCode: "123456", Passkey: "pass", TransactionType: "CustomerPayBillOnline", PhoneNumber: "254712345678", Amount: 10, CallbackURL: "https://halisi.example/callback"})
 	if err == nil {
 		t.Fatal("expected rejected STK request to return an error")
 	}
@@ -110,7 +119,7 @@ func TestDarajaMarksOAuthFailureAsNotSubmitted(t *testing.T) {
 		t.Fatal(err)
 	}
 	client.BaseURL = server.URL
-	_, err = client.Initiate(context.Background(), STKRequest{ShortCode: "123456", Passkey: "pass", TransactionType: "CustomerPayBillOnline", PhoneNumber: "254712345678", Amount: 10, CallbackURL: "https://halisi.example/callback"})
+	_, err = client.Authorize(context.Background())
 	if !errors.Is(err, ErrSTKNotSubmitted) {
 		t.Fatalf("OAuth failure error = %v, want ErrSTKNotSubmitted", err)
 	}

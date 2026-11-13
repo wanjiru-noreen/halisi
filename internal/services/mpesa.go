@@ -33,7 +33,8 @@ type STKResponse struct {
 }
 
 type STKClient interface {
-	Initiate(context.Context, STKRequest) (STKResponse, error)
+	Authorize(context.Context) (string, error)
+	Initiate(context.Context, string, STKRequest) (STKResponse, error)
 }
 
 var ErrSTKRejected = errors.New("M-Pesa rejected the payment request")
@@ -77,11 +78,15 @@ func NewDaraja(environment, key, secret string, client *http.Client) (*Daraja, e
 	return &Daraja{BaseURL: baseURL, ConsumerKey: key, ConsumerSecret: secret, HTTPClient: client}, nil
 }
 
-func (d *Daraja) Initiate(ctx context.Context, input STKRequest) (STKResponse, error) {
+func (d *Daraja) Authorize(ctx context.Context) (string, error) {
 	token, err := d.accessToken(ctx)
 	if err != nil {
-		return STKResponse{}, fmt.Errorf("%w: %v", ErrSTKNotSubmitted, err)
+		return "", fmt.Errorf("%w: %v", ErrSTKNotSubmitted, err)
 	}
+	return token, nil
+}
+
+func (d *Daraja) Initiate(ctx context.Context, token string, input STKRequest) (STKResponse, error) {
 	timestamp := darajaTimestamp(time.Now())
 	password := base64.StdEncoding.EncodeToString([]byte(input.ShortCode + input.Passkey + timestamp))
 	body := map[string]any{

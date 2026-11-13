@@ -77,9 +77,11 @@ async function loadOrder() {
     if (order.status === "pending" && availability.enabled) {
       paymentPanel.hidden = false;
       const paymentStatus = document.getElementById("payment-status");
-      const processing = currentPayment && ["pending", "processing"].includes(currentPayment.status);
+      const processing = currentPayment?.status === "processing";
       paymentStatus.textContent = processing
         ? "Payment is processing. Complete the prompt on your phone if it arrived, then refresh this page to see the result."
+        : currentPayment?.status === "pending"
+          ? "The payment prompt has not reached M-Pesa yet. Submit again to resume this payment attempt."
         : currentPayment?.status === "failed"
           ? "The previous payment attempt failed. You can send a new payment prompt."
           : "Pay this order securely using M-Pesa. The amount is taken from the order total.";

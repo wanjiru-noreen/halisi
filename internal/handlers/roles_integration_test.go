@@ -24,12 +24,17 @@ import (
 )
 
 type captureMPesa struct {
-	calls       int
-	callbackURL string
-	err         error
+	calls        int
+	callbackURL  string
+	err          error
+	authorizeErr error
 }
 
-func (m *captureMPesa) Initiate(_ context.Context, input services.STKRequest) (services.STKResponse, error) {
+func (m *captureMPesa) Authorize(_ context.Context) (string, error) {
+	return "test-token", m.authorizeErr
+}
+
+func (m *captureMPesa) Initiate(_ context.Context, _ string, input services.STKRequest) (services.STKResponse, error) {
 	m.calls++
 	m.callbackURL = input.CallbackURL
 	if m.err != nil {
@@ -399,7 +404,7 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if err := pool.QueryRow(ctx, "SELECT status FROM payments WHERE id=$1", initiated.Payment.ID).Scan(&paymentStatus); err != nil || paymentStatus != "failed" {
 		t.Fatal("failed M-Pesa callback did not fail the payment")
 	}
-	fakeMPesa.err = services.ErrSTKNotSubmitted
+	fakeMPesa.authorizeErr = services.ErrSTKNotSubmitted
 	_, body = requestWithHeaders("c1", "POST", failurePaymentPath, paymentBody, map[string]string{"Idempotency-Key": "preflight-payment-1"}, 502)
 	if err := json.Unmarshal(body, &initiated); err != nil {
 		t.Fatal(err)
@@ -407,10 +412,19 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if err := pool.QueryRow(ctx, "SELECT status FROM payments WHERE id=$1", initiated.Payment.ID).Scan(&paymentStatus); err != nil || paymentStatus != "failed" {
 		t.Fatal("pre-STK failure left payment attempt active")
 	}
-	fakeMPesa.err = nil
+	fakeMPesa.authorizeErr = nil
 	requestWithHeaders("c1", "POST", failurePaymentPath, paymentBody, map[string]string{"Idempotency-Key": "preflight-payment-retry"}, 202)
-	if fakeMPesa.calls != 4 {
+	if fakeMPesa.calls != 3 {
 		t.Fatal("customer could not retry after pre-STK failure")
+	}
+	recoveryOrder := id("INSERT INTO orders(customer_id,vendor_id,total,delivery_address) VALUES($1,$2,1000,'Recovery test') RETURNING id", users["c1"], v1)
+	if _, err := pool.Exec(ctx, `INSERT INTO payments(order_id,amount,status,provider,request_key,phone_number,callback_token_hash) VALUES($1,1000,'pending','mpesa','stranded-attempt','254712345678','old-hash')`, recoveryOrder); err != nil {
+		t.Fatal(err)
+	}
+	recoveryPath := fmt.Sprintf("/api/customer/orders/%d/payments/mpesa", recoveryOrder)
+	requestWithHeaders("c1", "POST", recoveryPath, paymentBody, map[string]string{"Idempotency-Key": "resume-stranded-attempt"}, 202)
+	if fakeMPesa.calls != 4 {
+		t.Fatal("pending payment attempt was not resumed")
 	}
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Privilege attempt", "email": "escalation@example.invalid", "phone": "+254712345678", "password": password, "role": "admin"}, 400)
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Public user", "email": "public@example.invalid", "phone": "+254712345678", "password": password}, 201)

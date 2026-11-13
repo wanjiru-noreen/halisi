@@ -123,8 +123,10 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusConflict, map[string]string{"error": "This Idempotency-Key was already used with different payment details."})
 			return
 		}
-		writeJSON(w, http.StatusAccepted, paymentJSON(existingID, orderID, existingStatus))
-		return
+		if existingStatus != "pending" {
+			writeJSON(w, http.StatusAccepted, paymentJSON(existingID, orderID, existingStatus))
+			return
+		}
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Payment is temporarily unavailable."})
@@ -138,8 +140,11 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 	var activeStatus string
 	err = tx.QueryRow(ctx, `SELECT id,status FROM payments WHERE order_id=$1 AND provider='mpesa' AND status IN ('pending','processing')`, orderID).Scan(&activeID, &activeStatus)
 	if err == nil {
-		writeJSON(w, http.StatusAccepted, paymentJSON(activeID, orderID, activeStatus))
-		return
+		if activeStatus != "pending" {
+			writeJSON(w, http.StatusAccepted, paymentJSON(activeID, orderID, activeStatus))
+			return
+		}
+		existingID = activeID
 	}
 	if !errors.Is(err, pgx.ErrNoRows) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Payment is temporarily unavailable."})
@@ -158,10 +163,15 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 	token := hex.EncodeToString(tokenBytes[:])
 	tokenHash := sha256.Sum256([]byte(token))
 	var paymentID int64
-	err = tx.QueryRow(ctx, `
-		INSERT INTO payments(order_id,amount,currency,status,provider,request_key,phone_number,callback_token_hash)
-		SELECT id,total,currency,'processing','mpesa',$3,$4,$5 FROM orders WHERE id=$1 AND customer_id=$2
-		RETURNING id`, orderID, user.ID, requestKey, phone, hex.EncodeToString(tokenHash[:])).Scan(&paymentID)
+	if existingID != 0 {
+		paymentID = existingID
+		_, err = tx.Exec(ctx, `UPDATE payments SET request_key=$2,phone_number=$3,callback_token_hash=$4 WHERE id=$1 AND status='pending'`, paymentID, requestKey, phone, hex.EncodeToString(tokenHash[:]))
+	} else {
+		err = tx.QueryRow(ctx, `
+			INSERT INTO payments(order_id,amount,currency,status,provider,request_key,phone_number,callback_token_hash)
+			SELECT id,total,currency,'pending','mpesa',$3,$4,$5 FROM orders WHERE id=$1 AND customer_id=$2
+			RETURNING id`, orderID, user.ID, requestKey, phone, hex.EncodeToString(tokenHash[:])).Scan(&paymentID)
+	}
 	if err != nil {
 		writeJSON(w, http.StatusConflict, map[string]string{"error": "A payment for this order is already being processed."})
 		return
@@ -173,7 +183,21 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 	callbackURL := h.publicBaseURL + "/api/mpesa/callback/" + token
 	requestCtx, requestCancel := context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Second)
 	defer requestCancel()
-	response, err := h.client.Initiate(requestCtx, services.STKRequest{
+	accessToken, err := h.client.Authorize(requestCtx)
+	if err != nil {
+		if cleanupErr := h.markPaymentFailed(paymentID, "Payment prompt was not submitted to M-Pesa"); cleanupErr != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"payment": paymentJSON(paymentID, orderID, "pending")["payment"], "error": "Payment could not be started yet. Retry this order shortly to resume the attempt."})
+			return
+		}
+		writeJSON(w, http.StatusBadGateway, map[string]any{"payment": map[string]any{"id": paymentID, "order_id": orderID, "status": "failed"}, "error": "M-Pesa could not start this payment. You can try again."})
+		return
+	}
+	tag, err := h.pool.Exec(requestCtx, `UPDATE payments SET status='processing' WHERE id=$1 AND status='pending'`, paymentID)
+	if err != nil || tag.RowsAffected() != 1 {
+		writeJSON(w, http.StatusAccepted, paymentJSON(paymentID, orderID, "processing"))
+		return
+	}
+	response, err := h.client.Initiate(requestCtx, accessToken, services.STKRequest{
 		ShortCode: h.shortCode, Passkey: h.passkey, TransactionType: h.transactionType,
 		PhoneNumber: phone, Amount: cents / 100, AccountReference: "H" + strconv.FormatInt(orderID, 36),
 		Description: "HALISI Order", CallbackURL: callbackURL,
@@ -208,7 +232,7 @@ func (h *MPesa) markPaymentFailed(paymentID int64, reason string) error {
 	defer cancel()
 	var lastErr error
 	for attempt := 0; attempt < 3; attempt++ {
-		tag, err := h.pool.Exec(ctx, `UPDATE payments SET status='failed',result_description=$2 WHERE id=$1 AND status='processing'`, paymentID, reason)
+		tag, err := h.pool.Exec(ctx, `UPDATE payments SET status='failed',result_description=$2 WHERE id=$1 AND status IN ('pending','processing')`, paymentID, reason)
 		if err == nil {
 			if tag.RowsAffected() != 1 {
 				return errors.New("payment attempt was not in a failed-transition state")
