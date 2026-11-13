@@ -13,7 +13,9 @@ import (
 
 	"github.com/wanjiru-noreen/halisi/internal/config"
 	"github.com/wanjiru-noreen/halisi/internal/database"
+	"github.com/wanjiru-noreen/halisi/internal/handlers"
 	"github.com/wanjiru-noreen/halisi/internal/routes"
+	"github.com/wanjiru-noreen/halisi/internal/services"
 )
 
 func main() {
@@ -35,9 +37,14 @@ func run(ctx context.Context) error {
 		return err
 	}
 	defer pool.Close()
+	authService, err := services.NewAuth(pool)
+	if err != nil {
+		return errors.New("could not initialize authentication")
+	}
+	auth := handlers.NewAuth(authService, cfg.AppEnv)
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           routes.New(pool),
+		Handler:           routes.New(pool, auth.Routes),
 		ReadHeaderTimeout: 5 * time.Second,
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       60 * time.Second,

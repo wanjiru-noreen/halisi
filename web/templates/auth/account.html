@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your account · HALISI</title>
+  <link rel="stylesheet" href="/static/css/auth.css">
+  <script src="/static/js/auth.js" defer></script>
+</head>
+<body class="min-h-screen bg-stone-50 text-stone-900 antialiased" data-page="account">
+  <main class="mx-auto max-w-3xl px-6 py-10">
+    <header class="flex items-center justify-between gap-6"><a href="/account" class="text-2xl font-black tracking-widest text-emerald-800">HALISI<span class="text-orange-500">.</span></a><button id="logout" class="rounded-xl border border-stone-300 px-4 py-2 text-sm font-medium hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700">Log out</button></header>
+    <section class="mt-16 rounded-3xl border border-stone-200 bg-white p-7 shadow-sm sm:p-10">
+      <p class="text-xs font-bold uppercase tracking-widest text-emerald-700">Your HALISI account</p>
+      <h1 id="welcome" class="mt-4 text-4xl font-semibold tracking-tight">Checking your session…</h1>
+      <p id="account-email" class="mt-4 text-stone-600"></p>
+      <p class="mt-8 border-t border-stone-100 pt-6 text-sm leading-relaxed text-stone-600">Your account is ready. You can log in on this browser and log out whenever you need to.</p>
+      <p id="error" class="mt-5 text-sm text-red-700" role="alert" hidden></p>
+    </section>
+    <noscript><p class="mt-4 text-sm text-red-700">Enable JavaScript to view your account.</p></noscript>
+  </main>
+</body>
+</html>

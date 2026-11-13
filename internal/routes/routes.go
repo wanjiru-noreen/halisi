@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/wanjiru-noreen/halisi/internal/middleware"
 )
 
 type Pinger interface {
@@ -11,7 +13,7 @@ type Pinger interface {
 }
 
 // New creates the server's HTTP routes.
-func New(database Pinger) http.Handler {
+func New(database Pinger, register ...func(*http.ServeMux)) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -28,5 +30,8 @@ func New(database Pinger) http.Handler {
 		}
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
-	return mux
+	for _, routes := range register {
+		routes(mux)
+	}
+	return middleware.SecurityHeaders(http.NewCrossOriginProtection().Handler(mux))
 }
