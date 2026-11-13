@@ -425,7 +425,7 @@ func TestRoleResourcesPostgres(t *testing.T) {
 		t.Fatal("customer could not retry after pre-STK failure")
 	}
 	recoveryOrder := id("INSERT INTO orders(customer_id,vendor_id,total,delivery_address) VALUES($1,$2,1000,'Recovery test') RETURNING id", users["c1"], v1)
-	if _, err := pool.Exec(ctx, `INSERT INTO payments(order_id,amount,status,provider,request_key,phone_number,callback_token_hash) VALUES($1,1000,'pending','mpesa','stranded-attempt','254712345678','old-hash')`, recoveryOrder); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO payments(order_id,amount,status,provider,request_key,phone_number,callback_token_hash) VALUES($1,1000,'pending','mpesa','stranded-attempt','254712345678',repeat('a',64))`, recoveryOrder); err != nil {
 		t.Fatal(err)
 	}
 	recoveryPath := fmt.Sprintf("/api/customer/orders/%d/payments/mpesa", recoveryOrder)
