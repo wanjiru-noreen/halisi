@@ -62,4 +62,6 @@ searchForm.addEventListener("submit", (event) => {
   event.preventDefault();
   loadVendors(queryInput.value);
 });
-loadVendors();
+const initialQuery = new URLSearchParams(window.location.search).get("q") || "";
+queryInput.value = initialQuery;
+loadVendors(initialQuery);
