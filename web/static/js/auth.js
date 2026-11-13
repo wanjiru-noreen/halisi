@@ -119,7 +119,7 @@ if (googleButton) {
 }
 
 if (document.body.dataset.page === "login") {
-  const errors = { google: "Google sign-in could not be completed. Please try again.", link_required: "This email already has an account. Log in with your password, verify your email, then connect Google from your account page.", reauth: "Log in again and verify your email before connecting Google." };
+	const errors = { google: "Google sign-in could not be completed. Please try again.", link_required: "This email already has an account. Log in with your password, verify your email, then connect Google from your account page.", reauth: "Log in again and verify your email before connecting Google.", verify_email: "Check your inbox and verify your email before signing in with Google." };
   const code = new URLSearchParams(window.location.search).get("error");
   if (errors[code]) showError(errors[code]);
 }
