@@ -74,7 +74,8 @@ async function loadOrder() {
     const paymentPanel = document.getElementById("payment-panel");
     const availabilityResponse = await fetch("/api/mpesa/availability", { cache: "no-store", headers: { Accept: "application/json" } });
     const availability = availabilityResponse.ok ? await availabilityResponse.json() : { enabled: false };
-    if (order.status === "pending" && availability.enabled) {
+    const canPay = ["pending", "confirmed"].includes(order.status) && currentPayment?.status !== "completed";
+    if (canPay && availability.enabled) {
       paymentPanel.hidden = false;
       const paymentStatus = document.getElementById("payment-status");
       const processing = currentPayment?.status === "processing";

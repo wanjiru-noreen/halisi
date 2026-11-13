@@ -132,8 +132,8 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Payment is temporarily unavailable."})
 		return
 	}
-	if orderStatus != "pending" {
-		writeJSON(w, http.StatusConflict, map[string]string{"error": "Only pending orders can start a payment."})
+	if orderStatus != "pending" && orderStatus != "confirmed" {
+		writeJSON(w, http.StatusConflict, map[string]string{"error": "Only pending or confirmed orders can start a payment."})
 		return
 	}
 	var activeID int64
