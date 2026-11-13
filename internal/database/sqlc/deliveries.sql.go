@@ -13,7 +13,7 @@ const confirmOwnedOrder = `-- name: ConfirmOwnedOrder :one
 UPDATE orders o SET status='confirmed'
 FROM vendors v WHERE o.id=$1 AND o.vendor_id=v.id AND v.user_id=$2
 AND v.status='approved' AND v.is_active AND o.address_id IS NOT NULL AND o.status='pending'
-RETURNING o.id, o.customer_id, o.vendor_id, o.status, o.total, o.delivery_address, o.created_at, o.address_id, o.currency, o.updated_at
+RETURNING o.id, o.customer_id, o.vendor_id, o.status, o.total, o.delivery_address, o.created_at, o.address_id, o.currency, o.updated_at, o.delivery_latitude, o.delivery_longitude
 `
 
 type ConfirmOwnedOrderParams struct {
@@ -35,6 +35,8 @@ func (q *Queries) ConfirmOwnedOrder(ctx context.Context, arg ConfirmOwnedOrderPa
 		&i.AddressID,
 		&i.Currency,
 		&i.UpdatedAt,
+		&i.DeliveryLatitude,
+		&i.DeliveryLongitude,
 	)
 	return i, err
 }

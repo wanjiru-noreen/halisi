@@ -90,7 +90,8 @@ func (c *Checkout) submit(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback(ctx)
 	var addressLine, city string
-	err = tx.QueryRow(ctx, `SELECT address_line, city FROM addresses WHERE id=$1 AND user_id=$2`, input.AddressID, user.ID).Scan(&addressLine, &city)
+	var latitude, longitude pgtype.Numeric
+	err = tx.QueryRow(ctx, `SELECT address_line, city, latitude, longitude FROM addresses WHERE id=$1 AND user_id=$2`, input.AddressID, user.ID).Scan(&addressLine, &city, &latitude, &longitude)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": "Choose one of your saved delivery addresses."})
 		return
@@ -169,9 +170,9 @@ func (c *Checkout) submit(w http.ResponseWriter, r *http.Request) {
 	deliveryAddress := strings.TrimSpace(addressLine + ", " + city)
 	var orderID int64
 	err = tx.QueryRow(ctx, `
-		INSERT INTO orders (customer_id,vendor_id,address_id,delivery_address,total,currency)
-		VALUES ($1,$2,$3,$4,$5,'KES') RETURNING id`,
-		user.ID, vendorID, pgtype.Int8{Int64: input.AddressID, Valid: true}, deliveryAddress, pgTotal).Scan(&orderID)
+		INSERT INTO orders (customer_id,vendor_id,address_id,delivery_address,total,currency,delivery_latitude,delivery_longitude)
+		VALUES ($1,$2,$3,$4,$5,'KES',$6,$7) RETURNING id`,
+		user.ID, vendorID, pgtype.Int8{Int64: input.AddressID, Valid: true}, deliveryAddress, pgTotal, latitude, longitude).Scan(&orderID)
 	if err != nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "Checkout is temporarily unavailable."})
 		return

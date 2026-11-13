@@ -69,16 +69,18 @@ type OauthState struct {
 }
 
 type Order struct {
-	ID              int64              `json:"id"`
-	CustomerID      int64              `json:"customer_id"`
-	VendorID        int64              `json:"vendor_id"`
-	Status          string             `json:"status"`
-	Total           pgtype.Numeric     `json:"total"`
-	DeliveryAddress string             `json:"delivery_address"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	AddressID       pgtype.Int8        `json:"address_id"`
-	Currency        string             `json:"currency"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	ID                int64              `json:"id"`
+	CustomerID        int64              `json:"customer_id"`
+	VendorID          int64              `json:"vendor_id"`
+	Status            string             `json:"status"`
+	Total             pgtype.Numeric     `json:"total"`
+	DeliveryAddress   string             `json:"delivery_address"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AddressID         pgtype.Int8        `json:"address_id"`
+	Currency          string             `json:"currency"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	DeliveryLatitude  pgtype.Numeric     `json:"delivery_latitude"`
+	DeliveryLongitude pgtype.Numeric     `json:"delivery_longitude"`
 }
 
 type OrderItem struct {

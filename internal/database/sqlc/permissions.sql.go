@@ -188,7 +188,7 @@ func (q *Queries) CustomerAddress(ctx context.Context, arg CustomerAddressParams
 }
 
 const customerOrder = `-- name: CustomerOrder :one
-SELECT id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at FROM orders WHERE id=$1 AND customer_id=$2
+SELECT id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at, delivery_latitude, delivery_longitude FROM orders WHERE id=$1 AND customer_id=$2
 `
 
 type CustomerOrderParams struct {
@@ -210,12 +210,14 @@ func (q *Queries) CustomerOrder(ctx context.Context, arg CustomerOrderParams) (O
 		&i.AddressID,
 		&i.Currency,
 		&i.UpdatedAt,
+		&i.DeliveryLatitude,
+		&i.DeliveryLongitude,
 	)
 	return i, err
 }
 
 const customerOrders = `-- name: CustomerOrders :many
-SELECT id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at FROM orders WHERE customer_id=$1 ORDER BY id DESC LIMIT 100
+SELECT id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at, delivery_latitude, delivery_longitude FROM orders WHERE customer_id=$1 ORDER BY id DESC LIMIT 100
 `
 
 func (q *Queries) CustomerOrders(ctx context.Context, customerID int64) ([]Order, error) {
@@ -238,6 +240,8 @@ func (q *Queries) CustomerOrders(ctx context.Context, customerID int64) ([]Order
 			&i.AddressID,
 			&i.Currency,
 			&i.UpdatedAt,
+			&i.DeliveryLatitude,
+			&i.DeliveryLongitude,
 		); err != nil {
 			return nil, err
 		}
@@ -634,7 +638,7 @@ func (q *Queries) UpdateOwnedShop(ctx context.Context, arg UpdateOwnedShopParams
 }
 
 const vendorOrder = `-- name: VendorOrder :one
-SELECT o.id, o.customer_id, o.vendor_id, o.status, o.total, o.delivery_address, o.created_at, o.address_id, o.currency, o.updated_at FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=$1 AND v.user_id=$2
+SELECT o.id, o.customer_id, o.vendor_id, o.status, o.total, o.delivery_address, o.created_at, o.address_id, o.currency, o.updated_at, o.delivery_latitude, o.delivery_longitude FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=$1 AND v.user_id=$2
 `
 
 type VendorOrderParams struct {
@@ -656,12 +660,14 @@ func (q *Queries) VendorOrder(ctx context.Context, arg VendorOrderParams) (Order
 		&i.AddressID,
 		&i.Currency,
 		&i.UpdatedAt,
+		&i.DeliveryLatitude,
+		&i.DeliveryLongitude,
 	)
 	return i, err
 }
 
 const vendorOrders = `-- name: VendorOrders :many
-SELECT o.id, o.customer_id, o.vendor_id, o.status, o.total, o.delivery_address, o.created_at, o.address_id, o.currency, o.updated_at FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE v.user_id=$1 ORDER BY o.id DESC LIMIT 100
+SELECT o.id, o.customer_id, o.vendor_id, o.status, o.total, o.delivery_address, o.created_at, o.address_id, o.currency, o.updated_at, o.delivery_latitude, o.delivery_longitude FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE v.user_id=$1 ORDER BY o.id DESC LIMIT 100
 `
 
 func (q *Queries) VendorOrders(ctx context.Context, userID int64) ([]Order, error) {
@@ -684,6 +690,8 @@ func (q *Queries) VendorOrders(ctx context.Context, userID int64) ([]Order, erro
 			&i.AddressID,
 			&i.Currency,
 			&i.UpdatedAt,
+			&i.DeliveryLatitude,
+			&i.DeliveryLongitude,
 		); err != nil {
 			return nil, err
 		}

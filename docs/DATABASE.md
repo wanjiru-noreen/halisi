@@ -3,6 +3,8 @@
 Migration 7 adds delivery ownership and location snapshots, automatic creation
 on order confirmation, and database-enforced lifecycle transitions. See
 [delivery management](DELIVERIES.md) for eligibility, APIs and rollback behavior.
+Migration 8 saves checkout coordinates on orders and uses those snapshots for
+delivery drop-off locations, so later saved-address edits cannot redirect them.
 
 HALISI uses golang-migrate v4 with its pgx/v5 driver. The version is pinned in
 `go.mod`; `go mod download` installs the dependencies. The Go migration command
@@ -54,8 +56,8 @@ The up and down SQL each run in a transaction. Down removes tables in reverse
 dependency order without CASCADE. The `schema_migrations` table records the
 current version and dirty flag; it remains after rollback. Advisory locking
 prevents concurrent migration execution. Do not edit a migration after it has
-been applied: add a new numbered pair, e.g. `000008_description.up.sql` and
-`000008_description.down.sql`.
+been applied: add a new numbered pair, e.g. `000009_description.up.sql` and
+`000009_description.down.sql`.
 
 On failure the command exits nonzero without printing driver errors that could
 contain credentials. Check `migrate-version` and database logs. A dirty version

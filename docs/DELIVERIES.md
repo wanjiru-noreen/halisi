@@ -2,7 +2,8 @@
 
 Apply migrations with `make migrate-up` before starting the server. Migration 7
 adds delivery ownership, location snapshots, lifecycle guards and automatic
-creation. No new environment variables are required.
+creation. Migration 8 snapshots order coordinates at checkout. No new environment
+variables are required.
 
 ## Eligibility and creation
 
@@ -29,9 +30,10 @@ collection/reconciliation and dispatch are separate workflows.
 
 Deliveries reference the order, vendor, customer and customer-owned saved address.
 Pickup text comes from the shop address; drop-off text comes from the order's
-checkout snapshot. Available coordinates are copied from the vendor and customer
-saved addresses. Coordinates can be absent. Later address edits cannot change
-the delivery's saved pickup/drop-off locations or ownership.
+checkout snapshot, including its coordinates. Pickup coordinates are copied from
+the vendor's saved address at confirmation. Coordinates can be absent. Editing a
+customer's saved address after checkout cannot change either the order's original
+destination text or the coordinates used by its delivery.
 
 ## Viewing delivery details
 
@@ -73,6 +75,14 @@ or customer-confirmation endpoint. Dispatch and confirmation features remain
 later milestone tasks; registration alone grants no delivery access.
 
 ## Upgrade, rollback and tests
+
+Migration 8 adds nullable `orders.delivery_latitude` and `delivery_longitude`
+snapshots, validates paired coordinates and their ranges, and changes delivery
+creation to use those order values. Historical orders keep null coordinates:
+their checkout coordinates cannot be recovered safely from mutable addresses.
+Existing delivery snapshots are preserved. Downgrading version 8 removes the
+order-coordinate columns and restores the version-7 creation function; run the
+matching application version after a downgrade.
 
 Migration 7 preserves existing delivery IDs and statuses, backfills ownership and
 snapshots, and creates missing deliveries for eligible `confirmed` or `preparing`
