@@ -26,11 +26,15 @@ import (
 type captureMPesa struct {
 	calls       int
 	callbackURL string
+	err         error
 }
 
 func (m *captureMPesa) Initiate(_ context.Context, input services.STKRequest) (services.STKResponse, error) {
 	m.calls++
 	m.callbackURL = input.CallbackURL
+	if m.err != nil {
+		return services.STKResponse{}, m.err
+	}
 	return services.STKResponse{
 		MerchantRequestID: fmt.Sprintf("merchant-%d", m.calls),
 		CheckoutRequestID: fmt.Sprintf("checkout-%d", m.calls),
@@ -99,8 +103,8 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	for name, role := range roles {
 		users[name] = id("INSERT INTO users(name,email,password_hash,role) VALUES($1,$2,$3,$4) RETURNING id", name, name+"@example.invalid", string(hash), role)
 	}
-	v1 := id("INSERT INTO vendors(user_id,name,address) VALUES($1,'Shop one','Nairobi') RETURNING id", users["v1"])
-	v2 := id("INSERT INTO vendors(user_id,name,address) VALUES($1,'Shop two','Mombasa') RETURNING id", users["v2"])
+	v1 := id("INSERT INTO vendors(user_id,name,address,status,is_active) VALUES($1,'Shop one','Nairobi','approved',TRUE) RETURNING id", users["v1"])
+	v2 := id("INSERT INTO vendors(user_id,name,address,status,is_active) VALUES($1,'Shop two','Mombasa','approved',TRUE) RETURNING id", users["v2"])
 	p1 := id("INSERT INTO products(vendor_id,name,price) VALUES($1,'Cylinder one',1000) RETURNING id", v1)
 	p2 := id("INSERT INTO products(vendor_id,name,price) VALUES($1,'Cylinder two',2000) RETURNING id", v2)
 	a1 := id("INSERT INTO addresses(user_id,address_line,city) VALUES($1,'Private one','Nairobi') RETURNING id", users["c1"])
@@ -278,6 +282,11 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if _, err := pool.Exec(ctx, `INSERT INTO vendor_inventory(product_id,vendor_id,quantity,reserved_quantity) VALUES($1,$2,10,2)`, p1, v1); err != nil {
 		t.Fatal(err)
 	}
+	// Restore the reviewed commerce fixture after the owner-edit isolation test.
+	// The onboarding integration test covers the real administrator approval flow.
+	if _, err := pool.Exec(ctx, "UPDATE vendors SET status='approved',is_active=TRUE WHERE id=$1", v1); err != nil {
+		t.Fatal(err)
+	}
 	failedOrder := id("INSERT INTO orders(customer_id,vendor_id,total,delivery_address) VALUES($1,$2,2000,'Failure test') RETURNING id", users["c1"], v1)
 	if _, err := pool.Exec(ctx, `INSERT INTO order_items(order_id,vendor_id,product_id,quantity,unit_price) VALUES($1,$2,$3,2,1000)`, failedOrder, v1, p1); err != nil {
 		t.Fatal(err)
@@ -298,7 +307,10 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	request("r2", "GET", fmt.Sprintf("/api/rider/deliveries/%d", d2), nil, 403)
 	request("r1", "GET", fmt.Sprintf("/api/rider/deliveries/%d", d2), nil, 200)
 	request("v1", "PATCH", fmt.Sprintf("/api/admin/vendors/%d/status", v1), map[string]string{"status": "approved"}, 403)
-	request("admin", "PATCH", fmt.Sprintf("/api/admin/vendors/%d/status", v1), map[string]string{"status": "approved"}, 200)
+	request("admin", "PATCH", fmt.Sprintf("/api/admin/vendors/%d/status", v1), map[string]string{"status": "approved"}, 422)
+	if _, err := pool.Exec(ctx, "UPDATE vendors SET status='approved',is_active=TRUE WHERE id=$1", v1); err != nil {
+		t.Fatal(err)
+	}
 	_, body = request("c1", "POST", "/api/customer/checkout", map[string]any{
 		"address_id": a1,
 		"items":      []map[string]any{{"product_id": p1, "quantity": 2}},
@@ -364,6 +376,10 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	if err := pool.QueryRow(ctx, "SELECT status FROM orders WHERE id=$1", checkedOut.Order.ID).Scan(&orderStatus); err != nil || orderStatus != "confirmed" {
 		t.Fatal("successful M-Pesa callback did not confirm the order")
 	}
+	_, body = request("c1", "GET", fmt.Sprintf("/api/customer/payments/%d", initiated.Payment.ID), nil, 200)
+	if bytes.Contains(body, []byte("callback_token_hash")) || bytes.Contains(body, []byte("request_key")) || bytes.Contains(body, []byte("phone_number")) {
+		t.Fatal("customer payment response exposed internal M-Pesa metadata")
+	}
 	_, body = requestWithHeaders("c1", "POST", failurePaymentPath, paymentBody, map[string]string{"Idempotency-Key": "failed-payment-1"}, 202)
 	if err := json.Unmarshal(body, &initiated); err != nil {
 		t.Fatal(err)
@@ -376,6 +392,19 @@ func TestRoleResourcesPostgres(t *testing.T) {
 	request("", "POST", "/api/mpesa/callback/"+failureToken, failureCallback, 200)
 	if err := pool.QueryRow(ctx, "SELECT status FROM payments WHERE id=$1", initiated.Payment.ID).Scan(&paymentStatus); err != nil || paymentStatus != "failed" {
 		t.Fatal("failed M-Pesa callback did not fail the payment")
+	}
+	fakeMPesa.err = services.ErrSTKNotSubmitted
+	_, body = requestWithHeaders("c1", "POST", failurePaymentPath, paymentBody, map[string]string{"Idempotency-Key": "preflight-payment-1"}, 502)
+	if err := json.Unmarshal(body, &initiated); err != nil {
+		t.Fatal(err)
+	}
+	if err := pool.QueryRow(ctx, "SELECT status FROM payments WHERE id=$1", initiated.Payment.ID).Scan(&paymentStatus); err != nil || paymentStatus != "failed" {
+		t.Fatal("pre-STK failure left payment attempt active")
+	}
+	fakeMPesa.err = nil
+	requestWithHeaders("c1", "POST", failurePaymentPath, paymentBody, map[string]string{"Idempotency-Key": "preflight-payment-retry"}, 202)
+	if fakeMPesa.calls != 4 {
+		t.Fatal("customer could not retry after pre-STK failure")
 	}
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Privilege attempt", "email": "escalation@example.invalid", "phone": "+254712345678", "password": password, "role": "admin"}, 400)
 	request("c1", "POST", "/api/auth/register", map[string]string{"name": "Public user", "email": "public@example.invalid", "phone": "+254712345678", "password": password}, 201)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -81,5 +82,30 @@ func TestDarajaRejectsUnacceptedSTKRequest(t *testing.T) {
 	_, err = client.Initiate(context.Background(), STKRequest{ShortCode: "123456", Passkey: "pass", TransactionType: "CustomerPayBillOnline", PhoneNumber: "254712345678", Amount: 10, CallbackURL: "https://halisi.example/callback"})
 	if err == nil {
 		t.Fatal("expected rejected STK request to return an error")
+	}
+}
+
+func TestDarajaMarksOAuthFailureAsNotSubmitted(t *testing.T) {
+	var stkCalls int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/oauth/v1/generate" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		stkCalls++
+		http.Error(w, "unexpected STK request", http.StatusInternalServerError)
+	}))
+	defer server.Close()
+	client, err := NewDaraja("sandbox", "key", "bad-secret", server.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	client.BaseURL = server.URL
+	_, err = client.Initiate(context.Background(), STKRequest{ShortCode: "123456", Passkey: "pass", TransactionType: "CustomerPayBillOnline", PhoneNumber: "254712345678", Amount: 10, CallbackURL: "https://halisi.example/callback"})
+	if !errors.Is(err, ErrSTKNotSubmitted) {
+		t.Fatalf("OAuth failure error = %v, want ErrSTKNotSubmitted", err)
+	}
+	if stkCalls != 0 {
+		t.Fatal("STK endpoint was called after OAuth failed")
 	}
 }

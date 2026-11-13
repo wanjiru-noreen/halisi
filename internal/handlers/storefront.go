@@ -62,7 +62,7 @@ func (s *Storefront) listProducts(w http.ResponseWriter, r *http.Request) {
 		FROM products p
 		JOIN vendors v ON v.id = p.vendor_id
 		LEFT JOIN vendor_inventory vi ON vi.product_id = p.id
-		WHERE v.status = 'approved'
+		WHERE v.status = 'approved' AND v.is_active
 		  AND ($1 = 0 OR v.id = $1)
 		  AND ($2 = '' OR p.name ILIKE '%' || $2 || '%' OR v.name ILIKE '%' || $2 || '%')
 		ORDER BY v.name, p.name, p.id
@@ -97,14 +97,14 @@ func (s *Storefront) listVendors(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	rows, err := s.pool.Query(ctx, `
-		SELECT v.id, v.name, COALESCE(a.city, v.address) AS service_area,
+		SELECT v.id, v.name, COALESCE(a.city, NULLIF(v.city,''), v.address) AS service_area,
 		       COUNT(vi.product_id)::bigint AS product_count
 		FROM vendors v
 		LEFT JOIN addresses a ON a.id = v.address_id
 		LEFT JOIN products p ON p.vendor_id = v.id
 		LEFT JOIN vendor_inventory vi ON vi.product_id = p.id AND vi.quantity > vi.reserved_quantity
-		WHERE v.status = 'approved'
-		  AND ($1 = '' OR v.name ILIKE '%' || $1 || '%' OR COALESCE(a.city, v.address) ILIKE '%' || $1 || '%')
+		WHERE v.status = 'approved' AND v.is_active
+		  AND ($1 = '' OR v.name ILIKE '%' || $1 || '%' OR COALESCE(a.city, NULLIF(v.city,''), v.address) ILIKE '%' || $1 || '%')
 		GROUP BY v.id, v.name, a.city, v.address
 		ORDER BY v.name, v.id
 		LIMIT 50`, query)

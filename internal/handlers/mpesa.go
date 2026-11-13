@@ -179,9 +179,13 @@ func (h *MPesa) start(w http.ResponseWriter, r *http.Request) {
 		Description: "HALISI Order", CallbackURL: callbackURL,
 	})
 	if err != nil {
-		if errors.Is(err, services.ErrSTKRejected) {
-			_, _ = h.pool.Exec(requestCtx, `UPDATE payments SET status='failed',result_description='Payment request was rejected by M-Pesa' WHERE id=$1 AND status='processing'`, paymentID)
-			writeJSON(w, http.StatusBadGateway, map[string]any{"payment": map[string]any{"id": paymentID, "order_id": orderID, "status": "failed"}, "error": "M-Pesa did not accept the payment request."})
+		if errors.Is(err, services.ErrSTKRejected) || errors.Is(err, services.ErrSTKNotSubmitted) {
+			reason := "Payment request was rejected by M-Pesa"
+			if errors.Is(err, services.ErrSTKNotSubmitted) {
+				reason = "Payment prompt was not submitted to M-Pesa"
+			}
+			_, _ = h.pool.Exec(requestCtx, `UPDATE payments SET status='failed',result_description=$2 WHERE id=$1 AND status='processing'`, paymentID, reason)
+			writeJSON(w, http.StatusBadGateway, map[string]any{"payment": map[string]any{"id": paymentID, "order_id": orderID, "status": "failed"}, "error": "M-Pesa could not start this payment. You can try again."})
 			return
 		}
 		// A transport timeout can happen after Safaricom accepted the prompt. Keep the

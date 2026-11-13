@@ -102,7 +102,7 @@ func (c *Checkout) submit(w http.ResponseWriter, r *http.Request) {
 	rows, err := tx.Query(ctx, `
 		SELECT p.id, p.vendor_id, p.name, p.price::text, vi.quantity, vi.reserved_quantity
 		FROM products p
-		JOIN vendors v ON v.id=p.vendor_id AND v.status='approved'
+		JOIN vendors v ON v.id=p.vendor_id AND v.status='approved' AND v.is_active
 		JOIN vendor_inventory vi ON vi.product_id=p.id
 		WHERE p.id = ANY($1)
 		ORDER BY p.id

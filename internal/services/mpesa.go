@@ -36,6 +36,7 @@ type STKClient interface {
 }
 
 var ErrSTKRejected = errors.New("M-Pesa rejected the payment request")
+var ErrSTKNotSubmitted = errors.New("M-Pesa payment prompt was not submitted")
 
 type Daraja struct {
 	BaseURL        string
@@ -66,7 +67,7 @@ func NewDaraja(environment, key, secret string, client *http.Client) (*Daraja, e
 func (d *Daraja) Initiate(ctx context.Context, input STKRequest) (STKResponse, error) {
 	token, err := d.accessToken(ctx)
 	if err != nil {
-		return STKResponse{}, err
+		return STKResponse{}, fmt.Errorf("%w: %v", ErrSTKNotSubmitted, err)
 	}
 	timestamp := time.Now().UTC().Format("20060102150405")
 	password := base64.StdEncoding.EncodeToString([]byte(input.ShortCode + input.Passkey + timestamp))
@@ -85,11 +86,11 @@ func (d *Daraja) Initiate(ctx context.Context, input STKRequest) (STKResponse, e
 	}
 	encoded, err := json.Marshal(body)
 	if err != nil {
-		return STKResponse{}, err
+		return STKResponse{}, fmt.Errorf("%w: %v", ErrSTKNotSubmitted, err)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, d.BaseURL+"/mpesa/stkpush/v1/processrequest", bytes.NewReader(encoded))
 	if err != nil {
-		return STKResponse{}, err
+		return STKResponse{}, fmt.Errorf("%w: %v", ErrSTKNotSubmitted, err)
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")

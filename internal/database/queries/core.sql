@@ -40,7 +40,7 @@ RETURNING *;
 UPDATE vendor_inventory
 SET reserved_quantity = reserved_quantity + sqlc.arg(quantity)::integer
 WHERE product_id = sqlc.arg(product_id) AND vendor_id = sqlc.arg(vendor_id)
-    AND sqlc.arg(quantity)::integer > 0
+    AND EXISTS (SELECT 1 FROM vendors v WHERE v.id=vendor_inventory.vendor_id AND v.status='approved' AND v.is_active) AND sqlc.arg(quantity)::integer > 0
     AND quantity - reserved_quantity >= sqlc.arg(quantity)::integer
 RETURNING *;
 
