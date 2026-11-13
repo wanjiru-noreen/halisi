@@ -114,6 +114,17 @@ type Review struct {
 	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
+type RiderProfile struct {
+	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
+	FullName  string             `json:"full_name"`
+	Phone     string             `json:"phone"`
+	City      string             `json:"city"`
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Session struct {
 	ID        int64              `json:"id"`
 	UserID    int64              `json:"user_id"`
