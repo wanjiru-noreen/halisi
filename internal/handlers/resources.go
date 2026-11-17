@@ -162,14 +162,18 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 	for role, permission := range map[models.Role]models.Permission{models.Customer: models.CustomerResources, models.Vendor: models.VendorResources, models.Rider: models.RiderAssignments, models.Administrator: models.Administration} {
 		path, _ := models.DashboardPath(role)
 		page := webassets.Page("dashboard")
-		if role == models.Customer {
+		switch role {
+		case models.Customer:
 			page = webassets.Page("customer/dashboard")
+		case models.Rider:
+			page = webassets.Page("rider/dashboard")
 		}
 		mux.Handle("GET "+path, h.protect(permission, page))
 	}
 	mux.Handle("GET /customer/addresses", h.protect(models.CustomerResources, webassets.Page("customer/addresses")))
 	mux.Handle("GET /customer/orders", h.protect(models.CustomerResources, webassets.Page("customer/orders")))
 	mux.Handle("GET /customer/orders/{id}", h.protect(models.CustomerResources, webassets.Page("customer/order-detail")))
+	mux.Handle("GET /rider/deliveries", h.protect(models.RiderAssignments, webassets.Page("rider/deliveries")))
 }
 
 func (h *Resources) updateCommissionRate(w http.ResponseWriter, r *http.Request, adminID int64) (any, error) {
