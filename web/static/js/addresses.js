@@ -11,6 +11,7 @@ const locateButton = document.getElementById("locate-me");
 const geoStatus = document.getElementById("geo-status");
 let addresses = [];
 let editingID = null;
+let locateRequestID = 0;
 
 function showError(target, message) {
   target.textContent = message;
@@ -97,6 +98,8 @@ function render() {
 }
 
 function beginEdit(address) {
+  locateRequestID++;
+  if (locateButton) locateButton.disabled = false;
   editingID = address.id;
   form.elements.label.value = address.label || "";
   form.elements.address_line.value = address.address_line || "";
@@ -112,6 +115,8 @@ function beginEdit(address) {
 }
 
 function resetForm() {
+  locateRequestID++;
+  if (locateButton) locateButton.disabled = false;
   editingID = null;
   form.reset();
   form.elements.latitude.value = "";
@@ -130,10 +135,13 @@ if (locateButton) {
       showGeoStatus("Geolocation is not supported by your browser.", true);
       return;
     }
+    const requestId = ++locateRequestID;
+    const targetId = editingID;
     showGeoStatus("Detecting current coordinates…");
     locateButton.disabled = true;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        if (requestId !== locateRequestID || targetId !== editingID) return;
         locateButton.disabled = false;
         const lat = pos.coords.latitude.toFixed(6);
         const lng = pos.coords.longitude.toFixed(6);
@@ -142,6 +150,7 @@ if (locateButton) {
         showGeoStatus(`Location captured (${lat}, ${lng})`);
       },
       (err) => {
+        if (requestId !== locateRequestID || targetId !== editingID) return;
         locateButton.disabled = false;
         let msg = "Could not retrieve location.";
         if (err.code === 1) msg = "Location permission denied.";
