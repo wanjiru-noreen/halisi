@@ -7,7 +7,7 @@ let currentPayment = null;
 
 function setText(id, value) { document.getElementById(id).textContent = value; }
 
-function tracking(status, delivery) {
+function tracking(status, delivery, order) {
   const steps = document.getElementById("tracking-steps");
   const stages = [
     { key: "pending", label: "Order Placed" },
@@ -83,6 +83,69 @@ function tracking(status, delivery) {
       riderCard.hidden = true;
     }
   }
+
+  const routeCard = document.getElementById("route-card");
+  if (routeCard) {
+    const pickupAddr = delivery?.pickup_address || order?.vendor_name || "";
+    const dropoffAddr = delivery?.dropoff_address || order?.delivery_address || "";
+    const pLat = delivery?.pickup_latitude;
+    const pLng = delivery?.pickup_longitude;
+    const dLat = delivery?.dropoff_latitude;
+    const dLng = delivery?.dropoff_longitude;
+
+    const hasDropoffCoords = dLat !== null && dLat !== undefined && dLng !== null && dLng !== undefined;
+    const hasPickupCoords = pLat !== null && pLat !== undefined && pLng !== null && pLng !== undefined;
+
+    document.getElementById("pickup-location-text").textContent = pickupAddr || "Vendor shop";
+    document.getElementById("dropoff-location-text").textContent = dropoffAddr || "Delivery address";
+
+    const pickupCoordsEl = document.getElementById("pickup-coords-text");
+    if (pickupCoordsEl) {
+      if (hasPickupCoords) {
+        pickupCoordsEl.textContent = `📍 ${Number(pLat).toFixed(5)}, ${Number(pLng).toFixed(5)}`;
+        pickupCoordsEl.hidden = false;
+      } else {
+        pickupCoordsEl.hidden = true;
+      }
+    }
+
+    const dropoffCoordsEl = document.getElementById("dropoff-coords-text");
+    if (dropoffCoordsEl) {
+      if (hasDropoffCoords) {
+        dropoffCoordsEl.textContent = `📍 ${Number(dLat).toFixed(5)}, ${Number(dLng).toFixed(5)}`;
+        dropoffCoordsEl.hidden = false;
+      } else {
+        dropoffCoordsEl.hidden = true;
+      }
+    }
+
+    const coordsBadge = document.getElementById("route-coords-badge");
+    if (coordsBadge) {
+      coordsBadge.hidden = !hasDropoffCoords;
+    }
+
+    const directionsLink = document.getElementById("view-directions-map");
+    if (directionsLink) {
+      if (hasPickupCoords && hasDropoffCoords) {
+        directionsLink.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(pLat + "," + pLng)}&destination=${encodeURIComponent(dLat + "," + dLng)}`;
+      } else if (hasDropoffCoords) {
+        directionsLink.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dLat + "," + dLng)}`;
+      } else {
+        directionsLink.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dropoffAddr)}`;
+      }
+    }
+
+    const dropoffMapLink = document.getElementById("view-dropoff-map");
+    if (dropoffMapLink) {
+      if (hasDropoffCoords) {
+        dropoffMapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dLat + "," + dLng)}`;
+      } else {
+        dropoffMapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoffAddr)}`;
+      }
+    }
+
+    routeCard.hidden = !delivery && !dropoffAddr;
+  }
 }
 
 function addItem(item) {
@@ -119,7 +182,7 @@ async function loadOrder() {
     setText("delivery-address", order.delivery_address);
     setText("order-total", `${order.currency} ${order.total}`);
     body.items.forEach(addItem);
-    tracking(order.status, body.delivery);
+    tracking(order.status, body.delivery, order);
     currentPayment = body.payment;
     const paymentPanel = document.getElementById("payment-panel");
     const availabilityResponse = await fetch("/api/mpesa/availability", { cache: "no-store", headers: { Accept: "application/json" } });
