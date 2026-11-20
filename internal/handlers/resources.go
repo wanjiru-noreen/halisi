@@ -416,11 +416,17 @@ type customerOrderItemView struct {
 }
 
 type deliveryView struct {
-	ID          int64      `json:"id"`
-	Status      string     `json:"status"`
-	DeliveredAt *time.Time `json:"delivered_at"`
-	RiderName   *string    `json:"rider_name,omitempty"`
-	RiderPhone  *string    `json:"rider_phone,omitempty"`
+	ID               int64      `json:"id"`
+	Status           string     `json:"status"`
+	DeliveredAt      *time.Time `json:"delivered_at"`
+	RiderName        *string    `json:"rider_name,omitempty"`
+	RiderPhone       *string    `json:"rider_phone,omitempty"`
+	PickupAddress    *string    `json:"pickup_address,omitempty"`
+	DropoffAddress   *string    `json:"dropoff_address,omitempty"`
+	PickupLatitude   *float64   `json:"pickup_latitude,omitempty"`
+	PickupLongitude  *float64   `json:"pickup_longitude,omitempty"`
+	DropoffLatitude  *float64   `json:"dropoff_latitude,omitempty"`
+	DropoffLongitude *float64   `json:"dropoff_longitude,omitempty"`
 }
 
 type customerPaymentView struct {
@@ -489,12 +495,21 @@ func (h *Resources) getCustomerOrder(_ http.ResponseWriter, r *http.Request, own
 	var delivery *deliveryView
 	var deliveredAt pgtype.Timestamptz
 	var d deliveryView
-	var riderName, riderPhone pgtype.Text
+	var riderName, riderPhone, pickupAddress, dropoffAddress pgtype.Text
+	var pickupLat, pickupLng, dropoffLat, dropoffLng pgtype.Numeric
 	err = h.pool.QueryRow(r.Context(), `
-		SELECT d.id, d.status, d.delivered_at, rp.full_name, rp.phone
+		SELECT d.id, d.status, d.delivered_at, rp.full_name, rp.phone,
+		       d.pickup_address, d.dropoff_address,
+		       d.pickup_latitude, d.pickup_longitude,
+		       d.dropoff_latitude, d.dropoff_longitude
 		FROM deliveries d
 		LEFT JOIN rider_profiles rp ON rp.user_id = d.rider_id
-		WHERE d.order_id = $1`, id).Scan(&d.ID, &d.Status, &deliveredAt, &riderName, &riderPhone)
+		WHERE d.order_id = $1`, id).Scan(
+		&d.ID, &d.Status, &deliveredAt, &riderName, &riderPhone,
+		&pickupAddress, &dropoffAddress,
+		&pickupLat, &pickupLng,
+		&dropoffLat, &dropoffLng,
+	)
 	if err == nil {
 		if deliveredAt.Valid {
 			value := deliveredAt.Time
@@ -507,6 +522,38 @@ func (h *Resources) getCustomerOrder(_ http.ResponseWriter, r *http.Request, own
 		if riderPhone.Valid && riderPhone.String != "" {
 			phone := riderPhone.String
 			d.RiderPhone = &phone
+		}
+		if pickupAddress.Valid && pickupAddress.String != "" {
+			addr := pickupAddress.String
+			d.PickupAddress = &addr
+		}
+		if dropoffAddress.Valid && dropoffAddress.String != "" {
+			addr := dropoffAddress.String
+			d.DropoffAddress = &addr
+		}
+		if pickupLat.Valid {
+			if v, err := pickupLat.Float64Value(); err == nil && v.Valid {
+				val := v.Float64
+				d.PickupLatitude = &val
+			}
+		}
+		if pickupLng.Valid {
+			if v, err := pickupLng.Float64Value(); err == nil && v.Valid {
+				val := v.Float64
+				d.PickupLongitude = &val
+			}
+		}
+		if dropoffLat.Valid {
+			if v, err := dropoffLat.Float64Value(); err == nil && v.Valid {
+				val := v.Float64
+				d.DropoffLatitude = &val
+			}
+		}
+		if dropoffLng.Valid {
+			if v, err := dropoffLng.Float64Value(); err == nil && v.Valid {
+				val := v.Float64
+				d.DropoffLongitude = &val
+			}
 		}
 		delivery = &d
 	} else if !errors.Is(err, pgx.ErrNoRows) {
@@ -798,11 +845,12 @@ func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, adminID
 }
 
 type addressInput struct {
-	Label       string   `json:"label"`
-	AddressLine string   `json:"address_line"`
-	City        string   `json:"city"`
-	Latitude    *float64 `json:"latitude"`
-	Longitude   *float64 `json:"longitude"`
+	Label            string   `json:"label"`
+	AddressLine      string   `json:"address_line"`
+	City             string   `json:"city"`
+	Latitude         *float64 `json:"latitude"`
+	Longitude        *float64 `json:"longitude"`
+	ClearCoordinates bool     `json:"clear_coordinates,omitempty"`
 }
 
 func (input *addressInput) validate() error {
@@ -816,6 +864,9 @@ func (input *addressInput) validate() error {
 		!utf8.ValidString(input.AddressLine) || len(input.AddressLine) == 0 || len(input.AddressLine) > 500 || strings.ContainsFunc(input.AddressLine, unicode.IsControl) ||
 		!utf8.ValidString(input.City) || len(input.City) == 0 || len(input.City) > 100 || strings.ContainsFunc(input.City, unicode.IsControl) {
 		return &resourceValidation{"Provide a label (up to 100 characters), street address (up to 500 bytes), and city (up to 100 bytes)."}
+	}
+	if input.ClearCoordinates && (input.Latitude != nil || input.Longitude != nil) {
+		return &resourceValidation{"Cannot provide coordinates when clear_coordinates is true."}
 	}
 	if (input.Latitude == nil) != (input.Longitude == nil) {
 		return &resourceValidation{"Provide both coordinates or leave both empty."}
@@ -873,7 +924,16 @@ func (h *Resources) updateAddress(w http.ResponseWriter, r *http.Request, owner 
 		return nil, &resourceValidation{"Coordinates must be valid numbers."}
 	}
 	var address dbsqlc.Address
-	err = h.pool.QueryRow(r.Context(), `UPDATE addresses SET label=$3,address_line=$4,city=$5,latitude=COALESCE($6,latitude),longitude=COALESCE($7,longitude) WHERE id=$1 AND user_id=$2 RETURNING id,user_id,label,address_line,city,latitude,longitude,created_at,updated_at`, id, owner, input.Label, input.AddressLine, input.City, latitude, longitude).Scan(&address.ID, &address.UserID, &address.Label, &address.AddressLine, &address.City, &address.Latitude, &address.Longitude, &address.CreatedAt, &address.UpdatedAt)
+	err = h.pool.QueryRow(r.Context(), `
+		UPDATE addresses 
+		SET label=$3,
+		    address_line=$4,
+		    city=$5,
+		    latitude = CASE WHEN $8::boolean THEN NULL ELSE COALESCE($6, latitude) END,
+		    longitude = CASE WHEN $8::boolean THEN NULL ELSE COALESCE($7, longitude) END
+		WHERE id=$1 AND user_id=$2 
+		RETURNING id,user_id,label,address_line,city,latitude,longitude,created_at,updated_at`,
+		id, owner, input.Label, input.AddressLine, input.City, latitude, longitude, input.ClearCoordinates).Scan(&address.ID, &address.UserID, &address.Label, &address.AddressLine, &address.City, &address.Latitude, &address.Longitude, &address.CreatedAt, &address.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errResourceForbidden
 	}

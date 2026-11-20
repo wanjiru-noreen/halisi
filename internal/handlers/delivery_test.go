@@ -353,6 +353,22 @@ func TestDeliveryManagementPostgres(t *testing.T) {
 			if w.Code != 200 {
 				t.Fatalf("edit address: %d %s", w.Code, w.Body.String())
 			}
+
+			// Verify clearing coordinates explicitly via clear_coordinates: true
+			testClearAddr := id("INSERT INTO addresses(user_id,address_line,city,latitude,longitude) VALUES($1,'Temp clear','Nairobi',-1.2,36.8) RETURNING id", users["customer"])
+			w = request("customer", "PATCH", fmt.Sprintf("/api/customer/addresses/%d", testClearAddr), `{"address_line":"Temp clear","city":"Nairobi","clear_coordinates":true}`)
+			if w.Code != 200 {
+				t.Fatalf("clear coordinates: %d %s", w.Code, w.Body.String())
+			}
+			var clearedAddr struct {
+				Address dbsqlc.Address `json:"address"`
+			}
+			if err := json.Unmarshal(w.Body.Bytes(), &clearedAddr); err != nil {
+				t.Fatal(err)
+			}
+			if clearedAddr.Address.Latitude.Valid || clearedAddr.Address.Longitude.Valid {
+				t.Fatalf("expected coordinates cleared, got %v, %v", clearedAddr.Address.Latitude, clearedAddr.Address.Longitude)
+			}
 			check("vendor", "POST", fmt.Sprintf("/api/vendor/orders/%d/confirm", placed.Order.ID), 200)
 			orderSnapshot, err := dbsqlc.New(pool).GetOrder(ctx, placed.Order.ID)
 			if err != nil {
@@ -394,6 +410,36 @@ func TestDeliveryManagementPostgres(t *testing.T) {
 					t.Fatal("order longitude differs from delivery", err)
 				}
 			}
+
+			// Verify customer order tracking exposes delivery coordinates safely
+			w = check("customer", "GET", fmt.Sprintf("/api/customer/orders/%d", placed.Order.ID), 200)
+			var orderTracking struct {
+				Delivery *struct {
+					DropoffLatitude  *float64 `json:"dropoff_latitude"`
+					DropoffLongitude *float64 `json:"dropoff_longitude"`
+					DropoffAddress   *string  `json:"dropoff_address"`
+				} `json:"delivery"`
+			}
+			if err := json.Unmarshal(w.Body.Bytes(), &orderTracking); err != nil {
+				t.Fatal(err)
+			}
+			if orderTracking.Delivery == nil {
+				t.Fatal("expected delivery attached to customer order")
+			}
+			if hasCoordinates {
+				if orderTracking.Delivery.DropoffLatitude == nil || *orderTracking.Delivery.DropoffLatitude != -1.2 {
+					t.Fatalf("expected dropoff latitude -1.2, got %v", orderTracking.Delivery.DropoffLatitude)
+				}
+				if orderTracking.Delivery.DropoffLongitude == nil || *orderTracking.Delivery.DropoffLongitude != 36.8 {
+					t.Fatalf("expected dropoff longitude 36.8, got %v", orderTracking.Delivery.DropoffLongitude)
+				}
+			} else {
+				if orderTracking.Delivery.DropoffLatitude != nil || orderTracking.Delivery.DropoffLongitude != nil {
+					t.Fatalf("expected null coordinates, got %v, %v", orderTracking.Delivery.DropoffLatitude, orderTracking.Delivery.DropoffLongitude)
+				}
+			}
+			// Unauthorized customer cannot view another customer's order tracking or coordinates
+			check("other", "GET", fmt.Sprintf("/api/customer/orders/%d", placed.Order.ID), 403)
 		})
 	}
 	// Invalid eligibility must roll back the order confirmation too.
