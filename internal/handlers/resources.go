@@ -845,11 +845,12 @@ func (h *Resources) vendorStatus(w http.ResponseWriter, r *http.Request, adminID
 }
 
 type addressInput struct {
-	Label       string   `json:"label"`
-	AddressLine string   `json:"address_line"`
-	City        string   `json:"city"`
-	Latitude    *float64 `json:"latitude"`
-	Longitude   *float64 `json:"longitude"`
+	Label            string   `json:"label"`
+	AddressLine      string   `json:"address_line"`
+	City             string   `json:"city"`
+	Latitude         *float64 `json:"latitude"`
+	Longitude        *float64 `json:"longitude"`
+	ClearCoordinates bool     `json:"clear_coordinates,omitempty"`
 }
 
 func (input *addressInput) validate() error {
@@ -863,6 +864,9 @@ func (input *addressInput) validate() error {
 		!utf8.ValidString(input.AddressLine) || len(input.AddressLine) == 0 || len(input.AddressLine) > 500 || strings.ContainsFunc(input.AddressLine, unicode.IsControl) ||
 		!utf8.ValidString(input.City) || len(input.City) == 0 || len(input.City) > 100 || strings.ContainsFunc(input.City, unicode.IsControl) {
 		return &resourceValidation{"Provide a label (up to 100 characters), street address (up to 500 bytes), and city (up to 100 bytes)."}
+	}
+	if input.ClearCoordinates && (input.Latitude != nil || input.Longitude != nil) {
+		return &resourceValidation{"Cannot provide coordinates when clear_coordinates is true."}
 	}
 	if (input.Latitude == nil) != (input.Longitude == nil) {
 		return &resourceValidation{"Provide both coordinates or leave both empty."}
@@ -920,7 +924,16 @@ func (h *Resources) updateAddress(w http.ResponseWriter, r *http.Request, owner 
 		return nil, &resourceValidation{"Coordinates must be valid numbers."}
 	}
 	var address dbsqlc.Address
-	err = h.pool.QueryRow(r.Context(), `UPDATE addresses SET label=$3,address_line=$4,city=$5,latitude=COALESCE($6,latitude),longitude=COALESCE($7,longitude) WHERE id=$1 AND user_id=$2 RETURNING id,user_id,label,address_line,city,latitude,longitude,created_at,updated_at`, id, owner, input.Label, input.AddressLine, input.City, latitude, longitude).Scan(&address.ID, &address.UserID, &address.Label, &address.AddressLine, &address.City, &address.Latitude, &address.Longitude, &address.CreatedAt, &address.UpdatedAt)
+	err = h.pool.QueryRow(r.Context(), `
+		UPDATE addresses 
+		SET label=$3,
+		    address_line=$4,
+		    city=$5,
+		    latitude = CASE WHEN $8::boolean THEN NULL ELSE COALESCE($6, latitude) END,
+		    longitude = CASE WHEN $8::boolean THEN NULL ELSE COALESCE($7, longitude) END
+		WHERE id=$1 AND user_id=$2 
+		RETURNING id,user_id,label,address_line,city,latitude,longitude,created_at,updated_at`,
+		id, owner, input.Label, input.AddressLine, input.City, latitude, longitude, input.ClearCoordinates).Scan(&address.ID, &address.UserID, &address.Label, &address.AddressLine, &address.City, &address.Latitude, &address.Longitude, &address.CreatedAt, &address.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, errResourceForbidden
 	}

@@ -353,6 +353,22 @@ func TestDeliveryManagementPostgres(t *testing.T) {
 			if w.Code != 200 {
 				t.Fatalf("edit address: %d %s", w.Code, w.Body.String())
 			}
+
+			// Verify clearing coordinates explicitly via clear_coordinates: true
+			testClearAddr := id("INSERT INTO addresses(user_id,address_line,city,latitude,longitude) VALUES($1,'Temp clear','Nairobi',-1.2,36.8) RETURNING id", users["customer"])
+			w = request("customer", "PATCH", fmt.Sprintf("/api/customer/addresses/%d", testClearAddr), `{"address_line":"Temp clear","city":"Nairobi","clear_coordinates":true}`)
+			if w.Code != 200 {
+				t.Fatalf("clear coordinates: %d %s", w.Code, w.Body.String())
+			}
+			var clearedAddr struct {
+				Address dbsqlc.Address `json:"address"`
+			}
+			if err := json.Unmarshal(w.Body.Bytes(), &clearedAddr); err != nil {
+				t.Fatal(err)
+			}
+			if clearedAddr.Address.Latitude.Valid || clearedAddr.Address.Longitude.Valid {
+				t.Fatalf("expected coordinates cleared, got %v, %v", clearedAddr.Address.Latitude, clearedAddr.Address.Longitude)
+			}
 			check("vendor", "POST", fmt.Sprintf("/api/vendor/orders/%d/confirm", placed.Order.ID), 200)
 			orderSnapshot, err := dbsqlc.New(pool).GetOrder(ctx, placed.Order.ID)
 			if err != nil {

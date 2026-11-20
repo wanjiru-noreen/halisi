@@ -207,9 +207,13 @@ form.addEventListener("submit", async (event) => {
     }
     payload.latitude = lat;
     payload.longitude = lng;
+    payload.clear_coordinates = false;
   } else {
     delete payload.latitude;
     delete payload.longitude;
+    if (editingID !== null) {
+      payload.clear_coordinates = true;
+    }
   }
 
   const method = editingID === null ? "POST" : "PATCH";
