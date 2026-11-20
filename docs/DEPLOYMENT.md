@@ -292,7 +292,7 @@ All sensitive production settings are declared with `sync: false` in `render.yam
 
 ## 7. Local Build & Verification
 
-Before pushing configuration changes or initiating a deployment, verify that the binaries build, database connectivity checks pass, and tests succeed:
+Before pushing configuration changes or initiating a deployment, verify that the binaries build, database connectivity checks pass, readiness checks pass, and tests succeed:
 
 ```sh
 # Build binaries matching Render build command
@@ -301,12 +301,17 @@ make build
 # Verify database connectivity without executing migrations
 make migrate-ping
 
+# Execute automated production readiness check suite
+make readiness-check
+
 # Run all test suites
 go test ./...
 
 # Verify code analysis
 go vet ./...
 ```
+
+See [production readiness](PRODUCTION_READINESS.md) for the complete checklist, timeout boundaries, and recovery runbooks.
 
 ---
 
