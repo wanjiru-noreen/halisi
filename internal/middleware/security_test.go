@@ -15,6 +15,7 @@ func TestSecurityHeaders(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("X-Forwarded-Proto", "https")
 	handler.ServeHTTP(rec, req)
 
 	expectedHeaders := map[string]string{
