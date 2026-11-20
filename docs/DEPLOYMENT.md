@@ -213,17 +213,57 @@ Halisi securely stores vendor registration documents (certificates of incorporat
 
 ---
 
-## 6. Environment Variables and Secrets Reference
+## 6. Domain, HTTPS, and Secrets Configuration
 
-All secrets in `render.yaml` are marked with `sync: false`. This instructs Render not to manage or overwrite them from Git, requiring them to be set via the Render Dashboard:
+### Custom Domain and DNS Configuration
+Halisi can be served directly from Render's default domain (`https://halisi.onrender.com`) or from custom domains (such as `https://halisi.co.ke` and `https://www.halisi.co.ke`).
 
-### Core Configuration
+1. **Adding Domains in Render**:
+   - In the Render Dashboard, navigate to **Settings > Custom Domains**.
+   - Add both the apex domain `halisi.co.ke` and the `www.halisi.co.ke` subdomain.
+2. **Configuring DNS Records**:
+   - **Apex Domain (`halisi.co.ke`)**:
+     - Option A (Recommended): Create an **ALIAS**, **ANAME**, or flattened CNAME record pointing to `halisi.onrender.com`.
+     - Option B: Create an **A** record pointing to Render's anycast IPv4 address: `216.24.57.1`.
+   - **Subdomain (`www.halisi.co.ke`)**:
+     - Create a **CNAME** record pointing to `halisi.onrender.com`.
+3. **Automated SSL/TLS Certificates**:
+   - Render automatically provisions and renews free SSL/TLS certificates via Let's Encrypt.
+   - HTTP traffic is automatically upgraded to HTTPS at the Render edge proxy.
+   - Halisi security middleware enforces HTTP Strict Transport Security (`Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`).
+
+### Aligning `PUBLIC_BASE_URL`
+The environment variable `PUBLIC_BASE_URL` must match the public HTTPS origin used by clients (e.g. `https://halisi.co.ke` or `https://halisi.onrender.com`). It directly configures:
+- **Email Verification**: Generates valid links such as `${PUBLIC_BASE_URL}/verify-email#token=...`.
+- **Google OAuth**: Must strictly match the authorized redirect URI registered in Google Cloud Console (`${PUBLIC_BASE_URL}/api/auth/google/callback`).
+- **M-Pesa STK Push**: Must provide the public callback URL for Safaricom Daraja notifications (`${PUBLIC_BASE_URL}/api/payments/mpesa/callback?token=...`).
+
+### Production Secrets and Credential Hygiene
+All sensitive production settings are declared with `sync: false` in `render.yaml`. This ensures that real credentials are never stored or exposed in Git.
+
+- **Configuring Secrets**:
+  - In Render Dashboard under **Environment**, set each variable (`SMTP_PASSWORD`, `GOOGLE_CLIENT_SECRET`, `MPESA_PASSKEY`, etc.).
+  - Database credentials for the managed database (`halisi-postgres`) are automatically managed and injected via `fromDatabase`.
+- **Rotating Secrets**:
+  1. Update credentials with the upstream provider (e.g., generate a new SendGrid API key, Google OAuth Secret, or Daraja Passkey).
+  2. Update the environment variable in Render Dashboard.
+  3. Trigger a redeployment. Render applies the new secrets with zero downtime.
+- **Pre-Flight Configuration Verification**:
+  - Validate all production configuration settings without starting network servers:
+    ```sh
+    make check-config
+    # Or directly:
+    go run ./cmd/server --check-config
+    ```
+
+### Environment Variables Reference
+
 | Variable | Required | Production Value | Description |
 | --- | --- | --- | --- |
 | `APP_ENV` | Yes | `production` | Enables production security rules (HTTPS-only cookies, strict TLS, absolute storage path). |
 | `PORT` | Auto | (Render assigns e.g. `10000`) | Listening port for the HTTP server. |
-| `DATABASE_URL` | Yes | `postgres://user:pass@host:5432/dbname?sslmode=require` | PostgreSQL connection URL with TLS enabled. |
-| `PUBLIC_BASE_URL` | Yes | `https://halisi.onrender.com` | Canonical public HTTPS origin for OAuth redirects and payment webhooks. |
+| `DATABASE_URL` | Auto | Managed via `fromDatabase` | PostgreSQL connection URL with TLS enabled. |
+| `PUBLIC_BASE_URL` | Yes | `https://halisi.onrender.com` or custom domain | Canonical public HTTPS origin for OAuth redirects and payment webhooks. |
 | `VENDOR_DOCUMENT_DIR` | Yes | `/var/data/vendor-documents` | Absolute directory path on the attached persistent disk. |
 
 ### Email & Verification (SMTP)
