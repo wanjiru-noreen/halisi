@@ -1,4 +1,4 @@
-.PHONY: build check-config migrate-up migrate-down migrate-version migrate-ping sqlc-install sqlc-generate
+.PHONY: build check-config readiness-check migrate-up migrate-down migrate-version migrate-ping sqlc-install sqlc-generate
 
 build:
 	go build -o bin/server ./cmd/server
@@ -7,6 +7,10 @@ build:
 # Validate all production environment variables, secrets, and domain configurations.
 check-config:
 	go run ./cmd/server --check-config
+
+# Execute production readiness test suite.
+readiness-check:
+	go test -v ./tests/integration -run TestReadiness
 
 sqlc-install:
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
