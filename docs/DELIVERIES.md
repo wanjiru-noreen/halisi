@@ -70,9 +70,83 @@ The existing rider `PATCH /api/rider/deliveries/{id}` endpoint accepts only
 `picked_up`, `delivered` and `failed`, for that rider's assignment. It validates
 the transition under a row lock. Failed delivery releases reserved inventory in
 the same transaction. Repeated/invalid transitions return 403 and cannot release
-stock twice. This task adds no public creation, assignment, arbitrary status, GPS
-or customer-confirmation endpoint. Dispatch and confirmation features remain
-later milestone tasks; registration alone grants no delivery access.
+stock twice.
+
+## Delivery assignment and tracking
+
+### Assignment endpoints
+
+Vendors and administrators can assign deliveries to approved riders:
+
+```http
+POST /api/vendor/deliveries/{id}/assign
+POST /api/admin/deliveries/{id}/assign
+```
+
+Request payload:
+```json
+{
+  "rider_id": 123
+}
+```
+
+- **Vendor assignment**: Only the vendor owning the order's shop can assign its delivery (`vendor.resources` permission). Attempting to assign another vendor's delivery returns HTTP 403 (`ErrDeliveryNotFound`).
+- **Admin assignment**: Administrators (`administration` permission) can assign or reassign any delivery.
+- **Rider validation**: The assigned user must exist, possess the `rider` role, and have an approved profile (`rider_profiles.status = 'approved'`). Assigning an unapproved or pending rider returns HTTP 422 (`ErrRiderNotApproved`).
+- **Lifecycle guard**: Deliveries can only be assigned or reassigned while in `pending` or `assigned` status. Once a delivery enters `picked_up`, `delivered`, `failed`, or `cancelled`, reassignment is forbidden and returns HTTP 422 (`ErrDeliveryNotAssignable`).
+- **Atomicity**: Status and rider assignment update together under database-level row constraints.
+
+### Available riders discovery
+
+Vendors and administrators can retrieve the list of approved riders for assignment selection:
+
+```http
+GET /api/vendor/riders
+GET /api/admin/riders
+```
+
+Returns:
+```json
+{
+  "riders": [
+    {
+      "user_id": 5,
+      "full_name": "Jane Doe",
+      "phone": "+254712345678",
+      "city": "Nairobi"
+    }
+  ]
+}
+```
+
+### Customer order tracking
+
+Customers tracking their order via `GET /api/customer/orders/{id}` receive the order's delivery status alongside the assigned rider's name and phone number (joined from `rider_profiles`):
+
+```json
+{
+  "order": {
+    "id": 1,
+    "status": "confirmed",
+    "delivery": {
+      "id": 10,
+      "status": "assigned",
+      "delivered_at": null,
+      "rider_name": "Jane Doe",
+      "rider_phone": "+254712345678"
+    }
+  }
+}
+```
+
+The customer tracking web page (`/customer/orders/{id}`) renders a 5-stage progress indicator:
+1. `pending` (Order Placed)
+2. `confirmed` (Confirmed by Shop)
+3. `assigned` (Rider Assigned)
+4. `picked_up` (Out for Delivery)
+5. `delivered` (Delivered)
+
+When a rider is assigned, a dedicated rider card appears displaying the rider's name and a clickable `tel:` call button for direct communication.
 
 ## Upgrade, rollback and tests
 
