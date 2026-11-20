@@ -1,4 +1,4 @@
-.PHONY: build migrate-up migrate-down migrate-version sqlc-install sqlc-generate
+.PHONY: build migrate-up migrate-down migrate-version migrate-ping sqlc-install sqlc-generate
 
 build:
 	go build -o bin/server ./cmd/server
@@ -19,3 +19,7 @@ migrate-down:
 
 migrate-version:
 	go run ./cmd/migrate version
+
+# Verify database connectivity without running migrations.
+migrate-ping:
+	go run ./cmd/migrate ping
