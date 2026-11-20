@@ -229,7 +229,7 @@ func (q *Queries) DeliveryWithRider(ctx context.Context, id int64) (DeliveryWith
 }
 
 const listApprovedRiders = `-- name: ListApprovedRiders :many
-SELECT u.id, rp.full_name, rp.phone, rp.city, rp.status, rp.created_at
+SELECT u.id AS user_id, rp.full_name, rp.phone, rp.city, rp.status, rp.created_at
 FROM users u
 JOIN rider_profiles rp ON rp.user_id = u.id
 WHERE u.role = 'rider' AND rp.status = 'approved'
@@ -237,7 +237,7 @@ ORDER BY rp.full_name ASC
 `
 
 type ListApprovedRidersRow struct {
-	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
 	FullName  string             `json:"full_name"`
 	Phone     string             `json:"phone"`
 	City      string             `json:"city"`
@@ -255,7 +255,7 @@ func (q *Queries) ListApprovedRiders(ctx context.Context) ([]ListApprovedRidersR
 	for rows.Next() {
 		var i ListApprovedRidersRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.UserID,
 			&i.FullName,
 			&i.Phone,
 			&i.City,
