@@ -1,9 +1,13 @@
-# Blueprint configuration only; provisioning requires an explicit Render deployment.
+# Render Blueprint specification for Halisi production service.
+# Provisioning requires an explicit Render blueprint deployment or service connection.
 services:
   - type: web
     name: halisi
     runtime: go
     plan: starter
+    region: oregon
+    branch: main
+    autoDeploy: false
     buildCommand: go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
     preDeployCommand: ./bin/migrate up
     startCommand: ./bin/server
@@ -32,4 +36,22 @@ services:
       - key: SMTP_USERNAME
         sync: false
       - key: SMTP_PASSWORD
+        sync: false
+      # Optional Google OAuth credentials; set in Render dashboard when enabled.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # Optional M-Pesa Daraja STK Push credentials; set in Render dashboard when enabled.
+      - key: MPESA_ENV
+        sync: false
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_SHORT_CODE
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_TRANSACTION_TYPE
         sync: false
