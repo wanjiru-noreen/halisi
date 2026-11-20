@@ -1,5 +1,11 @@
 # Database migrations
 
+Migration 7 adds delivery ownership and location snapshots, automatic creation
+on order confirmation, and database-enforced lifecycle transitions. See
+[delivery management](DELIVERIES.md) for eligibility, APIs and rollback behavior.
+Migration 8 saves checkout coordinates on orders and uses those snapshots for
+delivery drop-off locations, so later saved-address edits cannot redirect them.
+
 HALISI uses golang-migrate v4 with its pgx/v5 driver. The version is pinned in
 `go.mod`; `go mod download` installs the dependencies. The Go migration command
 embeds SQL from `internal/database/migrations/`, so no global migrate CLI is
@@ -21,6 +27,7 @@ go mod download
 make migrate-up
 make migrate-version
 make migrate-down
+make migrate-ping
 ```
 
 Without Make (including PowerShell):
@@ -29,13 +36,34 @@ Without Make (including PowerShell):
 go run ./cmd/migrate up
 go run ./cmd/migrate version
 go run ./cmd/migrate down
+go run ./cmd/migrate ping
 ```
 
-`up` applies all pending versions. Repeating it succeeds without reapplying
+`ping` verifies database reachability and credentials via `database.Connect` without running or altering schema migrations. `up` applies all pending versions. Repeating it succeeds without reapplying
 existing migrations. `down` rolls back exactly one version and deletes the
 tables/data removed by that version. Back up any data you need before rollback.
 The HTTP server does not automatically apply migrations; run them explicitly
 before deploying code that needs the schema.
+
+## Production PostgreSQL and backups
+
+The repository's `render.yaml` declares a managed PostgreSQL 17 database service (`halisi-postgres`) co-located with the web service in `region: oregon` on the Starter plan. Render automatically generates secure database credentials and injects the TLS-enforced connection string into `DATABASE_URL` via the Blueprint property `fromDatabase: { name: halisi-postgres, property: connectionString }`.
+
+### Automated backups
+Render provides automated daily backups with 7-day retention for Starter databases. In the Render Dashboard under **PostgreSQL > Backups**, operators can:
+1. View automated daily snapshots and their creation timestamps.
+2. Trigger an immediate manual snapshot before schema migrations or major releases.
+3. Restore a snapshot to a new PostgreSQL instance with a single click.
+
+### Logical export and offsite backups
+For disaster recovery or offsite archive retention, export a logical dump over TLS:
+```sh
+# Export a compressed custom-format backup (never commit the dump or credentials)
+pg_dump "$DATABASE_URL" -Fc -f halisi_backup_$(date +%Y%m%d).dump
+
+# Restore into a target PostgreSQL database
+pg_restore --clean --if-exists -d "$DATABASE_URL" halisi_backup_YYYYMMDD.dump
+```
 
 ## Initial schema
 
@@ -50,8 +78,8 @@ The up and down SQL each run in a transaction. Down removes tables in reverse
 dependency order without CASCADE. The `schema_migrations` table records the
 current version and dirty flag; it remains after rollback. Advisory locking
 prevents concurrent migration execution. Do not edit a migration after it has
-been applied: add a new numbered pair, e.g. `000004_description.up.sql` and
-`000004_description.down.sql`.
+been applied: add a new numbered pair, e.g. `000009_description.up.sql` and
+`000009_description.down.sql`.
 
 On failure the command exits nonzero without printing driver errors that could
 contain credentials. Check `migrate-version` and database logs. A dirty version
@@ -128,6 +156,13 @@ return `pgx.ErrNoRows`. Nullable columns use pgx types such as `pgtype.Text`.
 
 ## Core schema (version 000002)
 
+Migration `000006` adds owner-unique pending rider profiles and timestamps. See
+[rider registration](RIDER_REGISTRATION.md) for the current registration boundary.
+
+Migration `000004` extends vendors/documents and adds audited reviews and selling
+guards. See [vendor onboarding](VENDOR_ONBOARDING.md) for the current workflow,
+fields, storage requirements and legacy-data upgrade behavior.
+
 Version 2 extends the original tables without changing migration 1. All twelve
 core tables have bigint identity primary keys (inventory uses `product_id` as
 its primary key), `created_at` and `updated_at` as non-null `TIMESTAMPTZ` values.
@@ -148,6 +183,15 @@ Both timestamps default to the insertion time. A database trigger sets
 | `payments` | Order FK; positive finite amount; currency must match order; optional unique external reference |
 | `deliveries` | One delivery per order; optional rider user FK; assigned/picked-up/delivered states require a rider; delivered state requires delivery timestamp at or after creation, other states require no delivery timestamp |
 | `reviews` | One review per order; composite FK requires the order's actual customer and vendor; rating 1–5; optional comment represented by empty text |
+
+## M-Pesa payment metadata (version 000007)
+
+Version 7 records the provider, request idempotency key, normalized customer
+phone, Daraja request IDs, result details, and a hash of a unique callback token
+for each M-Pesa attempt. A partial unique index prevents overlapping active
+M-Pesa attempts for one order; completed or failed attempts remain available
+for customer history and reconciliation. The raw callback token is sent only
+to Daraja and is not stored in the database.
 
 ```mermaid
 erDiagram
@@ -199,7 +243,8 @@ Application services remain responsible for authorization (including vendor/ride
 role checks), password hashing, status-transition rules, review eligibility,
 calculating totals from items, payment reconciliation, reservation release, and
 currency pricing policy. The database constrains allowed values and ownership,
-not these workflows. A product can have no inventory row until stocked; missing
+with migration 7 additionally enforcing delivery eligibility and lifecycle
+transitions. A product can have no inventory row until stocked; missing
 inventory means unavailable. User records and session hashes are internal data,
 not public API response objects.
 

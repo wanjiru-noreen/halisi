@@ -13,11 +13,16 @@ permissions. No schema migration is required for this change.
 | Administrator (`admin`) | `administration` | `/admin/dashboard` | User/vendor management and vendor approval status |
 
 All roles can manage their own existing authentication/session/account flows.
+Rider delivery access additionally requires an approved rider profile. An
+application alone never grants delivery access or changes roles; see
+[Task 6.1](RIDER_REGISTRATION.md). Any authenticated role may register its own
+pending application, but no registration endpoint can approve it.
 Administrator access is explicit through management routes; it does not bypass
 another role's ownership-scoped endpoints or impersonate a vendor/rider/customer.
 Public registration and first-time Google registration always create customers.
-Privileged roles must be provisioned by a trusted database operator or a future
-audited administrative provisioning workflow. No public role-change API exists.
+Rider/administrator roles require a trusted database operator or a future audited
+provisioning workflow. Verified customers can become vendors through the
+[business onboarding workflow](VENDOR_ONBOARDING.md). No arbitrary role-change API exists.
 Registration rejects a `role` field rather than silently accepting it. Shop and
 product updates similarly reject owner IDs, role fields and approval status.
 
@@ -57,11 +62,15 @@ Collections are limited to 100 records except the existing user-address query.
 | `/api/vendor/products` | GET, POST | Products in the session vendor's shop |
 | `/api/vendor/products/{id}` | GET, PATCH, DELETE | That vendor's product only |
 | `/api/vendor/orders`, `/api/vendor/orders/{id}` | GET | Orders for the session vendor's shop |
+| `/api/vendor/deliveries/{id}/assign` | POST | Assign or reassign own shop's delivery to an approved rider |
+| `/api/vendor/riders` | GET | List approved riders available for delivery assignment |
 | `/api/rider/deliveries`, `/api/rider/deliveries/{id}` | GET | Session rider's assignments; unassigned deliveries are excluded |
 | `/api/rider/deliveries/{id}` | PATCH | Assigned rider's permitted status transitions |
 | `/api/admin/users` | GET | Management projection excluding password/session data |
 | `/api/admin/vendors` | GET | Vendor management listing |
 | `/api/admin/vendors/{id}/status` | PATCH | Administrator-only vendor approval/status changes |
+| `/api/admin/deliveries/{id}/assign` | POST | Administrator assignment/reassignment of delivery to an approved rider |
+| `/api/admin/riders` | GET | List approved riders available for delivery assignment |
 
 Shop creation/update accepts `{ "name": "My shop", "address": "Nairobi" }`.
 The server supplies `user_id`; new shops start `pending`. Updating an address

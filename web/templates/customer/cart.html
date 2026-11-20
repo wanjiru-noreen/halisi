@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your cart · HALISI</title>
+  <link rel="stylesheet" href="/static/css/auth.css">
+  <script src="/static/js/cart.js" defer></script>
+</head>
+<body class="min-h-screen bg-stone-50 text-stone-900 antialiased">
+<header class="border-b border-stone-200 bg-white"><nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8" aria-label="Main navigation"><a href="/" class="text-xl font-black tracking-[0.18em] text-emerald-900">HALISI<span class="text-orange-500">.</span></a><div class="flex gap-3"><a href="/customer/vendors" class="rounded-full px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Continue shopping</a><a href="/customer/dashboard" class="rounded-full px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">My account</a></div></nav></header>
+<main class="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
+  <a href="/customer/products" class="text-sm font-semibold text-emerald-800 hover:underline">← Products</a>
+  <section class="mt-7 grid gap-7 lg:grid-cols-[1fr_22rem]">
+    <div class="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+      <div class="flex flex-wrap items-end justify-between gap-3"><div><p class="text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">Your selection</p><h1 class="mt-2 text-3xl font-semibold">Shopping cart</h1></div><p id="cart-vendor" class="text-sm text-stone-500"></p></div>
+      <p id="cart-error" class="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800" role="alert" hidden></p>
+      <div id="cart-items" class="mt-6 divide-y divide-stone-100"></div>
+      <div id="cart-empty" class="mt-6 rounded-2xl border border-dashed border-stone-300 bg-stone-50 p-8 text-center" hidden><p class="text-lg font-semibold">Your cart is empty</p><p class="mt-2 text-sm text-stone-600">Browse approved vendors to find your next refill.</p><a href="/customer/vendors" class="mt-5 inline-flex rounded-full bg-emerald-800 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-900">Explore vendors</a></div>
+    </div>
+    <aside class="h-fit rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-semibold">Order summary</h2>
+      <div class="mt-5 flex justify-between text-sm text-stone-600"><span>Estimated total</span><span id="cart-total" class="font-semibold text-stone-900">KES 0.00</span></div>
+      <p class="mt-2 text-xs leading-5 text-stone-500">Final prices and stock are confirmed securely at checkout.</p>
+      <label for="delivery-address" class="mt-6 block text-sm font-semibold">Delivery address</label>
+      <select id="delivery-address" class="mt-2 w-full rounded-xl border border-stone-300 bg-white px-3 py-3 text-sm"><option value="">Loading saved addresses…</option></select>
+      <a href="/customer/addresses" class="mt-3 inline-block text-sm font-semibold text-emerald-800 hover:underline">Manage saved addresses</a>
+      <p id="login-note" class="mt-4 text-sm leading-6 text-stone-600" hidden>You need an account to place this order. <a href="/login" class="font-semibold text-emerald-800 underline">Log in</a> or <a href="/register" class="font-semibold text-emerald-800 underline">create an account</a>.</p>
+      <button id="checkout" class="mt-6 w-full rounded-full bg-emerald-800 px-5 py-3.5 text-sm font-bold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50">Place order</button>
+    </aside>
+  </section>
+</main>
+</body>
+</html>

@@ -39,6 +39,22 @@ Missing or invalid settings stop startup with an error naming the variable.
 Configuration errors do not include database credentials. Keep real credentials
 in your local environment or deployment secret store.
 
+### M-Pesa Daraja (optional)
+
+M-Pesa STK Push is disabled unless its Daraja settings are configured. Set
+`MPESA_ENV` to `sandbox` for testing or `production` after Safaricom enables the
+live app, then provide `MPESA_CONSUMER_KEY`, `MPESA_CONSUMER_SECRET`,
+`MPESA_SHORT_CODE`, `MPESA_PASSKEY`, and `MPESA_TRANSACTION_TYPE`. Use
+`CustomerPayBillOnline` for a PayBill shortcode or `CustomerBuyGoodsOnline` for
+a Till. Configure `PUBLIC_BASE_URL` to the public HTTPS origin so Daraja can
+reach the per-payment callback URL. Never commit these credentials.
+
+Run `go run ./cmd/migrate up` before deploying the payment code. Customers can
+start a payment from a pending order; the server uses the stored order total,
+requires a whole-shilling KES amount, and confirms payment only after a valid
+per-attempt callback token plus matching amount, phone number, and transaction
+reference. Daraja sandbox and production credentials are separate.
+
 ## PostgreSQL
 
 Start PostgreSQL and set `DATABASE_URL` to its connection URL before running the
@@ -68,6 +84,11 @@ The same guide documents [sqlc generation](docs/DATABASE.md#generate-go-queries-
 See [CI and branch protection](docs/CI.md) for automated pull request checks.
 See [authentication](docs/AUTH.md) for registration, login, sessions and frontend builds.
 See [role permissions](docs/PERMISSIONS.md) for dashboards and ownership-scoped APIs.
+See [vendor onboarding](docs/VENDOR_ONBOARDING.md) for verification and persistent documents.
+See [rider registration](docs/RIDER_REGISTRATION.md) for Task 6.1 APIs and pending-access rules.
+See [delivery management](docs/DELIVERIES.md) for confirmation, ownership and lifecycle rules.
+See [production deployment](docs/DEPLOYMENT.md) for Render service setup, persistent disks, and build lifecycle.
+See [production readiness](docs/PRODUCTION_READINESS.md) for pre-deployment checks, observability benchmarks, and recovery runbooks.
 
 ```sh
 go build ./...

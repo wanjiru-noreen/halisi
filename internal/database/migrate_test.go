@@ -92,14 +92,26 @@ func TestMigrationsPostgres(t *testing.T) {
 	}
 	defer db.Close()
 	fixture := seedVersionOne(t, ctx, db)
+	if err := m.Steps(5); err != nil {
+		t.Fatal(err)
+	}
+	testCoreSchema(t, ctx, db, fixture)
+	if err := m.Steps(3); err != nil {
+		t.Fatalf("delivery, M-Pesa and location migrations failed: %v", err)
+	}
+	activePaymentID := insertID(t, ctx, db, `INSERT INTO payments(order_id,amount,status,provider,request_key,phone_number,callback_token_hash) VALUES($1,100,'processing','mpesa','pre-migration-active-attempt','254712345678',repeat('b',64)) RETURNING id`, fixture.order)
 	if err := m.Up(); err != nil {
 		t.Fatalf("core schema upgrade failed: %v", err)
 	}
-	version, dirty, err := m.Version()
-	if err != nil || version != 3 || dirty {
-		t.Fatal("expected clean version 3")
+	var frozenRate int32
+	if err := db.QueryRow(ctx, `SELECT commission_rate_bps FROM payments WHERE id=$1`, activePaymentID).Scan(&frozenRate); err != nil || frozenRate != 1000 {
+		t.Fatal("migration did not freeze the rate for an active M-Pesa attempt", err)
 	}
-	for _, table := range []string{"users", "sessions", "vendors", "vendor_documents", "products", "vendor_inventory", "addresses", "orders", "order_items", "payments", "deliveries", "reviews", "schema_migrations"} {
+	version, dirty, err := m.Version()
+	if err != nil || version != 10 || dirty {
+		t.Fatal("expected clean version 10")
+	}
+	for _, table := range []string{"users", "sessions", "vendors", "vendor_documents", "products", "vendor_inventory", "addresses", "orders", "order_items", "payments", "deliveries", "reviews", "vendor_commission_rate_changes", "order_commissions", "settlements", "settlement_items", "schema_migrations"} {
 		var exists bool
 		if err := admin.QueryRow(ctx, "SELECT to_regclass($1) IS NOT NULL", schema+"."+table).Scan(&exists); err != nil || !exists {
 			t.Fatalf("expected table %s", table)
@@ -117,7 +129,42 @@ func TestMigrationsPostgres(t *testing.T) {
 	if err := admin.QueryRow(ctx, "SELECT count(*) FROM "+schema+".users").Scan(&count); err != nil || count != beforeCount {
 		t.Fatal("repeat up changed existing data")
 	}
-	testCoreSchema(t, ctx, db, fixture)
+	var historicalCustomer, historicalVendor int64
+	if err := db.QueryRow(ctx, "SELECT customer_id,vendor_id FROM deliveries WHERE order_id=$1", fixture.order).Scan(&historicalCustomer, &historicalVendor); err != nil || historicalCustomer != fixture.customer || historicalVendor != fixture.vendor {
+		t.Fatal("delivery migration did not preserve and backfill historical delivery")
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("commissions rollback failed: %v", err)
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("M-Pesa rollback failed: %v", err)
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("order location snapshot rollback failed: %v", err)
+	}
+	// The downgrade must restore a working version-7 creation function, not leave
+	// a function referring to the now-removed order snapshot columns.
+	if _, err := db.Exec(ctx, "UPDATE vendors SET status='approved',is_active=TRUE WHERE id=$1", fixture.vendor); err != nil {
+		t.Fatal(err)
+	}
+	rollbackAddress := insertID(t, ctx, db, "INSERT INTO addresses(user_id,address_line,city,latitude,longitude) VALUES($1,'Rollback street','Nairobi',-1.2,36.8) RETURNING id", fixture.customer)
+	rollbackOrder := insertID(t, ctx, db, "INSERT INTO orders(customer_id,vendor_id,address_id,status,total,delivery_address) VALUES($1,$2,$3,'confirmed',100,'Rollback street') RETURNING id", fixture.customer, fixture.vendor, rollbackAddress)
+	var restored bool
+	if err := db.QueryRow(ctx, "SELECT dropoff_latitude=-1.2 AND dropoff_longitude=36.8 FROM deliveries WHERE order_id=$1", rollbackOrder).Scan(&restored); err != nil || !restored {
+		t.Fatal("downgrade did not restore version-7 delivery creation", err)
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("delivery management rollback failed: %v", err)
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("rider registration rollback failed: %v", err)
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("review version rollback failed: %v", err)
+	}
+	if err := m.Steps(-1); err != nil {
+		t.Fatalf("vendor onboarding rollback failed: %v", err)
+	}
 	if err := m.Steps(-1); err != nil {
 		t.Fatalf("email/OAuth rollback failed: %v", err)
 	}

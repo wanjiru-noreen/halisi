@@ -50,7 +50,7 @@ func (q *Queries) CreateAddress(ctx context.Context, arg CreateAddressParams) (A
 }
 
 const createDelivery = `-- name: CreateDelivery :one
-INSERT INTO deliveries (order_id, rider_id) VALUES ($1, $2) RETURNING id, order_id, rider_id, status, delivered_at, created_at, updated_at
+INSERT INTO deliveries (order_id, rider_id) VALUES ($1, $2) RETURNING id, order_id, rider_id, status, delivered_at, created_at, updated_at, vendor_id, customer_id, address_id, pickup_address, dropoff_address, pickup_latitude, pickup_longitude, dropoff_latitude, dropoff_longitude
 `
 
 type CreateDeliveryParams struct {
@@ -69,22 +69,33 @@ func (q *Queries) CreateDelivery(ctx context.Context, arg CreateDeliveryParams) 
 		&i.DeliveredAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.VendorID,
+		&i.CustomerID,
+		&i.AddressID,
+		&i.PickupAddress,
+		&i.DropoffAddress,
+		&i.PickupLatitude,
+		&i.PickupLongitude,
+		&i.DropoffLatitude,
+		&i.DropoffLongitude,
 	)
 	return i, err
 }
 
 const createOrder = `-- name: CreateOrder :one
-INSERT INTO orders (customer_id, vendor_id, address_id, delivery_address, total, currency)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at
+INSERT INTO orders (customer_id, vendor_id, address_id, delivery_address, total, currency, delivery_latitude, delivery_longitude)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at, delivery_latitude, delivery_longitude
 `
 
 type CreateOrderParams struct {
-	CustomerID      int64          `json:"customer_id"`
-	VendorID        int64          `json:"vendor_id"`
-	AddressID       pgtype.Int8    `json:"address_id"`
-	DeliveryAddress string         `json:"delivery_address"`
-	Total           pgtype.Numeric `json:"total"`
-	Currency        string         `json:"currency"`
+	CustomerID        int64          `json:"customer_id"`
+	VendorID          int64          `json:"vendor_id"`
+	AddressID         pgtype.Int8    `json:"address_id"`
+	DeliveryAddress   string         `json:"delivery_address"`
+	Total             pgtype.Numeric `json:"total"`
+	Currency          string         `json:"currency"`
+	DeliveryLatitude  pgtype.Numeric `json:"delivery_latitude"`
+	DeliveryLongitude pgtype.Numeric `json:"delivery_longitude"`
 }
 
 func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order, error) {
@@ -95,6 +106,8 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		arg.DeliveryAddress,
 		arg.Total,
 		arg.Currency,
+		arg.DeliveryLatitude,
+		arg.DeliveryLongitude,
 	)
 	var i Order
 	err := row.Scan(
@@ -108,6 +121,8 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (Order
 		&i.AddressID,
 		&i.Currency,
 		&i.UpdatedAt,
+		&i.DeliveryLatitude,
+		&i.DeliveryLongitude,
 	)
 	return i, err
 }
@@ -149,7 +164,7 @@ func (q *Queries) CreateOrderItem(ctx context.Context, arg CreateOrderItemParams
 
 const createPayment = `-- name: CreatePayment :one
 INSERT INTO payments (order_id, amount, currency, reference)
-VALUES ($1, $2, $3, $4) RETURNING id, order_id, amount, status, reference, created_at, currency, updated_at
+VALUES ($1, $2, $3, $4) RETURNING id, order_id, amount, status, reference, created_at, currency, updated_at, provider, request_key, phone_number, merchant_request_id, checkout_request_id, callback_token_hash, result_code, result_description, commission_rate_bps
 `
 
 type CreatePaymentParams struct {
@@ -176,6 +191,15 @@ func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (P
 		&i.CreatedAt,
 		&i.Currency,
 		&i.UpdatedAt,
+		&i.Provider,
+		&i.RequestKey,
+		&i.PhoneNumber,
+		&i.MerchantRequestID,
+		&i.CheckoutRequestID,
+		&i.CallbackTokenHash,
+		&i.ResultCode,
+		&i.ResultDescription,
+		&i.CommissionRateBps,
 	)
 	return i, err
 }
@@ -267,7 +291,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 }
 
 const createVendor = `-- name: CreateVendor :one
-INSERT INTO vendors (user_id, name, address) VALUES ($1, $2, $3) RETURNING id, user_id, name, address, created_at, status, updated_at, address_id
+INSERT INTO vendors (user_id, name, address) VALUES ($1, $2, $3) RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version, commission_rate_bps
 `
 
 type CreateVendorParams struct {
@@ -288,6 +312,17 @@ func (q *Queries) CreateVendor(ctx context.Context, arg CreateVendorParams) (Ven
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
+		&i.ReviewVersion,
+		&i.CommissionRateBps,
 	)
 	return i, err
 }
@@ -313,7 +348,7 @@ func (q *Queries) GetActiveSession(ctx context.Context, tokenHash string) (Sessi
 }
 
 const getOrder = `-- name: GetOrder :one
-SELECT id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at FROM orders WHERE id = $1
+SELECT id, customer_id, vendor_id, status, total, delivery_address, created_at, address_id, currency, updated_at, delivery_latitude, delivery_longitude FROM orders WHERE id = $1
 `
 
 func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
@@ -330,12 +365,14 @@ func (q *Queries) GetOrder(ctx context.Context, id int64) (Order, error) {
 		&i.AddressID,
 		&i.Currency,
 		&i.UpdatedAt,
+		&i.DeliveryLatitude,
+		&i.DeliveryLongitude,
 	)
 	return i, err
 }
 
 const getVendor = `-- name: GetVendor :one
-SELECT id, user_id, name, address, created_at, status, updated_at, address_id FROM vendors WHERE id = $1
+SELECT id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version, commission_rate_bps FROM vendors WHERE id = $1
 `
 
 func (q *Queries) GetVendor(ctx context.Context, id int64) (Vendor, error) {
@@ -350,6 +387,17 @@ func (q *Queries) GetVendor(ctx context.Context, id int64) (Vendor, error) {
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
+		&i.ReviewVersion,
+		&i.CommissionRateBps,
 	)
 	return i, err
 }
@@ -464,7 +512,7 @@ const reserveInventory = `-- name: ReserveInventory :one
 UPDATE vendor_inventory
 SET reserved_quantity = reserved_quantity + $1::integer
 WHERE product_id = $2 AND vendor_id = $3
-    AND $1::integer > 0
+    AND EXISTS (SELECT 1 FROM vendors v WHERE v.id=vendor_inventory.vendor_id AND v.status='approved' AND v.is_active) AND $1::integer > 0
     AND quantity - reserved_quantity >= $1::integer
 RETURNING product_id, vendor_id, quantity, reserved_quantity, created_at, updated_at
 `
@@ -511,7 +559,7 @@ INSERT INTO vendor_documents (vendor_id, document_type, storage_key)
 VALUES ($1, $2, $3)
 ON CONFLICT (vendor_id, document_type) DO UPDATE
 SET storage_key = EXCLUDED.storage_key, status = 'pending'
-RETURNING id, vendor_id, document_type, storage_key, status, created_at, updated_at
+RETURNING id, vendor_id, document_type, storage_key, status, created_at, updated_at, original_name, content_type, size_bytes, sha256
 `
 
 type SaveVendorDocumentParams struct {
@@ -531,6 +579,10 @@ func (q *Queries) SaveVendorDocument(ctx context.Context, arg SaveVendorDocument
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OriginalName,
+		&i.ContentType,
+		&i.SizeBytes,
+		&i.Sha256,
 	)
 	return i, err
 }
@@ -564,7 +616,7 @@ func (q *Queries) SetInventory(ctx context.Context, arg SetInventoryParams) (Ven
 }
 
 const setVendorAddress = `-- name: SetVendorAddress :one
-UPDATE vendors SET address_id = $2, address = $3 WHERE id = $1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id
+UPDATE vendors SET address_id = $2, address = $3 WHERE id = $1 RETURNING id, user_id, name, address, created_at, status, updated_at, address_id, contact_email, contact_phone, city, operating_hours, is_active, submitted_at, review_reason, reviewed_by, reviewed_at, review_version, commission_rate_bps
 `
 
 type SetVendorAddressParams struct {
@@ -585,6 +637,17 @@ func (q *Queries) SetVendorAddress(ctx context.Context, arg SetVendorAddressPara
 		&i.Status,
 		&i.UpdatedAt,
 		&i.AddressID,
+		&i.ContactEmail,
+		&i.ContactPhone,
+		&i.City,
+		&i.OperatingHours,
+		&i.IsActive,
+		&i.SubmittedAt,
+		&i.ReviewReason,
+		&i.ReviewedBy,
+		&i.ReviewedAt,
+		&i.ReviewVersion,
+		&i.CommissionRateBps,
 	)
 	return i, err
 }

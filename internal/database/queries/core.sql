@@ -40,7 +40,7 @@ RETURNING *;
 UPDATE vendor_inventory
 SET reserved_quantity = reserved_quantity + sqlc.arg(quantity)::integer
 WHERE product_id = sqlc.arg(product_id) AND vendor_id = sqlc.arg(vendor_id)
-    AND sqlc.arg(quantity)::integer > 0
+    AND EXISTS (SELECT 1 FROM vendors v WHERE v.id=vendor_inventory.vendor_id AND v.status='approved' AND v.is_active) AND sqlc.arg(quantity)::integer > 0
     AND quantity - reserved_quantity >= sqlc.arg(quantity)::integer
 RETURNING *;
 
@@ -52,8 +52,8 @@ VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
 SELECT * FROM addresses WHERE user_id = $1 ORDER BY id;
 
 -- name: CreateOrder :one
-INSERT INTO orders (customer_id, vendor_id, address_id, delivery_address, total, currency)
-VALUES ($1, $2, $3, $4, $5, $6) RETURNING *;
+INSERT INTO orders (customer_id, vendor_id, address_id, delivery_address, total, currency, delivery_latitude, delivery_longitude)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;
 
 -- name: GetOrder :one
 SELECT * FROM orders WHERE id = $1;

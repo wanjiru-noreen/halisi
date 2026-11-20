@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,9 +19,17 @@ import (
 	"github.com/wanjiru-noreen/halisi/internal/handlers"
 	"github.com/wanjiru-noreen/halisi/internal/routes"
 	"github.com/wanjiru-noreen/halisi/internal/services"
+	"github.com/wanjiru-noreen/halisi/internal/storage"
 )
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--check-config" || os.Args[1] == "-check") {
+		if _, err := config.ValidateProduction(); err != nil {
+			log.Fatalf("Production configuration check failed: %v", err)
+		}
+		fmt.Println("Production configuration verified successfully")
+		return
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx); err != nil {
@@ -60,11 +70,43 @@ func run(ctx context.Context) error {
 		return errors.New("could not initialize authentication")
 	}
 	auth := handlers.NewAuth(authService, cfg.AppEnv)
-	resources := handlers.NewResources(pool, auth)
+	documentDirectory := os.Getenv("VENDOR_DOCUMENT_DIR")
+	if cfg.AppEnv == "production" && (documentDirectory == "" || !(filepath.IsAbs(documentDirectory) || strings.HasPrefix(documentDirectory, "/"))) {
+		return errors.New("VENDOR_DOCUMENT_DIR must be an absolute persistent-volume path in production")
+	}
+	if documentDirectory == "" {
+		documentDirectory = ".data/vendor-documents"
+	}
+	files, err := storage.OpenDocuments(documentDirectory)
+	if err != nil {
+		return errors.New("could not open private vendor document storage")
+	}
+	defer files.Close()
+	onboardingService := &services.VendorOnboarding{Pool: pool, Files: files}
+	onboarding := handlers.NewVendorOnboarding(auth, onboardingService)
+	resources := handlers.NewResources(pool, auth, onboardingService)
+	storefront := handlers.NewStorefront(pool)
+	checkout := handlers.NewCheckout(pool, auth)
+	riders := handlers.NewRiderRegistration(auth, services.NewRiderRegistration(pool))
+	mpesaConfig, err := config.LoadMPesa()
+	if err != nil {
+		return fmt.Errorf("M-Pesa configuration error: %w", err)
+	}
+	var mpesaClient services.STKClient
+	var mpesaShortCode, mpesaPasskey, mpesaTransactionType string
+	if mpesaConfig != nil {
+		mpesaClient, err = services.NewDaraja(mpesaConfig.Environment, mpesaConfig.ConsumerKey, mpesaConfig.ConsumerSecret, nil)
+		if err != nil {
+			return fmt.Errorf("M-Pesa configuration error: %w", err)
+		}
+		mpesaShortCode, mpesaPasskey, mpesaTransactionType = mpesaConfig.ShortCode, mpesaConfig.Passkey, mpesaConfig.TransactionType
+	}
+	mpesa := handlers.NewMPesa(pool, auth, mpesaClient, identity.PublicBaseURL, mpesaShortCode, mpesaPasskey, mpesaTransactionType)
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           routes.New(pool, auth.Routes, resources.Routes),
+		Handler:           routes.New(pool, auth.Routes, resources.Routes, onboarding.Routes, storefront.Routes, checkout.Routes, riders.Routes, mpesa.Routes),
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}

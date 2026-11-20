@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browse cooking gas cylinders and accessories with clear prices from approved HALISI vendors.">
+  <title>Products and prices · HALISI</title>
+  <link rel="stylesheet" href="/static/css/auth.css">
+  <script src="/static/js/products.js" defer></script>
+</head>
+<body class="min-h-screen bg-stone-50 text-stone-900 antialiased">
+<header class="border-b border-stone-200 bg-white"><nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8" aria-label="Main navigation"><a href="/" class="text-xl font-black tracking-[0.18em] text-emerald-900">HALISI<span class="text-orange-500">.</span></a><div class="flex gap-3"><a href="/customer/vendors" class="rounded-full px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Vendors</a><a href="/customer/cart" class="rounded-full px-4 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-50">Cart</a></div></nav></header>
+<main class="mx-auto max-w-7xl px-5 py-10 sm:px-8 sm:py-14">
+  <a href="/customer/vendors" class="text-sm font-semibold text-emerald-800 hover:underline">← Vendors</a>
+  <section class="mt-7 flex flex-col gap-6 rounded-3xl bg-emerald-950 px-6 py-9 text-white sm:px-10 sm:py-11 lg:flex-row lg:items-end lg:justify-between">
+    <div><p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-200">Clear prices, local supply</p><h1 class="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Products and pricing</h1><p class="mt-3 max-w-2xl text-sm leading-6 text-emerald-100">Compare cylinder options and accessories from approved shops. Prices are shown in Kenyan shillings.</p></div>
+    <form id="product-search" class="flex w-full max-w-xl flex-col gap-3 sm:flex-row">
+      <label class="sr-only" for="product-query">Search products or vendors</label>
+      <input id="product-query" class="min-w-0 flex-1 rounded-full border border-white/30 bg-white px-5 py-3 text-sm text-stone-900 outline-none focus:ring-2 focus:ring-orange-300" type="search" maxlength="100" placeholder="Search products or vendors">
+      <button class="rounded-full bg-orange-400 px-6 py-3 text-sm font-bold text-emerald-950 hover:bg-orange-300" type="submit">Search</button>
+    </form>
+  </section>
+  <div class="mt-8 flex flex-wrap items-center justify-between gap-3"><h2 class="text-2xl font-semibold">Available catalog</h2><p id="product-count" class="text-sm text-stone-500" aria-live="polite"></p></div>
+  <p id="product-error" class="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800" role="alert" hidden></p>
+  <div id="product-results" class="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-live="polite"><p class="text-sm text-stone-500">Loading products…</p></div>
+</main>
+</body>
+</html>

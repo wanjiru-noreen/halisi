@@ -2,23 +2,41 @@ package web
 
 import (
 	"embed"
+	"html/template"
 	"io/fs"
 	"net/http"
+	"path"
+	"strings"
 )
 
-//go:embed templates/auth/*.html static/js/auth.js static/js/dashboard.js static/css/auth.css
+//go:embed templates static
 var assets embed.FS
 
 func Page(name string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		content, err := assets.ReadFile("templates/auth/" + name + ".html")
+		page := name
+		if !strings.HasPrefix(page, "templates/") {
+			if strings.Contains(page, "/") {
+				page = "templates/" + page + ".html"
+			} else {
+				page = "templates/auth/" + page + ".html"
+			}
+		}
+		page = path.Clean(page)
+		if !strings.HasPrefix(page, "templates/") || strings.Contains(page, "..") {
+			http.NotFound(w, r)
+			return
+		}
+		view, err := template.ParseFS(assets, "templates/components/*.html", page)
 		if err != nil {
 			http.NotFound(w, r)
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store")
-		_, _ = w.Write(content)
+		if err := view.ExecuteTemplate(w, path.Base(page), nil); err != nil {
+			http.Error(w, "Page could not be rendered.", http.StatusInternalServerError)
+		}
 	})
 }
 

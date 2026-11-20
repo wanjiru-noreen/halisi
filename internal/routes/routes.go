@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/wanjiru-noreen/halisi/internal/middleware"
+	webassets "github.com/wanjiru-noreen/halisi/web"
 )
 
 type Pinger interface {
@@ -15,6 +16,7 @@ type Pinger interface {
 // New creates the server's HTTP routes.
 func New(database Pinger, register ...func(*http.ServeMux)) http.Handler {
 	mux := http.NewServeMux()
+	mux.Handle("GET /{$}", webassets.Page("pages/home"))
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"status":"ok"}`))

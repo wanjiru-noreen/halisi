@@ -21,13 +21,22 @@ type Address struct {
 }
 
 type Delivery struct {
-	ID          int64              `json:"id"`
-	OrderID     int64              `json:"order_id"`
-	RiderID     pgtype.Int8        `json:"rider_id"`
-	Status      string             `json:"status"`
-	DeliveredAt pgtype.Timestamptz `json:"delivered_at"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	ID               int64              `json:"id"`
+	OrderID          int64              `json:"order_id"`
+	RiderID          pgtype.Int8        `json:"rider_id"`
+	Status           string             `json:"status"`
+	DeliveredAt      pgtype.Timestamptz `json:"delivered_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	VendorID         int64              `json:"vendor_id"`
+	CustomerID       int64              `json:"customer_id"`
+	AddressID        pgtype.Int8        `json:"address_id"`
+	PickupAddress    string             `json:"pickup_address"`
+	DropoffAddress   string             `json:"dropoff_address"`
+	PickupLatitude   pgtype.Numeric     `json:"pickup_latitude"`
+	PickupLongitude  pgtype.Numeric     `json:"pickup_longitude"`
+	DropoffLatitude  pgtype.Numeric     `json:"dropoff_latitude"`
+	DropoffLongitude pgtype.Numeric     `json:"dropoff_longitude"`
 }
 
 type EmailVerificationToken struct {
@@ -60,16 +69,32 @@ type OauthState struct {
 }
 
 type Order struct {
-	ID              int64              `json:"id"`
-	CustomerID      int64              `json:"customer_id"`
-	VendorID        int64              `json:"vendor_id"`
-	Status          string             `json:"status"`
-	Total           pgtype.Numeric     `json:"total"`
-	DeliveryAddress string             `json:"delivery_address"`
-	CreatedAt       pgtype.Timestamptz `json:"created_at"`
-	AddressID       pgtype.Int8        `json:"address_id"`
-	Currency        string             `json:"currency"`
-	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	ID                int64              `json:"id"`
+	CustomerID        int64              `json:"customer_id"`
+	VendorID          int64              `json:"vendor_id"`
+	Status            string             `json:"status"`
+	Total             pgtype.Numeric     `json:"total"`
+	DeliveryAddress   string             `json:"delivery_address"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	AddressID         pgtype.Int8        `json:"address_id"`
+	Currency          string             `json:"currency"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	DeliveryLatitude  pgtype.Numeric     `json:"delivery_latitude"`
+	DeliveryLongitude pgtype.Numeric     `json:"delivery_longitude"`
+}
+
+type OrderCommission struct {
+	ID                int64              `json:"id"`
+	OrderID           int64              `json:"order_id"`
+	PaymentID         int64              `json:"payment_id"`
+	VendorID          int64              `json:"vendor_id"`
+	GrossAmount       pgtype.Numeric     `json:"gross_amount"`
+	CommissionRateBps int32              `json:"commission_rate_bps"`
+	CommissionAmount  pgtype.Numeric     `json:"commission_amount"`
+	VendorAmount      pgtype.Numeric     `json:"vendor_amount"`
+	Currency          string             `json:"currency"`
+	SettlementID      pgtype.Int8        `json:"settlement_id"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 }
 
 type OrderItem struct {
@@ -84,14 +109,23 @@ type OrderItem struct {
 }
 
 type Payment struct {
-	ID        int64              `json:"id"`
-	OrderID   int64              `json:"order_id"`
-	Amount    pgtype.Numeric     `json:"amount"`
-	Status    string             `json:"status"`
-	Reference pgtype.Text        `json:"reference"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	Currency  string             `json:"currency"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID                int64              `json:"id"`
+	OrderID           int64              `json:"order_id"`
+	Amount            pgtype.Numeric     `json:"amount"`
+	Status            string             `json:"status"`
+	Reference         pgtype.Text        `json:"reference"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	Currency          string             `json:"currency"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	Provider          string             `json:"provider"`
+	RequestKey        pgtype.Text        `json:"request_key"`
+	PhoneNumber       pgtype.Text        `json:"phone_number"`
+	MerchantRequestID pgtype.Text        `json:"merchant_request_id"`
+	CheckoutRequestID pgtype.Text        `json:"checkout_request_id"`
+	CallbackTokenHash pgtype.Text        `json:"callback_token_hash"`
+	ResultCode        pgtype.Int4        `json:"result_code"`
+	ResultDescription pgtype.Text        `json:"result_description"`
+	CommissionRateBps pgtype.Int4        `json:"commission_rate_bps"`
 }
 
 type Product struct {
@@ -114,6 +148,17 @@ type Review struct {
 	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
+type RiderProfile struct {
+	ID        int64              `json:"id"`
+	UserID    int64              `json:"user_id"`
+	FullName  string             `json:"full_name"`
+	Phone     string             `json:"phone"`
+	City      string             `json:"city"`
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Session struct {
 	ID        int64              `json:"id"`
 	UserID    int64              `json:"user_id"`
@@ -122,6 +167,28 @@ type Session struct {
 	RevokedAt pgtype.Timestamptz `json:"revoked_at"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Settlement struct {
+	ID              int64              `json:"id"`
+	VendorID        int64              `json:"vendor_id"`
+	Amount          pgtype.Numeric     `json:"amount"`
+	Currency        string             `json:"currency"`
+	Status          string             `json:"status"`
+	PayoutReference pgtype.Text        `json:"payout_reference"`
+	FailureReason   pgtype.Text        `json:"failure_reason"`
+	CreatedBy       int64              `json:"created_by"`
+	UpdatedBy       pgtype.Int8        `json:"updated_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	CompletedAt     pgtype.Timestamptz `json:"completed_at"`
+}
+
+type SettlementItem struct {
+	SettlementID int64              `json:"settlement_id"`
+	CommissionID int64              `json:"commission_id"`
+	Amount       pgtype.Numeric     `json:"amount"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 }
 
 type User struct {
@@ -138,14 +205,34 @@ type User struct {
 }
 
 type Vendor struct {
-	ID        int64              `json:"id"`
-	UserID    int64              `json:"user_id"`
-	Name      string             `json:"name"`
-	Address   string             `json:"address"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
-	Status    string             `json:"status"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
-	AddressID pgtype.Int8        `json:"address_id"`
+	ID                int64              `json:"id"`
+	UserID            int64              `json:"user_id"`
+	Name              string             `json:"name"`
+	Address           string             `json:"address"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	Status            string             `json:"status"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	AddressID         pgtype.Int8        `json:"address_id"`
+	ContactEmail      string             `json:"contact_email"`
+	ContactPhone      string             `json:"contact_phone"`
+	City              string             `json:"city"`
+	OperatingHours    []byte             `json:"operating_hours"`
+	IsActive          bool               `json:"is_active"`
+	SubmittedAt       pgtype.Timestamptz `json:"submitted_at"`
+	ReviewReason      string             `json:"review_reason"`
+	ReviewedBy        pgtype.Int8        `json:"reviewed_by"`
+	ReviewedAt        pgtype.Timestamptz `json:"reviewed_at"`
+	ReviewVersion     int64              `json:"review_version"`
+	CommissionRateBps int32              `json:"commission_rate_bps"`
+}
+
+type VendorCommissionRateChange struct {
+	ID              int64              `json:"id"`
+	VendorID        int64              `json:"vendor_id"`
+	PreviousRateBps int32              `json:"previous_rate_bps"`
+	NewRateBps      int32              `json:"new_rate_bps"`
+	ChangedBy       int64              `json:"changed_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 }
 
 type VendorDocument struct {
@@ -156,6 +243,10 @@ type VendorDocument struct {
 	Status       string             `json:"status"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	OriginalName string             `json:"original_name"`
+	ContentType  string             `json:"content_type"`
+	SizeBytes    int64              `json:"size_bytes"`
+	Sha256       string             `json:"sha256"`
 }
 
 type VendorInventory struct {
@@ -165,4 +256,14 @@ type VendorInventory struct {
 	ReservedQuantity int32              `json:"reserved_quantity"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+type VendorReviewEvent struct {
+	ID              int64              `json:"id"`
+	VendorID        int64              `json:"vendor_id"`
+	AdministratorID int64              `json:"administrator_id"`
+	Status          string             `json:"status"`
+	Reason          string             `json:"reason"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	ReviewVersion   pgtype.Int8        `json:"review_version"`
 }

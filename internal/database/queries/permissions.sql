@@ -8,10 +8,12 @@ SELECT * FROM orders WHERE id=$1 AND customer_id=$2;
 SELECT * FROM addresses WHERE id=$1 AND user_id=$2;
 
 -- name: CustomerPayments :many
-SELECT p.* FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.customer_id=$1 ORDER BY p.id DESC LIMIT 100;
+SELECT p.id, p.order_id, p.amount, p.status, p.reference, p.created_at, p.currency, p.updated_at
+FROM payments p JOIN orders o ON o.id=p.order_id WHERE o.customer_id=$1 ORDER BY p.id DESC LIMIT 100;
 
 -- name: CustomerPayment :one
-SELECT p.* FROM payments p JOIN orders o ON o.id=p.order_id WHERE p.id=$1 AND o.customer_id=$2;
+SELECT p.id, p.order_id, p.amount, p.status, p.reference, p.created_at, p.currency, p.updated_at
+FROM payments p JOIN orders o ON o.id=p.order_id WHERE p.id=$1 AND o.customer_id=$2;
 
 -- name: OwnedShop :one
 SELECT * FROM vendors WHERE user_id=$1;
@@ -20,7 +22,7 @@ SELECT * FROM vendors WHERE user_id=$1;
 INSERT INTO vendors (user_id,name,address) VALUES ($1,$2,$3) ON CONFLICT (user_id) DO NOTHING RETURNING *;
 
 -- name: UpdateOwnedShop :one
-UPDATE vendors SET name=$2,address=$3,address_id=NULL WHERE user_id=$1 RETURNING *;
+UPDATE vendors SET name=$2,address=$3,address_id=NULL,status='pending',is_active=FALSE,submitted_at=NULL WHERE user_id=$1 AND status<>'suspended' RETURNING *;
 
 -- name: OwnedProducts :many
 SELECT p.* FROM products p JOIN vendors v ON v.id=p.vendor_id WHERE v.user_id=$1 ORDER BY p.id DESC LIMIT 100;
@@ -48,12 +50,12 @@ SELECT o.* FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE v.user_id=$1 O
 SELECT o.* FROM orders o JOIN vendors v ON v.id=o.vendor_id WHERE o.id=$1 AND v.user_id=$2;
 
 -- name: AssignedDeliveries :many
-SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,o.delivery_address,u.phone
+SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,d.dropoff_address AS delivery_address,d.pickup_address,u.phone
 FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=o.customer_id
 WHERE d.rider_id=$1 ORDER BY d.id DESC LIMIT 100;
 
 -- name: AssignedDelivery :one
-SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,o.delivery_address,u.phone
+SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,d.dropoff_address AS delivery_address,d.pickup_address,u.phone
 FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=o.customer_id
 WHERE d.id=$1 AND d.rider_id=$2;
 

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Assigned Deliveries · HALISI</title>
+  <link rel="stylesheet" href="/static/css/auth.css">
+  <script src="/static/js/rider-deliveries.js" defer></script>
+</head>
+<body class="min-h-screen bg-stone-50 text-stone-900 antialiased" data-page="rider-deliveries">
+<header class="border-b border-stone-200 bg-white">
+  <nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8" aria-label="Rider navigation">
+    <div class="flex items-center gap-4">
+      <a href="/rider/dashboard" class="text-xl font-black tracking-[0.18em] text-emerald-900">HALISI<span class="text-orange-500">.</span></a>
+      <span class="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold uppercase tracking-wider text-orange-800">Rider Partner</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="/rider/dashboard" class="rounded-full px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100">Dashboard</a>
+      <a href="/rider/deliveries" class="rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800">Deliveries</a>
+      <button id="logout" class="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold hover:bg-stone-100">Log out</button>
+    </div>
+  </nav>
+</header>
+
+<main class="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
+  <a href="/rider/dashboard" class="text-sm font-semibold text-emerald-800 hover:underline">← Back to Dashboard</a>
+
+  <section class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Assignments & Tracking</p>
+      <h1 class="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Assigned Deliveries</h1>
+      <p class="mt-2 text-sm text-stone-600">Review all orders assigned to you, inspect pickup and dropoff details, and update delivery statuses.</p>
+    </div>
+    <button id="refresh-button" class="inline-flex items-center justify-center rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">
+      Refresh Deliveries
+    </button>
+  </section>
+
+  <!-- Notifications / Alerts -->
+  <div id="error-banner" class="mt-6 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800" role="alert" hidden></div>
+  <div id="success-banner" class="mt-6 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800" role="status" hidden></div>
+
+  <!-- Search & Filter Controls -->
+  <section class="mt-8 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-stone-100 pb-5">
+      <div class="flex flex-wrap items-center gap-2">
+        <button data-filter="all" class="filter-tab rounded-full bg-emerald-800 px-4 py-2 text-xs font-bold text-white">All (<span id="count-all">0</span>)</button>
+        <button data-filter="active" class="filter-tab rounded-full bg-stone-100 px-4 py-2 text-xs font-bold text-stone-700 hover:bg-stone-200">Active (<span id="count-active">0</span>)</button>
+        <button data-filter="delivered" class="filter-tab rounded-full bg-stone-100 px-4 py-2 text-xs font-bold text-stone-700 hover:bg-stone-200">Delivered (<span id="count-delivered">0</span>)</button>
+        <button data-filter="failed" class="filter-tab rounded-full bg-stone-100 px-4 py-2 text-xs font-bold text-stone-700 hover:bg-stone-200">Issues (<span id="count-failed">0</span>)</button>
+      </div>
+
+      <div class="w-full sm:w-72">
+        <label for="search-input" class="sr-only">Search deliveries</label>
+        <input id="search-input" type="search" placeholder="Search by order ID, address, phone…" class="w-full rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-emerald-700 focus:outline-none">
+      </div>
+    </div>
+
+    <!-- Deliveries List -->
+    <div id="deliveries-list" class="mt-6 space-y-4" aria-live="polite">
+      <p class="py-6 text-sm text-stone-500">Loading delivery records…</p>
+    </div>
+  </section>
+</main>
+
+<!-- Delivery Details Modal Dialog -->
+<div id="details-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden>
+  <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+    <div class="flex items-start justify-between border-b border-stone-200 pb-4">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-wider text-emerald-700">Delivery Information</p>
+        <h2 id="modal-title" class="mt-1 text-2xl font-bold text-stone-900">Delivery #</h2>
+      </div>
+      <button id="modal-close" class="rounded-full p-2 text-stone-400 hover:bg-stone-100 hover:text-stone-700" aria-label="Close dialog">
+        ✕
+      </button>
+    </div>
+
+    <div class="mt-6">
+      <ol id="modal-stepper" class="grid grid-cols-3 gap-2 text-center text-xs font-semibold">
+        <li id="step-assigned" class="rounded-xl border p-2">1. Assigned</li>
+        <li id="step-picked-up" class="rounded-xl border p-2">2. In Transit</li>
+        <li id="step-delivered" class="rounded-xl border p-2">3. Delivered</li>
+      </ol>
+    </div>
+
+    <div class="mt-6 space-y-4">
+      <div class="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <p class="text-xs font-bold uppercase tracking-wider text-stone-500">Vendor Pickup Location</p>
+        <p id="modal-pickup" class="mt-1 font-semibold text-stone-900">—</p>
+        <a id="modal-pickup-map" href="#" target="_blank" rel="noopener noreferrer" class="mt-2 inline-block text-xs font-bold text-emerald-800 hover:underline">Open Pickup in Maps ↗</a>
+      </div>
+
+      <div class="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+        <p class="text-xs font-bold uppercase tracking-wider text-stone-500">Customer Dropoff Address</p>
+        <p id="modal-dropoff" class="mt-1 font-semibold text-stone-900">—</p>
+        <a id="modal-dropoff-map" href="#" target="_blank" rel="noopener noreferrer" class="mt-2 inline-block text-xs font-bold text-emerald-800 hover:underline">Open Dropoff in Maps ↗</a>
+      </div>
+
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+          <p class="text-xs font-bold uppercase tracking-wider text-stone-500">Customer Contact</p>
+          <p id="modal-phone" class="mt-1 font-semibold text-stone-900">—</p>
+          <a id="modal-phone-link" href="#" class="mt-2 inline-block text-xs font-bold text-emerald-800 hover:underline">Call Customer ↗</a>
+        </div>
+        <div class="rounded-2xl border border-stone-200 bg-stone-50 p-4">
+          <p class="text-xs font-bold uppercase tracking-wider text-stone-500">Status & Timing</p>
+          <p id="modal-status" class="mt-1 font-semibold capitalize text-stone-900">—</p>
+          <p id="modal-date" class="mt-1 text-xs text-stone-500">—</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="modal-actions" class="mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-stone-200 pt-5">
+      <!-- Dynamic Action Buttons -->
+    </div>
+  </div>
+</div>
+
+<!-- Report Issue Confirmation Modal -->
+<div id="issue-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 p-4" role="dialog" aria-modal="true" aria-labelledby="issue-modal-title" hidden>
+  <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+    <h2 id="issue-modal-title" class="text-xl font-bold text-red-800">Report Delivery Issue</h2>
+    <p class="mt-3 text-sm leading-6 text-stone-600">
+      Are you sure you want to mark this delivery as <strong class="text-red-700">failed</strong>?
+      This will notify the vendor, release reserved inventory back to stock, and cannot be undone.
+    </p>
+    <div class="mt-6 flex items-center justify-end gap-3">
+      <button id="issue-cancel" class="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold hover:bg-stone-100">Cancel</button>
+      <button id="issue-confirm" class="rounded-full bg-red-700 px-5 py-2 text-sm font-bold text-white hover:bg-red-800">Mark as Failed</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
