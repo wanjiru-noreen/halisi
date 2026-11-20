@@ -1,4 +1,8 @@
-.PHONY: migrate-up migrate-down migrate-version sqlc-install sqlc-generate
+.PHONY: build migrate-up migrate-down migrate-version sqlc-install sqlc-generate
+
+build:
+	go build -o bin/server ./cmd/server
+	go build -o bin/migrate ./cmd/migrate
 
 sqlc-install:
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
