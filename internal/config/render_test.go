@@ -23,10 +23,15 @@ func TestRenderBlueprintSpecification(t *testing.T) {
 	}
 
 	requiredSubstrings := []string{
+		"databases:",
+		"name: halisi-postgres",
+		"databaseName: halisi",
+		"user: halisi",
+		"plan: starter",
+		"postgresMajorVersion: \"17\"",
 		"type: web",
 		"name: halisi",
 		"runtime: go",
-		"plan: starter",
 		"region: oregon",
 		"branch: main",
 		"autoDeploy: false",
@@ -42,6 +47,8 @@ func TestRenderBlueprintSpecification(t *testing.T) {
 		"key: VENDOR_DOCUMENT_DIR",
 		"value: /var/data/vendor-documents",
 		"key: DATABASE_URL",
+		"fromDatabase:",
+		"property: connectionString",
 		"key: PUBLIC_BASE_URL",
 		"key: SMTP_HOST",
 		"key: SMTP_PORT",
@@ -67,7 +74,6 @@ func TestRenderBlueprintSpecification(t *testing.T) {
 
 	// Secret hygiene check: ensure all secrets are configured with sync: false and no committed values
 	secretKeys := []string{
-		"DATABASE_URL",
 		"PUBLIC_BASE_URL",
 		"SMTP_HOST",
 		"SMTP_FROM",
