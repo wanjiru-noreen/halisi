@@ -416,11 +416,17 @@ type customerOrderItemView struct {
 }
 
 type deliveryView struct {
-	ID          int64      `json:"id"`
-	Status      string     `json:"status"`
-	DeliveredAt *time.Time `json:"delivered_at"`
-	RiderName   *string    `json:"rider_name,omitempty"`
-	RiderPhone  *string    `json:"rider_phone,omitempty"`
+	ID               int64      `json:"id"`
+	Status           string     `json:"status"`
+	DeliveredAt      *time.Time `json:"delivered_at"`
+	RiderName        *string    `json:"rider_name,omitempty"`
+	RiderPhone       *string    `json:"rider_phone,omitempty"`
+	PickupAddress    *string    `json:"pickup_address,omitempty"`
+	DropoffAddress   *string    `json:"dropoff_address,omitempty"`
+	PickupLatitude   *float64   `json:"pickup_latitude,omitempty"`
+	PickupLongitude  *float64   `json:"pickup_longitude,omitempty"`
+	DropoffLatitude  *float64   `json:"dropoff_latitude,omitempty"`
+	DropoffLongitude *float64   `json:"dropoff_longitude,omitempty"`
 }
 
 type customerPaymentView struct {
@@ -489,12 +495,21 @@ func (h *Resources) getCustomerOrder(_ http.ResponseWriter, r *http.Request, own
 	var delivery *deliveryView
 	var deliveredAt pgtype.Timestamptz
 	var d deliveryView
-	var riderName, riderPhone pgtype.Text
+	var riderName, riderPhone, pickupAddress, dropoffAddress pgtype.Text
+	var pickupLat, pickupLng, dropoffLat, dropoffLng pgtype.Numeric
 	err = h.pool.QueryRow(r.Context(), `
-		SELECT d.id, d.status, d.delivered_at, rp.full_name, rp.phone
+		SELECT d.id, d.status, d.delivered_at, rp.full_name, rp.phone,
+		       d.pickup_address, d.dropoff_address,
+		       d.pickup_latitude, d.pickup_longitude,
+		       d.dropoff_latitude, d.dropoff_longitude
 		FROM deliveries d
 		LEFT JOIN rider_profiles rp ON rp.user_id = d.rider_id
-		WHERE d.order_id = $1`, id).Scan(&d.ID, &d.Status, &deliveredAt, &riderName, &riderPhone)
+		WHERE d.order_id = $1`, id).Scan(
+		&d.ID, &d.Status, &deliveredAt, &riderName, &riderPhone,
+		&pickupAddress, &dropoffAddress,
+		&pickupLat, &pickupLng,
+		&dropoffLat, &dropoffLng,
+	)
 	if err == nil {
 		if deliveredAt.Valid {
 			value := deliveredAt.Time
@@ -507,6 +522,38 @@ func (h *Resources) getCustomerOrder(_ http.ResponseWriter, r *http.Request, own
 		if riderPhone.Valid && riderPhone.String != "" {
 			phone := riderPhone.String
 			d.RiderPhone = &phone
+		}
+		if pickupAddress.Valid && pickupAddress.String != "" {
+			addr := pickupAddress.String
+			d.PickupAddress = &addr
+		}
+		if dropoffAddress.Valid && dropoffAddress.String != "" {
+			addr := dropoffAddress.String
+			d.DropoffAddress = &addr
+		}
+		if pickupLat.Valid {
+			if v, err := pickupLat.Float64Value(); err == nil && v.Valid {
+				val := v.Float64
+				d.PickupLatitude = &val
+			}
+		}
+		if pickupLng.Valid {
+			if v, err := pickupLng.Float64Value(); err == nil && v.Valid {
+				val := v.Float64
+				d.PickupLongitude = &val
+			}
+		}
+		if dropoffLat.Valid {
+			if v, err := dropoffLat.Float64Value(); err == nil && v.Valid {
+				val := v.Float64
+				d.DropoffLatitude = &val
+			}
+		}
+		if dropoffLng.Valid {
+			if v, err := dropoffLng.Float64Value(); err == nil && v.Valid {
+				val := v.Float64
+				d.DropoffLongitude = &val
+			}
 		}
 		delivery = &d
 	} else if !errors.Is(err, pgx.ErrNoRows) {
