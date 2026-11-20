@@ -27,6 +27,7 @@ go mod download
 make migrate-up
 make migrate-version
 make migrate-down
+make migrate-ping
 ```
 
 Without Make (including PowerShell):
@@ -35,13 +36,34 @@ Without Make (including PowerShell):
 go run ./cmd/migrate up
 go run ./cmd/migrate version
 go run ./cmd/migrate down
+go run ./cmd/migrate ping
 ```
 
-`up` applies all pending versions. Repeating it succeeds without reapplying
+`ping` verifies database reachability and credentials via `database.Connect` without running or altering schema migrations. `up` applies all pending versions. Repeating it succeeds without reapplying
 existing migrations. `down` rolls back exactly one version and deletes the
 tables/data removed by that version. Back up any data you need before rollback.
 The HTTP server does not automatically apply migrations; run them explicitly
 before deploying code that needs the schema.
+
+## Production PostgreSQL and backups
+
+The repository's `render.yaml` declares a managed PostgreSQL 17 database service (`halisi-postgres`) co-located with the web service in `region: oregon` on the Starter plan. Render automatically generates secure database credentials and injects the TLS-enforced connection string into `DATABASE_URL` via the Blueprint property `fromDatabase: { name: halisi-postgres, property: connectionString }`.
+
+### Automated backups
+Render provides automated daily backups with 7-day retention for Starter databases. In the Render Dashboard under **PostgreSQL > Backups**, operators can:
+1. View automated daily snapshots and their creation timestamps.
+2. Trigger an immediate manual snapshot before schema migrations or major releases.
+3. Restore a snapshot to a new PostgreSQL instance with a single click.
+
+### Logical export and offsite backups
+For disaster recovery or offsite archive retention, export a logical dump over TLS:
+```sh
+# Export a compressed custom-format backup (never commit the dump or credentials)
+pg_dump "$DATABASE_URL" -Fc -f halisi_backup_$(date +%Y%m%d).dump
+
+# Restore into a target PostgreSQL database
+pg_restore --clean --if-exists -d "$DATABASE_URL" halisi_backup_YYYYMMDD.dump
+```
 
 ## Initial schema
 
