@@ -22,6 +22,11 @@ func CurrentUser(ctx context.Context) (services.User, bool) {
 	return u, ok
 }
 
+// WithCurrentUser returns a context annotated with the authenticated user.
+func WithCurrentUser(ctx context.Context, user services.User) context.Context {
+	return context.WithValue(ctx, userKey{}, user)
+}
+
 func RequireAuth(auth Authenticator, cookieName string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
