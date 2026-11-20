@@ -60,6 +60,14 @@ The repository root includes `render.yaml`, defining the production web service 
 ```yaml
 # Render Blueprint specification for Halisi production service.
 # Provisioning requires an explicit Render blueprint deployment or service connection.
+databases:
+  - name: halisi-postgres
+    databaseName: halisi
+    user: halisi
+    plan: starter
+    region: oregon
+    postgresMajorVersion: "17"
+
 services:
   - type: web
     name: halisi
@@ -82,7 +90,9 @@ services:
       - key: VENDOR_DOCUMENT_DIR
         value: /var/data/vendor-documents
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: halisi-postgres
+          property: connectionString
       - key: PUBLIC_BASE_URL
         sync: false
       - key: SMTP_HOST
@@ -242,11 +252,14 @@ All secrets in `render.yaml` are marked with `sync: false`. This instructs Rende
 
 ## 7. Local Build & Verification
 
-Before pushing configuration changes or initiating a deployment, verify that the binaries build and tests pass:
+Before pushing configuration changes or initiating a deployment, verify that the binaries build, database connectivity checks pass, and tests succeed:
 
 ```sh
 # Build binaries matching Render build command
 make build
+
+# Verify database connectivity without executing migrations
+make migrate-ping
 
 # Run all test suites
 go test ./...
@@ -261,6 +274,20 @@ go vet ./...
 
 ### Pre-Deploy Migration Abort
 If `./bin/migrate up` encounters a failing migration during pre-deploy, Render halts deployment. The running application remains on the previous release.
+
+### Database Backups and Restoration
+Render managed PostgreSQL Starter tier includes automated daily backups with 7-day retention.
+1. **Automated Daily Backups**: Managed by Render with point-in-time recovery to any snapshot within the 7-day window.
+2. **On-Demand Snapshots**: In Render Dashboard under **PostgreSQL > Backups**, create a manual backup immediately before applying new schema versions.
+3. **Offsite Logical Backups**:
+   ```sh
+   pg_dump "$DATABASE_URL" -Fc -f halisi_backup_$(date +%Y%m%d).dump
+   ```
+4. **Database Restoration**:
+   To restore from a logical backup:
+   ```sh
+   pg_restore --clean --if-exists -d "$DATABASE_URL" halisi_backup_YYYYMMDD.dump
+   ```
 
 ### Manual Schema Rollback
 To revert the last applied migration:
