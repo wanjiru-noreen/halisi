@@ -66,7 +66,11 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 	mount("GET /api/customer/orders", models.CustomerResources, h.listCustomerOrders)
 	mount("GET /api/customer/deliveries/{id}", models.CustomerResources, h.getDelivery)
 	mount("GET /api/vendor/deliveries/{id}", models.VendorResources, h.getDelivery)
+	mount("POST /api/vendor/deliveries/{id}/assign", models.VendorResources, h.assignDelivery)
+	mount("GET /api/vendor/riders", models.VendorResources, h.listApprovedRiders)
 	mount("GET /api/admin/deliveries/{id}", models.Administration, h.getDelivery)
+	mount("POST /api/admin/deliveries/{id}/assign", models.Administration, h.adminAssignDelivery)
+	mount("GET /api/admin/riders", models.Administration, h.listApprovedRiders)
 	mount("POST /api/vendor/orders/{id}/confirm", models.VendorResources, h.confirmOrder)
 	mount("GET /api/customer/orders/{id}", models.CustomerResources, h.getCustomerOrder)
 	mount("GET /api/customer/addresses", models.CustomerResources, func(w http.ResponseWriter, r *http.Request, id int64) (any, error) {
@@ -415,6 +419,8 @@ type deliveryView struct {
 	ID          int64      `json:"id"`
 	Status      string     `json:"status"`
 	DeliveredAt *time.Time `json:"delivered_at"`
+	RiderName   *string    `json:"rider_name,omitempty"`
+	RiderPhone  *string    `json:"rider_phone,omitempty"`
 }
 
 type customerPaymentView struct {
@@ -483,11 +489,24 @@ func (h *Resources) getCustomerOrder(_ http.ResponseWriter, r *http.Request, own
 	var delivery *deliveryView
 	var deliveredAt pgtype.Timestamptz
 	var d deliveryView
-	err = h.pool.QueryRow(r.Context(), `SELECT id,status,delivered_at FROM deliveries WHERE order_id=$1`, id).Scan(&d.ID, &d.Status, &deliveredAt)
+	var riderName, riderPhone pgtype.Text
+	err = h.pool.QueryRow(r.Context(), `
+		SELECT d.id, d.status, d.delivered_at, rp.full_name, rp.phone
+		FROM deliveries d
+		LEFT JOIN rider_profiles rp ON rp.user_id = d.rider_id
+		WHERE d.order_id = $1`, id).Scan(&d.ID, &d.Status, &deliveredAt, &riderName, &riderPhone)
 	if err == nil {
 		if deliveredAt.Valid {
 			value := deliveredAt.Time
 			d.DeliveredAt = &value
+		}
+		if riderName.Valid && riderName.String != "" {
+			name := riderName.String
+			d.RiderName = &name
+		}
+		if riderPhone.Valid && riderPhone.String != "" {
+			phone := riderPhone.String
+			d.RiderPhone = &phone
 		}
 		delivery = &d
 	} else if !errors.Is(err, pgx.ErrNoRows) {
@@ -525,12 +544,17 @@ func (e *resourceValidation) Error() string { return e.message }
 
 func (h *Resources) resourceError(w http.ResponseWriter, err error) {
 	var validation *resourceValidation
+	var svcValidation *services.ValidationError
 	var pgErr *pgconn.PgError
 	switch {
-	case errors.Is(err, pgx.ErrNoRows), errors.Is(err, errResourceForbidden):
+	case errors.Is(err, pgx.ErrNoRows), errors.Is(err, errResourceForbidden), errors.Is(err, services.ErrDeliveryNotFound):
 		writeJSON(w, 403, map[string]string{"error": "Resource or action is not permitted."})
 	case errors.As(err, &validation):
 		writeJSON(w, 422, map[string]string{"error": validation.Error()})
+	case errors.As(err, &svcValidation):
+		writeJSON(w, 422, map[string]string{"error": svcValidation.Error()})
+	case errors.Is(err, services.ErrRiderNotApproved), errors.Is(err, services.ErrDeliveryNotAssignable):
+		writeJSON(w, 422, map[string]string{"error": err.Error()})
 	case errors.Is(err, errResourceConflict):
 		writeJSON(w, 409, map[string]string{"error": "Resource is in use or already exists."})
 	case errors.Is(err, services.ErrVendorReviewStale):
