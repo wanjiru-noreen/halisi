@@ -1,5 +1,13 @@
 # Render Blueprint specification for Halisi production service.
 # Provisioning requires an explicit Render blueprint deployment or service connection.
+databases:
+  - name: halisi-postgres
+    databaseName: halisi
+    user: halisi
+    plan: starter
+    region: oregon
+    postgresMajorVersion: "17"
+
 services:
   - type: web
     name: halisi
@@ -22,7 +30,9 @@ services:
       - key: VENDOR_DOCUMENT_DIR
         value: /var/data/vendor-documents
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: halisi-postgres
+          property: connectionString
       - key: PUBLIC_BASE_URL
         sync: false
       - key: SMTP_HOST
