@@ -160,6 +160,7 @@ Halisi provides map and location support for customer addresses and active deliv
 
 1. **Customer address geolocation**:
    - Customers can save optional latitude and longitude coordinates with their addresses (`-90 <= lat <= 90`, `-180 <= lon <= 180`).
+   - When editing an existing address, customers can update coordinates or clear them by blanking both coordinate fields (submitting `clear_coordinates: true`).
    - The address management UI includes a **Use my location** button utilizing browser geolocation (`navigator.geolocation.getCurrentPosition`) with graceful error handling for permission denial, unavailable hardware, or timeouts.
    - Saved address cards display verified GPS coordinate badges and external map links with `rel="noopener noreferrer"`.
 
