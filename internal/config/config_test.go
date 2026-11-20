@@ -70,3 +70,102 @@ func TestPort(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateProduction(t *testing.T) {
+	setBaseValidProductionEnv := func(t *testing.T) {
+		t.Helper()
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("PORT", "8080")
+		t.Setenv("DATABASE_URL", "postgres://prod_user:secret_password@db.halisi.internal:5432/halisi_prod?sslmode=require")
+		t.Setenv("VENDOR_DOCUMENT_DIR", "/var/data/vendor-documents")
+		t.Setenv("PUBLIC_BASE_URL", "https://halisi.onrender.com")
+		t.Setenv("SMTP_HOST", "smtp.sendgrid.net")
+		t.Setenv("SMTP_PORT", "587")
+		t.Setenv("SMTP_TLS_MODE", "starttls")
+		t.Setenv("SMTP_FROM", "no-reply@halisi.co.ke")
+		t.Setenv("SMTP_USERNAME", "apikey")
+		t.Setenv("SMTP_PASSWORD", "sg_secret_key")
+		t.Setenv("GOOGLE_CLIENT_ID", "")
+		t.Setenv("GOOGLE_CLIENT_SECRET", "")
+		t.Setenv("MPESA_ENV", "")
+		t.Setenv("MPESA_CONSUMER_KEY", "")
+		t.Setenv("MPESA_CONSUMER_SECRET", "")
+		t.Setenv("MPESA_SHORT_CODE", "")
+		t.Setenv("MPESA_PASSKEY", "")
+		t.Setenv("MPESA_TRANSACTION_TYPE", "")
+	}
+
+	t.Run("valid complete production environment", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		settings, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected valid production settings, got error: %v", err)
+		}
+		if settings.Config.AppEnv != "production" {
+			t.Errorf("expected APP_ENV production, got %q", settings.Config.AppEnv)
+		}
+		if settings.Identity.PublicBaseURL != "https://halisi.onrender.com" {
+			t.Errorf("expected PublicBaseURL https://halisi.onrender.com, got %q", settings.Identity.PublicBaseURL)
+		}
+		if settings.VendorDocDir != "/var/data/vendor-documents" {
+			t.Errorf("expected VendorDocDir /var/data/vendor-documents, got %q", settings.VendorDocDir)
+		}
+	})
+
+	t.Run("valid production with custom domain", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("PUBLIC_BASE_URL", "https://halisi.co.ke")
+		settings, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected valid custom domain, got: %v", err)
+		}
+		if settings.Identity.PublicBaseURL != "https://halisi.co.ke" {
+			t.Errorf("expected PublicBaseURL https://halisi.co.ke, got %q", settings.Identity.PublicBaseURL)
+		}
+	})
+
+	t.Run("rejects non-production environment", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("APP_ENV", "development")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "APP_ENV must be production") {
+			t.Fatalf("expected APP_ENV error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects missing or relative VENDOR_DOCUMENT_DIR", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("VENDOR_DOCUMENT_DIR", "relative/path")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "VENDOR_DOCUMENT_DIR must be an absolute path") {
+			t.Fatalf("expected absolute path error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects insecure HTTP PUBLIC_BASE_URL in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("PUBLIC_BASE_URL", "http://halisi.co.ke")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "PUBLIC_BASE_URL must be an HTTPS origin") {
+			t.Fatalf("expected HTTPS origin error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects partial Google OAuth credentials", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("GOOGLE_CLIENT_ID", "google-client-id-only")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must both be configured") {
+			t.Fatalf("expected Google OAuth error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects partial M-Pesa credentials", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("MPESA_ENV", "production")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "M-Pesa error") {
+			t.Fatalf("expected M-Pesa error, got: %v", err)
+		}
+	})
+}
