@@ -134,7 +134,13 @@ Customers tracking their order via `GET /api/customer/orders/{id}` receive the o
     "status": "assigned",
     "delivered_at": null,
     "rider_name": "Jane Doe",
-    "rider_phone": "+254712345678"
+    "rider_phone": "+254712345678",
+    "pickup_address": "Pickup street",
+    "dropoff_address": "Dropoff street, Nairobi",
+    "pickup_latitude": -1.286389,
+    "pickup_longitude": 36.817223,
+    "dropoff_latitude": -1.200000,
+    "dropoff_longitude": 36.800000
   }
 }
 ```
@@ -147,6 +153,25 @@ The customer tracking web page (`/customer/orders/{id}`) renders a 5-stage progr
 5. `delivered` (Delivered)
 
 When a rider is assigned, a dedicated rider card appears displaying the rider's name and a clickable `tel:` call button for direct communication.
+
+### Maps and location support
+
+Halisi provides map and location support for customer addresses and active delivery tracking while protecting user location data:
+
+1. **Customer address geolocation**:
+   - Customers can save optional latitude and longitude coordinates with their addresses (`-90 <= lat <= 90`, `-180 <= lon <= 180`).
+   - The address management UI includes a **Use my location** button utilizing browser geolocation (`navigator.geolocation.getCurrentPosition`) with graceful error handling for permission denial, unavailable hardware, or timeouts.
+   - Saved address cards display verified GPS coordinate badges and external map links with `rel="noopener noreferrer"`.
+
+2. **Delivery route directions and fallback**:
+   - Order tracking views display pickup (vendor shop) and dropoff (destination) locations alongside coordinates when captured.
+   - Actionable map links open route directions or dropoff pins directly in map applications (`https://www.google.com/maps/dir/...` or `https://www.google.com/maps/search/...`).
+   - **Graceful fallback**: Full physical street address text is snapshotted into PostgreSQL and always displayed. If external map services are unreachable, devices are offline, or coordinates are absent, riders and customers can rely on physical addresses.
+
+3. **Location data protection**:
+   - Location coordinates are restricted strictly to authorized principals: the ordering customer, the owning vendor, the assigned approved rider, and administrators.
+   - Unauthenticated access returns HTTP 401; unauthorized access returns HTTP 403.
+
 
 ## Upgrade, rollback and tests
 
