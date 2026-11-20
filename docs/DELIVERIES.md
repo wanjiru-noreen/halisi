@@ -127,14 +127,14 @@ Customers tracking their order via `GET /api/customer/orders/{id}` receive the o
 {
   "order": {
     "id": 1,
-    "status": "confirmed",
-    "delivery": {
-      "id": 10,
-      "status": "assigned",
-      "delivered_at": null,
-      "rider_name": "Jane Doe",
-      "rider_phone": "+254712345678"
-    }
+    "status": "confirmed"
+  },
+  "delivery": {
+    "id": 10,
+    "status": "assigned",
+    "delivered_at": null,
+    "rider_name": "Jane Doe",
+    "rider_phone": "+254712345678"
   }
 }
 ```

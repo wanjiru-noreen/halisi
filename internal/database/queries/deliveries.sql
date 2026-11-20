@@ -44,7 +44,7 @@ WHERE d.id = sqlc.arg(id)
 RETURNING d.*;
 
 -- name: ListApprovedRiders :many
-SELECT u.id, rp.full_name, rp.phone, rp.city, rp.status, rp.created_at
+SELECT u.id AS user_id, rp.full_name, rp.phone, rp.city, rp.status, rp.created_at
 FROM users u
 JOIN rider_profiles rp ON rp.user_id = u.id
 WHERE u.role = 'rider' AND rp.status = 'approved'
