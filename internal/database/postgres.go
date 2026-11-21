@@ -23,8 +23,13 @@ func Connect(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 		return nil, errors.New("database: invalid DATABASE_URL or pool settings")
 	}
 	if strings.TrimSpace(os.Getenv("APP_ENV")) == "production" {
-		if cfg.ConnConfig.TLSConfig == nil || len(cfg.ConnConfig.Fallbacks) > 0 {
+		if cfg.ConnConfig.TLSConfig == nil {
 			return nil, errors.New("database: TLS is required in production (sslmode=require)")
+		}
+		for _, fb := range cfg.ConnConfig.Fallbacks {
+			if fb.TLSConfig == nil {
+				return nil, errors.New("database: TLS is required in production (sslmode=require)")
+			}
 		}
 	}
 	cfg.ConnConfig.ConnectTimeout = ConnectTimeout
