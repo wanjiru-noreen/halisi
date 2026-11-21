@@ -89,6 +89,7 @@ See [rider registration](docs/RIDER_REGISTRATION.md) for Task 6.1 APIs and pendi
 See [delivery management](docs/DELIVERIES.md) for confirmation, ownership and lifecycle rules.
 See [production deployment](docs/DEPLOYMENT.md) for Render service setup, persistent disks, and build lifecycle.
 See [production readiness](docs/PRODUCTION_READINESS.md) for pre-deployment checks, observability benchmarks, and recovery runbooks.
+See [security review and optimization](docs/SECURITY_REVIEW.md) for pre-launch security audits, RBAC and document verification, and performance benchmarks.
 
 ```sh
 go build ./...
