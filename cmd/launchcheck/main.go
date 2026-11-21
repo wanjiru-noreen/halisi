@@ -128,15 +128,15 @@ func probeHealth(ctx context.Context, client *http.Client, endpoint string, name
 	}
 
 	resp, err := client.Do(req)
-	latency := time.Since(start)
 	if err != nil {
-		return CheckResult{Name: name, Endpoint: endpoint, Passed: false, Latency: latency, Details: fmt.Sprintf("request error: %v", err)}
+		return CheckResult{Name: name, Endpoint: endpoint, Passed: false, Latency: time.Since(start), Details: fmt.Sprintf("request error: %v", err)}
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 1024))
+	latency := time.Since(start)
 	if err != nil {
-		return CheckResult{Name: name, Endpoint: endpoint, Passed: false, Latency: latency, Details: "failed to read response body"}
+		return CheckResult{Name: name, Endpoint: endpoint, Passed: false, Latency: latency, Details: fmt.Sprintf("failed to read response body: %v", err)}
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -189,12 +189,15 @@ func probeRoot(ctx context.Context, client *http.Client, endpoint string) (Check
 	}
 
 	resp, err := client.Do(req)
-	latency := time.Since(start)
 	if err != nil {
-		return CheckResult{Name: "Storefront Probe (/)", Endpoint: endpoint, Passed: false, Latency: latency, Details: fmt.Sprintf("request error: %v", err)}, nil
+		return CheckResult{Name: "Storefront Probe (/)", Endpoint: endpoint, Passed: false, Latency: time.Since(start), Details: fmt.Sprintf("request error: %v", err)}, nil
 	}
 	defer resp.Body.Close()
-	io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+	_, err = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+	latency := time.Since(start)
+	if err != nil {
+		return CheckResult{Name: "Storefront Probe (/)", Endpoint: endpoint, Passed: false, Latency: latency, Details: fmt.Sprintf("failed to read response body: %v", err)}, resp.Header
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return CheckResult{

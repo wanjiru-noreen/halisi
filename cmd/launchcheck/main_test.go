@@ -294,6 +294,40 @@ func TestLaunchCheck_LatencyBudgetExceeded(t *testing.T) {
 	t.Fatal("liveness probe result not found")
 }
 
+func TestLaunchCheck_LatencyBudgetExceededOnSlowBodyDelivery(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		time.Sleep(520 * time.Millisecond)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer ts.Close()
+
+	cfg := Config{
+		BaseURL: ts.URL,
+		Timeout: 2 * time.Second,
+		SkipDB:  true,
+	}
+
+	results, err := Run(context.Background(), ts.Client(), cfg)
+	if err != nil {
+		t.Fatalf("unexpected error running checks: %v", err)
+	}
+
+	for _, r := range results {
+		if r.Name == "Liveness Probe (/health)" {
+			if r.Passed {
+				t.Error("expected liveness probe to fail when response-body delivery exceeds 500ms budget")
+			}
+			return
+		}
+	}
+	t.Fatal("liveness probe result not found")
+}
+
 func TestLaunchCheck_ReferrerPolicyValidation(t *testing.T) {
 	headers := make(http.Header)
 	headers.Set("Referrer-Policy", "strict-origin-when-cross-origin")
