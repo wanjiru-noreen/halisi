@@ -61,8 +61,11 @@ For disaster recovery or offsite archive retention, export a logical dump over T
 # Export a compressed custom-format backup (never commit the dump or credentials)
 pg_dump "$DATABASE_URL" -Fc -f halisi_backup_$(date +%Y%m%d).dump
 
-# Restore into a target PostgreSQL database
-pg_restore --clean --if-exists -d "$DATABASE_URL" halisi_backup_YYYYMMDD.dump
+# Restore into an isolated recovery target database:
+# WARNING: --clean drops existing schema objects before recreating them. Never run
+# this directly against an active production database without first validating on
+# an isolated target database (e.g. $TARGET_DATABASE_URL) and planning cutover.
+pg_restore --clean --if-exists -d "$TARGET_DATABASE_URL" halisi_backup_YYYYMMDD.dump
 ```
 
 ## Initial schema

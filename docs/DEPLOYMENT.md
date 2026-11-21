@@ -277,16 +277,17 @@ If `./bin/migrate up` encounters a failing migration during pre-deploy, Render h
 
 ### Database Backups and Restoration
 Render managed PostgreSQL Starter tier includes automated daily backups with 7-day retention.
-1. **Automated Daily Backups**: Managed by Render with point-in-time recovery to any snapshot within the 7-day window.
+1. **Automated Daily Backups**: Managed by Render with point-in-time recovery window (e.g. 3 days for Hobby workspaces, extending up to 7–30 days on paid team plans).
 2. **On-Demand Snapshots**: In Render Dashboard under **PostgreSQL > Backups**, create a manual backup immediately before applying new schema versions.
 3. **Offsite Logical Backups**:
    ```sh
    pg_dump "$DATABASE_URL" -Fc -f halisi_backup_$(date +%Y%m%d).dump
    ```
 4. **Database Restoration**:
-   To restore from a logical backup:
+   To restore from a logical backup into an isolated staging/recovery database:
+   > **Warning**: `--clean` drops existing tables and schema objects before recreating them. Never run this directly against an active production database while it is serving live traffic. Always restore into an isolated recovery instance first (e.g. `$TARGET_DATABASE_URL`) to validate data integrity before cutting over.
    ```sh
-   pg_restore --clean --if-exists -d "$DATABASE_URL" halisi_backup_YYYYMMDD.dump
+   pg_restore --clean --if-exists -d "$TARGET_DATABASE_URL" halisi_backup_YYYYMMDD.dump
    ```
 
 ### Manual Schema Rollback
