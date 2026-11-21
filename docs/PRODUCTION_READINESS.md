@@ -11,6 +11,8 @@ This document outlines the mandatory production readiness checks, verification p
 | **Migrations** | Forward migrations apply cleanly | `make migrate-up` / CI pipeline | Must apply without error; `schema_migrations` dirty flag must be `false`. |
 | **Migrations** | Rollbacks drop schema in reverse order | `make migrate-down` / integration tests | Must reverse cleanly without orphan tables or foreign key errors. |
 | **Database** | Pool connectivity and timeouts | `make migrate-ping` / `TestConnectTimeout` | Must connect within 5s; ping timeout enforced at 2s. |
+| **Database** | Managed PostgreSQL Network Isolation | Blueprint / `render.yaml` | `ipAllowList: []` disables public internet access, restricting to private network. |
+| **Database** | In-flight TLS Encryption | `database.Connect` / `render.yaml` | `PGSSLMODE=require` enforced; unencrypted fallback rejected in production. |
 | **Health Probes** | HTTP Liveness (`/health`) | `curl -f http://host/health` | Must return HTTP 200 with `{"status":"ok"}`. |
 | **Health Probes** | Database Readiness (`/health/db`) | `curl -f http://host/health/db` | Must return HTTP 200 when healthy; HTTP 503 when down. |
 | **Security** | Production Environment (`APP_ENV`) | `make check-config` | Must be strictly set to `production`. |

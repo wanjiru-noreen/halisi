@@ -199,6 +199,7 @@ func TestReadiness_BlueprintSpecification(t *testing.T) {
 		"databases:",
 		"name: halisi-postgres",
 		"postgresMajorVersion: \"17\"",
+		"ipAllowList: []",
 		"type: web",
 		"name: halisi",
 		"runtime: go",
@@ -212,6 +213,8 @@ func TestReadiness_BlueprintSpecification(t *testing.T) {
 		"name: vendor-documents",
 		"fromDatabase:",
 		"property: connectionString",
+		"key: PGSSLMODE",
+		"value: require",
 	}
 
 	for _, check := range checks {
