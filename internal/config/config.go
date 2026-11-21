@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 // ProductionSettings encapsulates non-sensitive, validated production configuration.
@@ -46,13 +48,17 @@ func ValidateProduction() (ProductionSettings, error) {
 	if err != nil {
 		return ProductionSettings{}, fmt.Errorf("DATABASE_URL is invalid: %w", err)
 	}
-	sslmode := databaseURL.Query().Get("sslmode")
-	effectiveSSLMode := sslmode
-	if effectiveSSLMode == "" {
-		effectiveSSLMode = os.Getenv("PGSSLMODE")
+	pgCfg, err := pgconn.ParseConfig(cfg.DatabaseURL)
+	if err != nil {
+		return ProductionSettings{}, fmt.Errorf("DATABASE_URL is invalid for PostgreSQL: %w", err)
 	}
-	if !isSecureSSLMode(effectiveSSLMode) {
+	if pgCfg.TLSConfig == nil {
 		return ProductionSettings{}, fmt.Errorf("effective database SSL mode must require TLS in production (e.g. sslmode=require)")
+	}
+	for _, fb := range pgCfg.Fallbacks {
+		if fb.TLSConfig == nil {
+			return ProductionSettings{}, fmt.Errorf("effective database SSL mode must require TLS in production (e.g. sslmode=require)")
+		}
 	}
 	docDir := os.Getenv("VENDOR_DOCUMENT_DIR")
 	cleanDocDir := filepath.ToSlash(filepath.Clean(docDir))

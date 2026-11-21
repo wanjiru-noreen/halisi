@@ -324,8 +324,8 @@ See [production readiness](PRODUCTION_READINESS.md) for the complete checklist, 
 If `./bin/migrate up` encounters a failing migration during pre-deploy, Render halts deployment. The running application remains on the previous release.
 
 ### Database Backups and Restoration
-Render managed PostgreSQL Starter tier includes automated daily backups with 7-day retention.
-1. **Automated Daily Backups**: Managed by Render with point-in-time recovery window (e.g. 3 days for Hobby workspaces, extending up to 7–30 days on paid team plans).
+Render managed PostgreSQL Starter tier includes continuous point-in-time recovery (PITR).
+1. **Continuous Point-in-Time Recovery (PITR)**: Managed continuously by Render with retention governed by workspace plan (a 3-day continuous PITR window for Hobby workspaces, and a 7-day continuous PITR window for Pro or higher workspaces; manual downloadable exports are retained for 7 days).
 2. **On-Demand Snapshots**: In Render Dashboard under **PostgreSQL > Backups**, create a manual backup immediately before applying new schema versions.
 3. **Offsite Logical Backups**:
    ```sh
