@@ -175,6 +175,53 @@ func TestLaunchCheck_HTTPS_HSTS(t *testing.T) {
 	}
 }
 
+func TestLaunchCheck_NonHTMLStorefront(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'")
+
+		if r.URL.Path == "/" {
+			// Returns JSON instead of HTML
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"message":"not html"}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer ts.Close()
+
+	cfg := Config{
+		BaseURL: ts.URL,
+		Timeout: 5 * time.Second,
+		SkipDB:  true,
+	}
+
+	results, err := Run(context.Background(), ts.Client(), cfg)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var storefrontCheck *CheckResult
+	for i := range results {
+		if results[i].Name == "Storefront Probe (/)" {
+			storefrontCheck = &results[i]
+			break
+		}
+	}
+
+	if storefrontCheck == nil {
+		t.Fatal("storefront check result not found")
+	}
+	if storefrontCheck.Passed {
+		t.Error("expected storefront check to fail when Content-Type is not text/html")
+	}
+}
+
 func TestLaunchCheck_InvalidURL(t *testing.T) {
 	cfg := Config{
 		BaseURL: "not-a-valid-url",

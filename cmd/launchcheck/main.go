@@ -182,12 +182,23 @@ func probeRoot(ctx context.Context, client *http.Client, endpoint string) (Check
 		}, resp.Header
 	}
 
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "text/html") {
+		return CheckResult{
+			Name:     "Storefront Probe (/)",
+			Endpoint: endpoint,
+			Passed:   false,
+			Latency:  latency,
+			Details:  fmt.Sprintf("expected text/html Content-Type, got %q", contentType),
+		}, resp.Header
+	}
+
 	return CheckResult{
 		Name:     "Storefront Probe (/)",
 		Endpoint: endpoint,
 		Passed:   true,
 		Latency:  latency,
-		Details:  fmt.Sprintf("HTTP 200 - Content-Type: %s", resp.Header.Get("Content-Type")),
+		Details:  fmt.Sprintf("HTTP 200 - Content-Type: %s", contentType),
 	}, resp.Header
 }
 
