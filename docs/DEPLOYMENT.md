@@ -139,7 +139,7 @@ services:
 | `buildCommand` | `go build ...` | Compiles both `bin/server` and `bin/migrate`. |
 | `preDeployCommand` | `./bin/migrate up` | Runs database migrations before traffic switch. |
 | `startCommand` | `./bin/server` | Launches the production HTTP server. |
-| `healthCheckPath` | `/health` | HTTP probe path for zero-downtime deployment health check. |
+| `healthCheckPath` | `/health` | HTTP probe path for deployment health verification. |
 | `disk` | `vendor-documents` | 1 GB persistent disk mounted at `/var/data`. |
 
 ---
@@ -172,8 +172,8 @@ go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
 ./bin/server
 ```
 - Starts the HTTP web server listening on `PORT` (assigned by Render, defaults to 10000 on Render).
-- Render polls `GET /health` until it returns HTTP `200 OK`.
-- Once healthy, Render shifts incoming traffic to the new container and safely terminates the old one.
+- **Persistent Disk Lifecycle Notice**: Because the service uses an attached persistent disk (`/var/data`), Render cannot run two instances concurrently with the disk attached. During redeployments, Render stops the active instance before detaching the disk and mounting it to the new instance, causing a brief maintenance downtime during deployment rather than a zero-downtime traffic shift.
+- Render polls `GET /health` until it returns HTTP `200 OK` before marking the new deployment healthy.
 
 ---
 
