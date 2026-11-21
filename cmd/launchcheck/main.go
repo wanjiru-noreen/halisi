@@ -76,6 +76,9 @@ func main() {
 	fmt.Printf("Result: PASSED - All launch verification checks succeeded.\n\n")
 }
 
+// MaxAcceptableLatency defines the acceptable latency budget for health and storefront probes.
+const MaxAcceptableLatency = 500 * time.Millisecond
+
 // Run executes the complete launch verification check suite against target base URL.
 func Run(ctx context.Context, client *http.Client, cfg Config) ([]CheckResult, error) {
 	parsedURL, err := url.Parse(cfg.BaseURL)
@@ -84,20 +87,31 @@ func Run(ctx context.Context, client *http.Client, cfg Config) ([]CheckResult, e
 	}
 	baseURL := strings.TrimRight(cfg.BaseURL, "/")
 
+	probeTimeout := cfg.Timeout
+	if probeTimeout <= 0 {
+		probeTimeout = 10 * time.Second
+	}
+
 	var results []CheckResult
 
 	// 1. Liveness Probe: GET /health
-	resHealth := probeHealth(ctx, client, baseURL+"/health", "Liveness Probe (/health)")
+	healthCtx, cancelHealth := context.WithTimeout(ctx, probeTimeout)
+	resHealth := probeHealth(healthCtx, client, baseURL+"/health", "Liveness Probe (/health)")
+	cancelHealth()
 	results = append(results, resHealth)
 
 	// 2. Database Probe: GET /health/db
 	if !cfg.SkipDB {
-		resDB := probeHealth(ctx, client, baseURL+"/health/db", "Database Probe (/health/db)")
+		dbCtx, cancelDB := context.WithTimeout(ctx, probeTimeout)
+		resDB := probeHealth(dbCtx, client, baseURL+"/health/db", "Database Probe (/health/db)")
+		cancelDB()
 		results = append(results, resDB)
 	}
 
 	// 3. Storefront Root: GET /
-	resRoot, rootHeaders := probeRoot(ctx, client, baseURL+"/")
+	rootCtx, cancelRoot := context.WithTimeout(ctx, probeTimeout)
+	resRoot, rootHeaders := probeRoot(rootCtx, client, baseURL+"/")
+	cancelRoot()
 	results = append(results, resRoot)
 
 	// 4. Security Headers Verification
@@ -148,6 +162,16 @@ func probeHealth(ctx context.Context, client *http.Client, endpoint string, name
 		}
 	}
 
+	if latency > MaxAcceptableLatency {
+		return CheckResult{
+			Name:     name,
+			Endpoint: endpoint,
+			Passed:   false,
+			Latency:  latency,
+			Details:  fmt.Sprintf("latency %s exceeded %s budget", latency.Truncate(time.Millisecond), MaxAcceptableLatency),
+		}
+	}
+
 	return CheckResult{
 		Name:     name,
 		Endpoint: endpoint,
@@ -193,6 +217,16 @@ func probeRoot(ctx context.Context, client *http.Client, endpoint string) (Check
 		}, resp.Header
 	}
 
+	if latency > MaxAcceptableLatency {
+		return CheckResult{
+			Name:     "Storefront Probe (/)",
+			Endpoint: endpoint,
+			Passed:   false,
+			Latency:  latency,
+			Details:  fmt.Sprintf("latency %s exceeded %s budget", latency.Truncate(time.Millisecond), MaxAcceptableLatency),
+		}, resp.Header
+	}
+
 	return CheckResult{
 		Name:     "Storefront Probe (/)",
 		Endpoint: endpoint,
@@ -227,12 +261,12 @@ func verifySecurityHeaders(headers http.Header, isHTTPS bool) []CheckResult {
 		Details: fmt.Sprintf("expected 'DENY', got %q", headers.Get("X-Frame-Options")),
 	})
 
-	// Referrer-Policy: strict-origin-when-cross-origin
-	referrer := headers.Get("Referrer-Policy") == "strict-origin-when-cross-origin"
+	// Referrer-Policy: same-origin
+	referrer := headers.Get("Referrer-Policy") == "same-origin"
 	checks = append(checks, CheckResult{
 		Name:    "Referrer-Policy",
 		Passed:  referrer,
-		Details: fmt.Sprintf("expected 'strict-origin-when-cross-origin', got %q", headers.Get("Referrer-Policy")),
+		Details: fmt.Sprintf("expected 'same-origin', got %q", headers.Get("Referrer-Policy")),
 	})
 
 	// Content-Security-Policy

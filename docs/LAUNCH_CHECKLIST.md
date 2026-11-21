@@ -111,7 +111,7 @@ The tool validates:
 - [x] Storefront Root: `GET /` -> HTTP 200 (HTML)
 - [x] Security Header: `X-Content-Type-Options: nosniff`
 - [x] Security Header: `X-Frame-Options: DENY`
-- [x] Security Header: `Referrer-Policy: strict-origin-when-cross-origin`
+- [x] Security Header: `Referrer-Policy: same-origin`
 - [x] Security Header: `Content-Security-Policy` present
 - [x] Transport Security: `Strict-Transport-Security: max-age=...` present on HTTPS
 - [x] Probe Latency: round-trip time under 500ms

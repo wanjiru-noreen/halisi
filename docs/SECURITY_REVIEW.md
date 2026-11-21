@@ -76,7 +76,7 @@ This document records the pre-launch security audit, architectural safeguards, v
 - **Defensive Headers**:
   - `X-Content-Type-Options: nosniff`: Prevents MIME-sniffing exploits.
   - `X-Frame-Options: DENY`: Prevents clickjacking attacks.
-  - `Referrer-Policy: strict-origin-when-cross-origin`: Restricts referrer information leakage.
+  - `Referrer-Policy: same-origin`: Restricts referrer information leakage to same-origin requests.
   - `Content-Security-Policy`: Restricts resource loading to trusted origins.
 
 ---

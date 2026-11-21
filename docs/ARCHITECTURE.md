@@ -69,7 +69,7 @@ HALISI is an LPG (Liquefied Petroleum Gas) marketplace and delivery management p
 - **Embedded Web Assets**: Static HTML templates and frontend assets (JavaScript, CSS) are compiled directly into the binary using Go's `//go:embed`.
 - **Router**: Go standard library `http.ServeMux` extended with lightweight pattern routing and method dispatching.
 - **Middleware**:
-  - `SecurityHeaders`: Injects defensive headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Content-Security-Policy`, and conditional `Strict-Transport-Security`).
+  - `SecurityHeaders`: Injects defensive headers (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: same-origin`, `Content-Security-Policy`, and conditional `Strict-Transport-Security`).
   - `AttemptLimiter`: In-memory sliding-window limiter guarding against brute-force authentication.
   - `RequireAuth` & `RequireRole`: Validates session cookie, queries session state, injects current user into request context, and enforces role boundaries (`Customer`, `Vendor`, `Rider`, `Admin`).
 

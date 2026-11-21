@@ -12,7 +12,7 @@ func TestLaunchCheck_AllPassing(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'")
 
 		switch r.URL.Path {
@@ -149,7 +149,7 @@ func TestLaunchCheck_HTTPS_HSTS(t *testing.T) {
 	headers := make(http.Header)
 	headers.Set("X-Content-Type-Options", "nosniff")
 	headers.Set("X-Frame-Options", "DENY")
-	headers.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+	headers.Set("Referrer-Policy", "same-origin")
 	headers.Set("Content-Security-Policy", "default-src 'self'")
 	headers.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
 
@@ -179,7 +179,7 @@ func TestLaunchCheck_NonHTMLStorefront(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
-		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'")
 
 		if r.URL.Path == "/" {
@@ -231,4 +231,80 @@ func TestLaunchCheck_InvalidURL(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for invalid base URL")
 	}
+}
+
+func TestLaunchCheck_PerProbeTimeout(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(200 * time.Millisecond)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer ts.Close()
+
+	cfg := Config{
+		BaseURL: ts.URL,
+		Timeout: 50 * time.Millisecond,
+		SkipDB:  true,
+	}
+
+	results, err := Run(context.Background(), ts.Client(), cfg)
+	if err != nil {
+		t.Fatalf("unexpected error running checks: %v", err)
+	}
+
+	for _, r := range results {
+		if r.Name == "Liveness Probe (/health)" {
+			if r.Passed {
+				t.Error("expected liveness probe to fail when server exceeds per-probe timeout")
+			}
+			return
+		}
+	}
+	t.Fatal("liveness probe result not found")
+}
+
+func TestLaunchCheck_LatencyBudgetExceeded(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(520 * time.Millisecond)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer ts.Close()
+
+	cfg := Config{
+		BaseURL: ts.URL,
+		Timeout: 2 * time.Second,
+		SkipDB:  true,
+	}
+
+	results, err := Run(context.Background(), ts.Client(), cfg)
+	if err != nil {
+		t.Fatalf("unexpected error running checks: %v", err)
+	}
+
+	for _, r := range results {
+		if r.Name == "Liveness Probe (/health)" {
+			if r.Passed {
+				t.Error("expected liveness probe to fail when latency exceeds 500ms budget")
+			}
+			return
+		}
+	}
+	t.Fatal("liveness probe result not found")
+}
+
+func TestLaunchCheck_ReferrerPolicyValidation(t *testing.T) {
+	headers := make(http.Header)
+	headers.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+	checks := verifySecurityHeaders(headers, false)
+	for _, c := range checks {
+		if c.Name == "Referrer-Policy" {
+			if c.Passed {
+				t.Error("expected Referrer-Policy check to fail when header is not same-origin")
+			}
+			return
+		}
+	}
+	t.Fatal("Referrer-Policy check result not found")
 }
