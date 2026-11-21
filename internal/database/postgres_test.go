@@ -92,3 +92,38 @@ func TestConnectPostgres(t *testing.T) {
 		t.Fatal("database health must return 503 after the pool closes")
 	}
 }
+
+func TestConnectProductionTLSEnforced(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("PGSSLMODE", "")
+
+	for _, rawURL := range []string{
+		"postgres://user:secret@localhost:5432/db",
+		"postgres://user:secret@localhost:5432/db?sslmode=disable",
+		"postgres://user:secret@localhost:5432/db?sslmode=prefer",
+		"postgres://user:secret@host1.internal:5432,host2.internal:5432/db?sslmode=prefer",
+	} {
+		pool, err := Connect(context.Background(), rawURL)
+		if pool != nil || err == nil || !strings.Contains(err.Error(), "TLS is required in production") {
+			t.Fatalf("expected TLS enforcement error for URL %q, got: %v", rawURL, err)
+		}
+		if strings.Contains(err.Error(), "secret") {
+			t.Fatal("error leaked credentials")
+		}
+	}
+
+	// Multi-host URL with sslmode=require must pass the TLS guard (failing only on ping/connect).
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	multiHostURL := "postgres://user:secret@127.0.0.1:54320,127.0.0.1:54321/db?sslmode=require"
+	pool, err := Connect(ctx, multiHostURL)
+	if pool != nil || err == nil {
+		t.Fatal("expected connection check failure")
+	}
+	if strings.Contains(err.Error(), "TLS is required in production") {
+		t.Fatalf("multi-host TLS connection incorrectly rejected by TLS guard: %v", err)
+	}
+	if !strings.Contains(err.Error(), "connection check failed") {
+		t.Fatalf("expected connection check failed error, got: %v", err)
+	}
+}
