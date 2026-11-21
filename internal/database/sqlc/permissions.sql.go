@@ -11,11 +11,68 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const activeAssignedDeliveries = `-- name: ActiveAssignedDeliveries :many
+SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,d.dropoff_address AS delivery_address,d.pickup_address,u.phone
+FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=o.customer_id
+WHERE d.rider_id=$1 AND d.status IN ('assigned', 'picked_up')
+ORDER BY d.id DESC
+`
+
+type ActiveAssignedDeliveriesRow struct {
+	ID              int64              `json:"id"`
+	OrderID         int64              `json:"order_id"`
+	Status          string             `json:"status"`
+	DeliveredAt     pgtype.Timestamptz `json:"delivered_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	DeliveryAddress string             `json:"delivery_address"`
+	PickupAddress   string             `json:"pickup_address"`
+	Phone           pgtype.Text        `json:"phone"`
+}
+
+func (q *Queries) ActiveAssignedDeliveries(ctx context.Context, riderID pgtype.Int8) ([]ActiveAssignedDeliveriesRow, error) {
+	rows, err := q.db.Query(ctx, activeAssignedDeliveries, riderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ActiveAssignedDeliveriesRow{}
+	for rows.Next() {
+		var i ActiveAssignedDeliveriesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrderID,
+			&i.Status,
+			&i.DeliveredAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeliveryAddress,
+			&i.PickupAddress,
+			&i.Phone,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const assignedDeliveries = `-- name: AssignedDeliveries :many
 SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,d.dropoff_address AS delivery_address,d.pickup_address,u.phone
 FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=o.customer_id
-WHERE d.rider_id=$1 ORDER BY d.id DESC LIMIT 100
+WHERE d.rider_id=$1 
+ORDER BY d.id DESC 
+LIMIT $2 OFFSET $3
 `
+
+type AssignedDeliveriesParams struct {
+	RiderID pgtype.Int8 `json:"rider_id"`
+	Limit   int32       `json:"limit"`
+	Offset  int32       `json:"offset"`
+}
 
 type AssignedDeliveriesRow struct {
 	ID              int64              `json:"id"`
@@ -29,8 +86,8 @@ type AssignedDeliveriesRow struct {
 	Phone           pgtype.Text        `json:"phone"`
 }
 
-func (q *Queries) AssignedDeliveries(ctx context.Context, riderID pgtype.Int8) ([]AssignedDeliveriesRow, error) {
-	rows, err := q.db.Query(ctx, assignedDeliveries, riderID)
+func (q *Queries) AssignedDeliveries(ctx context.Context, arg AssignedDeliveriesParams) ([]AssignedDeliveriesRow, error) {
+	rows, err := q.db.Query(ctx, assignedDeliveries, arg.RiderID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

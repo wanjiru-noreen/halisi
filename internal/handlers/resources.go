@@ -130,7 +130,28 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		return map[string]any{"order": v}, e
 	})
 	mount("GET /api/rider/deliveries", models.RiderAssignments, func(w http.ResponseWriter, r *http.Request, id int64) (any, error) {
-		v, e := h.queries.AssignedDeliveries(r.Context(), pgtype.Int8{Int64: id, Valid: true})
+		riderID := pgtype.Int8{Int64: id, Valid: true}
+		if r.URL.Query().Get("status") == "active" {
+			v, e := h.queries.ActiveAssignedDeliveries(r.Context(), riderID)
+			return map[string]any{"deliveries": v}, e
+		}
+		limit := int32(100)
+		if raw := r.URL.Query().Get("limit"); raw != "" {
+			if l, err := strconv.Atoi(raw); err == nil && l > 0 && l <= 100 {
+				limit = int32(l)
+			}
+		}
+		offset := int32(0)
+		if raw := r.URL.Query().Get("offset"); raw != "" {
+			if o, err := strconv.Atoi(raw); err == nil && o >= 0 {
+				offset = int32(o)
+			}
+		}
+		v, e := h.queries.AssignedDeliveries(r.Context(), dbsqlc.AssignedDeliveriesParams{
+			RiderID: riderID,
+			Limit:   limit,
+			Offset:  offset,
+		})
 		return map[string]any{"deliveries": v}, e
 	})
 	mount("GET /api/rider/deliveries/{id}", models.RiderAssignments, h.getDelivery)
@@ -162,14 +183,18 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 	for role, permission := range map[models.Role]models.Permission{models.Customer: models.CustomerResources, models.Vendor: models.VendorResources, models.Rider: models.RiderAssignments, models.Administrator: models.Administration} {
 		path, _ := models.DashboardPath(role)
 		page := webassets.Page("dashboard")
-		if role == models.Customer {
+		switch role {
+		case models.Customer:
 			page = webassets.Page("customer/dashboard")
+		case models.Rider:
+			page = webassets.Page("rider/dashboard")
 		}
 		mux.Handle("GET "+path, h.protect(permission, page))
 	}
 	mux.Handle("GET /customer/addresses", h.protect(models.CustomerResources, webassets.Page("customer/addresses")))
 	mux.Handle("GET /customer/orders", h.protect(models.CustomerResources, webassets.Page("customer/orders")))
 	mux.Handle("GET /customer/orders/{id}", h.protect(models.CustomerResources, webassets.Page("customer/order-detail")))
+	mux.Handle("GET /rider/deliveries", h.protect(models.RiderAssignments, webassets.Page("rider/deliveries")))
 }
 
 func (h *Resources) updateCommissionRate(w http.ResponseWriter, r *http.Request, adminID int64) (any, error) {
