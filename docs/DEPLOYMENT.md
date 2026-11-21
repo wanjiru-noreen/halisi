@@ -250,7 +250,7 @@ All sensitive production settings are declared with `sync: false` in `render.yam
 - **Rotating Secrets**:
   1. Update credentials with the upstream provider (e.g., generate a new SendGrid API key, Google OAuth Secret, or Daraja Passkey).
   2. Update the environment variable in Render Dashboard.
-  3. Trigger a redeployment. Render applies the new secrets with zero downtime.
+  3. Trigger a redeployment. Because the service mounts an attached persistent disk (`/var/data`), Render stops the active instance before starting the replacement container, incurring a brief maintenance restart rather than zero-downtime rolling deploy.
 - **Pre-Flight Configuration Verification**:
   - Validate all production configuration settings without starting network servers:
     ```sh

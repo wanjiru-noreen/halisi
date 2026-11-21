@@ -96,6 +96,15 @@ func TestMigratorProductionTLSEnforced(t *testing.T) {
 			t.Fatalf("expected TLS check to pass, got: %v", err)
 		}
 	})
+
+	t.Run("preserves PGSSLMODE=verify-full when query parameter is unset", func(t *testing.T) {
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("PGSSLMODE", "verify-full")
+		_, err := NewMigrator("postgres://user:secret@localhost:5432/db")
+		if err != nil && strings.Contains(err.Error(), "TLS is required in production") {
+			t.Fatalf("expected verify-full to satisfy TLS check, got: %v", err)
+		}
+	})
 }
 
 func TestMigrationsPostgres(t *testing.T) {
