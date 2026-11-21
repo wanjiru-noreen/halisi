@@ -27,11 +27,6 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if cfg.AppEnv == "production" {
-		if _, err := config.ValidateProduction(); err != nil {
-			return fmt.Errorf("production configuration error: %w", err)
-		}
-	}
 	if args[0] == "ping" {
 		ctx, cancel := context.WithTimeout(context.Background(), database.ConnectTimeout)
 		defer cancel()
