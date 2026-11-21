@@ -205,7 +205,7 @@ func TestReadiness_BlueprintSpecification(t *testing.T) {
 		"runtime: go",
 		"plan: starter",
 		"branch: main",
-		"buildCommand: go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate",
+		"buildCommand: mkdir -p bin && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate",
 		"preDeployCommand: ./bin/migrate up",
 		"startCommand: ./bin/server",
 		"healthCheckPath: /health",

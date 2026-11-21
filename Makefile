@@ -1,6 +1,7 @@
 .PHONY: build check-config readiness-check migrate-up migrate-down migrate-version migrate-ping sqlc-install sqlc-generate
 
 build:
+	mkdir -p bin
 	go build -o bin/server ./cmd/server
 	go build -o bin/migrate ./cmd/migrate
 

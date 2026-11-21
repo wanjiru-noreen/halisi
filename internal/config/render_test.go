@@ -36,7 +36,7 @@ func TestRenderBlueprintSpecification(t *testing.T) {
 		"region: oregon",
 		"branch: main",
 		"autoDeploy: false",
-		"buildCommand: go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate",
+		"buildCommand: mkdir -p bin && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate",
 		"preDeployCommand: ./bin/migrate up",
 		"startCommand: ./bin/server",
 		"healthCheckPath: /health",
