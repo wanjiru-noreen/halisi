@@ -96,12 +96,14 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
 ### 4.1. Register Account
 `POST /api/auth/register`
 - **Auth**: Public (Rate-limited)
+- **Note**: Account registration is for customers. Name, email, phone, and password are all required.
 - **Request**:
 ```json
 {
+  "name": "Jane Doe",
   "email": "customer@example.com",
-  "password": "SecurePassword123!",
-  "role": "customer"
+  "phone": "0712345678",
+  "password": "SecurePassword123!"
 }
 ```
 - **Response**: `201 Created`
@@ -130,7 +132,8 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
 ### 4.3. Logout
 `POST /api/auth/logout`
 - **Auth**: Authenticated
-- **Response**: `200 OK` (Clears session cookie)
+- **Request**: `{}` (Empty JSON object required)
+- **Response**: `204 No Content` (Clears session cookie)
 
 ### 4.4. Current User Session
 `GET /api/auth/me`
@@ -152,8 +155,8 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
 - **Response**: `200 OK`
 ```json
 {
-  "verification_required": true,
-  "google_enabled": true
+  "google_enabled": true,
+  "verification_enabled": true
 }
 ```
 
@@ -235,8 +238,11 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
 - **Response**: `202 Accepted`
 ```json
 {
-  "status": "initiated",
-  "request_key": "<unique-request-key>"
+  "payment": {
+    "id": 1,
+    "order_id": 101,
+    "status": "processing"
+  }
 }
 ```
 
@@ -270,7 +276,7 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
 - `POST /api/vendor/application/submit`: Submit application for administrative verification.
 
 ### 8.2. KYC Documents
-- `POST /api/vendor/documents/{type}`: Upload document (`multipart/form-data`). Types: `business_permit`, `epra_license`, `id_card`.
+- `POST /api/vendor/documents/{type}`: Upload document (`multipart/form-data` with `file` field). Accepted `type` values: `business_registration`, `lpg_license`.
 - `GET /api/vendor/documents/{id}`: Download document stream (restricted to owner or admin).
 
 ### 8.3. Vendor Shop & Inventory
