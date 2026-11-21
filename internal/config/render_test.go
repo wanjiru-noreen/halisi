@@ -29,6 +29,7 @@ func TestRenderBlueprintSpecification(t *testing.T) {
 		"user: halisi",
 		"plan: 0.5c-1g",
 		"postgresMajorVersion: \"17\"",
+		"ipAllowList: []",
 		"type: web",
 		"name: halisi",
 		"runtime: go",

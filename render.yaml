@@ -7,6 +7,7 @@ databases:
     plan: 0.5c-1g
     region: oregon
     postgresMajorVersion: "17"
+    ipAllowList: []
 
 services:
   - type: web
