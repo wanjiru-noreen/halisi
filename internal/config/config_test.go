@@ -195,15 +195,37 @@ func TestValidateProduction(t *testing.T) {
 		setBaseValidProductionEnv(t)
 		t.Setenv("PGSSLMODE", "require")
 		for _, insecureURL := range []string{
+			"postgres://user:secret@db.internal:5432/halisi?sslmode=",
 			"postgres://user:secret@db.internal:5432/halisi?sslmode=disable",
 			"postgres://user:secret@db.internal:5432/halisi?sslmode=prefer",
 			"postgres://user:secret@db.internal:5432/halisi?sslmode=allow",
+			"postgres://user:secret@host1.internal:5432,host2.internal:5432/halisi?sslmode=prefer",
 		} {
 			t.Setenv("DATABASE_URL", insecureURL)
 			_, err := ValidateProduction()
 			if err == nil || !strings.Contains(err.Error(), "effective database SSL mode must require TLS in production") {
 				t.Fatalf("expected rejection of URL %q, got: %v", insecureURL, err)
 			}
+		}
+	})
+
+	t.Run("allows ssl=true alias in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("DATABASE_URL", "postgres://user:secret@db.internal:5432/halisi?ssl=true")
+		t.Setenv("PGSSLMODE", "")
+		_, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected ssl=true alias to be accepted, got: %v", err)
+		}
+	})
+
+	t.Run("allows multi-host with sslmode=require in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("DATABASE_URL", "postgres://user:secret@host1.internal:5432,host2.internal:5432/halisi?sslmode=require")
+		t.Setenv("PGSSLMODE", "")
+		_, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected multi-host with sslmode=require to be accepted, got: %v", err)
 		}
 	})
 

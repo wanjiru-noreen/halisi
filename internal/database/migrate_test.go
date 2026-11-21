@@ -55,9 +55,11 @@ func TestMigratorProductionTLSEnforced(t *testing.T) {
 
 	for _, rawURL := range []string{
 		"postgres://user:secret@localhost:5432/db",
+		"postgres://user:secret@localhost:5432/db?sslmode=",
 		"postgres://user:secret@localhost:5432/db?sslmode=disable",
 		"postgres://user:secret@localhost:5432/db?sslmode=prefer",
 		"postgres://user:secret@localhost:5432/db?sslmode=allow",
+		"postgres://user:secret@host1.internal:5432,host2.internal:5432/db?sslmode=prefer",
 	} {
 		m, err := NewMigrator(rawURL)
 		if m != nil || err == nil || !strings.Contains(err.Error(), "TLS is required in production") {
@@ -67,6 +69,24 @@ func TestMigratorProductionTLSEnforced(t *testing.T) {
 			t.Fatal("error leaked credentials")
 		}
 	}
+
+	t.Run("passes TLS check with ssl=true alias", func(t *testing.T) {
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("PGSSLMODE", "")
+		_, err := NewMigrator("postgres://user:secret@localhost:5432/db?ssl=true")
+		if err != nil && strings.Contains(err.Error(), "TLS is required in production") {
+			t.Fatalf("expected ssl=true alias to satisfy TLS check, got: %v", err)
+		}
+	})
+
+	t.Run("passes TLS check with multi-host sslmode=require", func(t *testing.T) {
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("PGSSLMODE", "")
+		_, err := NewMigrator("postgres://user:secret@host1.internal:5432,host2.internal:5432/db?sslmode=require")
+		if err != nil && strings.Contains(err.Error(), "TLS is required in production") {
+			t.Fatalf("expected multi-host sslmode=require to satisfy TLS check, got: %v", err)
+		}
+	})
 
 	t.Run("passes TLS check when PGSSLMODE=require is set", func(t *testing.T) {
 		t.Setenv("APP_ENV", "production")
