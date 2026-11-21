@@ -133,12 +133,14 @@ func TestValidateProduction(t *testing.T) {
 		}
 	})
 
-	t.Run("rejects missing or relative VENDOR_DOCUMENT_DIR", func(t *testing.T) {
+	t.Run("rejects missing or non-persistent VENDOR_DOCUMENT_DIR", func(t *testing.T) {
 		setBaseValidProductionEnv(t)
-		t.Setenv("VENDOR_DOCUMENT_DIR", "relative/path")
-		_, err := ValidateProduction()
-		if err == nil || !strings.Contains(err.Error(), "VENDOR_DOCUMENT_DIR must be an absolute path") {
-			t.Fatalf("expected absolute path error, got: %v", err)
+		for _, invalidDir := range []string{"", "relative/path", "/tmp/vendor-documents", "/etc/data"} {
+			t.Setenv("VENDOR_DOCUMENT_DIR", invalidDir)
+			_, err := ValidateProduction()
+			if err == nil || !strings.Contains(err.Error(), "VENDOR_DOCUMENT_DIR must be located within persistent mount /var/data") {
+				t.Fatalf("expected persistent mount error for %q, got: %v", invalidDir, err)
+			}
 		}
 	})
 

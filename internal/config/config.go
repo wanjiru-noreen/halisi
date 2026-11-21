@@ -38,8 +38,9 @@ func ValidateProduction() (ProductionSettings, error) {
 		return ProductionSettings{}, fmt.Errorf("DATABASE_URL or PGSSLMODE must require TLS in production (e.g. sslmode=require)")
 	}
 	docDir := os.Getenv("VENDOR_DOCUMENT_DIR")
-	if docDir == "" || !(filepath.IsAbs(docDir) || strings.HasPrefix(docDir, "/")) {
-		return ProductionSettings{}, fmt.Errorf("VENDOR_DOCUMENT_DIR must be an absolute path in production")
+	cleanDocDir := filepath.ToSlash(filepath.Clean(docDir))
+	if docDir == "" || !(strings.HasPrefix(cleanDocDir, "/var/data/") || cleanDocDir == "/var/data") {
+		return ProductionSettings{}, fmt.Errorf("VENDOR_DOCUMENT_DIR must be located within persistent mount /var/data in production")
 	}
 	ident, err := LoadIdentity("production")
 	if err != nil {

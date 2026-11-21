@@ -76,8 +76,11 @@ func run(ctx context.Context) error {
 	}
 	auth := handlers.NewAuth(authService, cfg.AppEnv)
 	documentDirectory := os.Getenv("VENDOR_DOCUMENT_DIR")
-	if cfg.AppEnv == "production" && (documentDirectory == "" || !(filepath.IsAbs(documentDirectory) || strings.HasPrefix(documentDirectory, "/"))) {
-		return errors.New("VENDOR_DOCUMENT_DIR must be an absolute persistent-volume path in production")
+	if cfg.AppEnv == "production" {
+		cleanDir := filepath.ToSlash(filepath.Clean(documentDirectory))
+		if documentDirectory == "" || !(strings.HasPrefix(cleanDir, "/var/data/") || cleanDir == "/var/data") {
+			return errors.New("VENDOR_DOCUMENT_DIR must be located within persistent mount /var/data in production")
+		}
 	}
 	if documentDirectory == "" {
 		documentDirectory = ".data/vendor-documents"
