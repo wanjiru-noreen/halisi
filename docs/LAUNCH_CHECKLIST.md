@@ -66,7 +66,7 @@ Verify all required production environment variables are configured in the Rende
 3. Observe pre-deployment phase:
    - Render runs `buildCommand`:
      ```sh
-     go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
+     mkdir -p bin && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
      ```
    - Render runs `preDeployCommand`:
      ```sh
