@@ -48,7 +48,8 @@ SELECT u.id AS user_id, rp.full_name, rp.phone, rp.city, rp.status, rp.created_a
 FROM users u
 JOIN rider_profiles rp ON rp.user_id = u.id
 WHERE u.role = 'rider' AND rp.status = 'approved'
-ORDER BY rp.full_name ASC;
+ORDER BY rp.full_name ASC
+LIMIT 100;
 
 -- name: DeliveryWithRider :one
 SELECT d.*, rp.full_name AS rider_name, rp.phone AS rider_phone

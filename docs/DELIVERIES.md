@@ -98,7 +98,7 @@ Request payload:
 
 ### Available riders discovery
 
-Vendors and administrators can retrieve the list of approved riders for assignment selection:
+Vendors and administrators can retrieve the list of approved riders (up to 100 records) for assignment selection:
 
 ```http
 GET /api/vendor/riders

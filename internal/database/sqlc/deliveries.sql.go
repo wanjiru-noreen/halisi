@@ -234,6 +234,7 @@ FROM users u
 JOIN rider_profiles rp ON rp.user_id = u.id
 WHERE u.role = 'rider' AND rp.status = 'approved'
 ORDER BY rp.full_name ASC
+LIMIT 100
 `
 
 type ListApprovedRidersRow struct {
