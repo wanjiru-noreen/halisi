@@ -33,9 +33,12 @@ func ValidateProduction() (ProductionSettings, error) {
 		return ProductionSettings{}, fmt.Errorf("DATABASE_URL is invalid: %w", err)
 	}
 	sslmode := databaseURL.Query().Get("sslmode")
-	pgSSLMode := os.Getenv("PGSSLMODE")
-	if !isSecureSSLMode(sslmode) && !isSecureSSLMode(pgSSLMode) {
-		return ProductionSettings{}, fmt.Errorf("DATABASE_URL or PGSSLMODE must require TLS in production (e.g. sslmode=require)")
+	effectiveSSLMode := sslmode
+	if effectiveSSLMode == "" {
+		effectiveSSLMode = os.Getenv("PGSSLMODE")
+	}
+	if !isSecureSSLMode(effectiveSSLMode) {
+		return ProductionSettings{}, fmt.Errorf("effective database SSL mode must require TLS in production (e.g. sslmode=require)")
 	}
 	docDir := os.Getenv("VENDOR_DOCUMENT_DIR")
 	cleanDocDir := filepath.ToSlash(filepath.Clean(docDir))

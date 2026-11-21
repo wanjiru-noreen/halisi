@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -46,6 +47,35 @@ func TestMigratorRejectsInvalidURL(t *testing.T) {
 			t.Fatal("unexpected validation error or leaked credentials")
 		}
 	}
+}
+
+func TestMigratorProductionTLSEnforced(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("PGSSLMODE", "")
+
+	for _, rawURL := range []string{
+		"postgres://user:secret@localhost:5432/db",
+		"postgres://user:secret@localhost:5432/db?sslmode=disable",
+		"postgres://user:secret@localhost:5432/db?sslmode=prefer",
+		"postgres://user:secret@localhost:5432/db?sslmode=allow",
+	} {
+		m, err := NewMigrator(rawURL)
+		if m != nil || err == nil || !strings.Contains(err.Error(), "TLS is required in production") {
+			t.Fatalf("expected TLS enforcement error for URL %q, got: %v", rawURL, err)
+		}
+		if strings.Contains(err.Error(), "secret") {
+			t.Fatal("error leaked credentials")
+		}
+	}
+
+	t.Run("passes TLS check when PGSSLMODE=require is set", func(t *testing.T) {
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("PGSSLMODE", "require")
+		_, err := NewMigrator("postgres://user:secret@localhost:5432/db")
+		if err != nil && strings.Contains(err.Error(), "TLS is required in production") {
+			t.Fatalf("expected TLS check to pass, got: %v", err)
+		}
+	})
 }
 
 func TestMigrationsPostgres(t *testing.T) {
