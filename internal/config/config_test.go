@@ -70,3 +70,186 @@ func TestPort(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateProduction(t *testing.T) {
+	setBaseValidProductionEnv := func(t *testing.T) {
+		t.Helper()
+		t.Setenv("APP_ENV", "production")
+		t.Setenv("PORT", "8080")
+		t.Setenv("DATABASE_URL", "postgres://prod_user:secret_password@db.halisi.internal:5432/halisi_prod?sslmode=require")
+		t.Setenv("VENDOR_DOCUMENT_DIR", "/var/data/vendor-documents")
+		t.Setenv("PUBLIC_BASE_URL", "https://halisi.onrender.com")
+		t.Setenv("SMTP_HOST", "smtp.sendgrid.net")
+		t.Setenv("SMTP_PORT", "587")
+		t.Setenv("SMTP_TLS_MODE", "starttls")
+		t.Setenv("SMTP_FROM", "no-reply@halisi.co.ke")
+		t.Setenv("SMTP_USERNAME", "apikey")
+		t.Setenv("SMTP_PASSWORD", "sg_secret_key")
+		t.Setenv("GOOGLE_CLIENT_ID", "")
+		t.Setenv("GOOGLE_CLIENT_SECRET", "")
+		t.Setenv("MPESA_ENV", "")
+		t.Setenv("MPESA_CONSUMER_KEY", "")
+		t.Setenv("MPESA_CONSUMER_SECRET", "")
+		t.Setenv("MPESA_SHORT_CODE", "")
+		t.Setenv("MPESA_PASSKEY", "")
+		t.Setenv("MPESA_TRANSACTION_TYPE", "")
+	}
+
+	t.Run("valid complete production environment", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		settings, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected valid production settings, got error: %v", err)
+		}
+		if settings.AppEnv != "production" {
+			t.Errorf("expected APP_ENV production, got %q", settings.AppEnv)
+		}
+		if settings.PublicBaseURL != "https://halisi.onrender.com" {
+			t.Errorf("expected PublicBaseURL https://halisi.onrender.com, got %q", settings.PublicBaseURL)
+		}
+		if settings.VendorDocDir != "/var/data/vendor-documents" {
+			t.Errorf("expected VendorDocDir /var/data/vendor-documents, got %q", settings.VendorDocDir)
+		}
+	})
+
+	t.Run("valid production with custom domain", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("PUBLIC_BASE_URL", "https://halisi.co.ke")
+		settings, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected valid custom domain, got: %v", err)
+		}
+		if settings.PublicBaseURL != "https://halisi.co.ke" {
+			t.Errorf("expected PublicBaseURL https://halisi.co.ke, got %q", settings.PublicBaseURL)
+		}
+	})
+
+	t.Run("rejects non-production environment", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("APP_ENV", "development")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "APP_ENV must be production") {
+			t.Fatalf("expected APP_ENV error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects missing or non-persistent VENDOR_DOCUMENT_DIR", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		for _, invalidDir := range []string{"", "relative/path", "/tmp/vendor-documents", "/etc/data"} {
+			t.Setenv("VENDOR_DOCUMENT_DIR", invalidDir)
+			_, err := ValidateProduction()
+			if err == nil || !strings.Contains(err.Error(), "VENDOR_DOCUMENT_DIR must be located within persistent mount /var/data") {
+				t.Fatalf("expected persistent mount error for %q, got: %v", invalidDir, err)
+			}
+		}
+	})
+
+	t.Run("rejects insecure HTTP PUBLIC_BASE_URL in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("PUBLIC_BASE_URL", "http://halisi.co.ke")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "PUBLIC_BASE_URL must be an HTTPS origin") {
+			t.Fatalf("expected HTTPS origin error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects unset SMTP credentials in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("SMTP_USERNAME", "")
+		t.Setenv("SMTP_PASSWORD", "")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "SMTP_USERNAME and SMTP_PASSWORD are required in production") {
+			t.Fatalf("expected SMTP credentials error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects partial Google OAuth credentials", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("GOOGLE_CLIENT_ID", "google-client-id-only")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must both be configured") {
+			t.Fatalf("expected Google OAuth error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects partial M-Pesa credentials", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("MPESA_ENV", "production")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "M-Pesa error") {
+			t.Fatalf("expected M-Pesa error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects non-TLS database URL in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("DATABASE_URL", "postgres://user:secret@db.internal:5432/halisi")
+		t.Setenv("PGSSLMODE", "")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "effective database SSL mode must require TLS in production") {
+			t.Fatalf("expected TLS error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects insecure sslmode in DATABASE_URL even when PGSSLMODE=require is set", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("PGSSLMODE", "require")
+		for _, insecureURL := range []string{
+			"postgres://user:secret@db.internal:5432/halisi?sslmode=",
+			"postgres://user:secret@db.internal:5432/halisi?sslmode=disable",
+			"postgres://user:secret@db.internal:5432/halisi?sslmode=prefer",
+			"postgres://user:secret@db.internal:5432/halisi?sslmode=allow",
+			"postgres://user:secret@host1.internal:5432,host2.internal:5432/halisi?sslmode=prefer",
+		} {
+			t.Setenv("DATABASE_URL", insecureURL)
+			_, err := ValidateProduction()
+			if err == nil || !strings.Contains(err.Error(), "effective database SSL mode must require TLS in production") {
+				t.Fatalf("expected rejection of URL %q, got: %v", insecureURL, err)
+			}
+		}
+	})
+
+	t.Run("allows ssl=true alias in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("DATABASE_URL", "postgres://user:secret@db.internal:5432/halisi?ssl=true")
+		t.Setenv("PGSSLMODE", "")
+		_, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected ssl=true alias to be accepted, got: %v", err)
+		}
+	})
+
+	t.Run("allows multi-host with sslmode=require in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("DATABASE_URL", "postgres://user:secret@host1.internal:5432,host2.internal:5432/halisi?sslmode=require")
+		t.Setenv("PGSSLMODE", "")
+		_, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected multi-host with sslmode=require to be accepted, got: %v", err)
+		}
+	})
+
+	t.Run("allows unadorned database URL when PGSSLMODE=require is set", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("DATABASE_URL", "postgres://user:secret@db.internal:5432/halisi")
+		t.Setenv("PGSSLMODE", "require")
+		_, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected valid with PGSSLMODE=require, got: %v", err)
+		}
+	})
+
+	t.Run("production settings redact secrets and credentials", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		settings, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("unexpected validation error: %v", err)
+		}
+		str := settings.String()
+		for _, secret := range []string{"secret_password", "apikey", "sg_secret_key", "secret"} {
+			if strings.Contains(str, secret) {
+				t.Fatalf("redacted string leaked sensitive value: %q", secret)
+			}
+		}
+	})
+}
