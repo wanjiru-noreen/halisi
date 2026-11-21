@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -22,6 +23,13 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && (os.Args[1] == "--check-config" || os.Args[1] == "-check") {
+		if _, err := config.ValidateProduction(); err != nil {
+			log.Fatalf("Production configuration check failed: %v", err)
+		}
+		fmt.Println("Production configuration verified successfully")
+		return
+	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx); err != nil {
@@ -34,6 +42,11 @@ func run(ctx context.Context) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("configuration error: %w", err)
+	}
+	if cfg.AppEnv == "production" {
+		if _, err := config.ValidateProduction(); err != nil {
+			return fmt.Errorf("production configuration error: %w", err)
+		}
 	}
 	pool, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
@@ -63,8 +76,11 @@ func run(ctx context.Context) error {
 	}
 	auth := handlers.NewAuth(authService, cfg.AppEnv)
 	documentDirectory := os.Getenv("VENDOR_DOCUMENT_DIR")
-	if cfg.AppEnv == "production" && (documentDirectory == "" || !filepath.IsAbs(documentDirectory)) {
-		return errors.New("VENDOR_DOCUMENT_DIR must be an absolute persistent-volume path in production")
+	if cfg.AppEnv == "production" {
+		cleanDir := filepath.ToSlash(filepath.Clean(documentDirectory))
+		if documentDirectory == "" || !(strings.HasPrefix(cleanDir, "/var/data/") || cleanDir == "/var/data") {
+			return errors.New("VENDOR_DOCUMENT_DIR must be located within persistent mount /var/data in production")
+		}
 	}
 	if documentDirectory == "" {
 		documentDirectory = ".data/vendor-documents"

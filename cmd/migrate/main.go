@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
@@ -19,12 +20,28 @@ func main() {
 }
 
 func run(args []string) error {
-	if len(args) != 1 || (args[0] != "up" && args[0] != "down" && args[0] != "version") {
-		return errors.New("usage: go run ./cmd/migrate [up|down|version]")
+	if len(args) != 1 || (args[0] != "up" && args[0] != "down" && args[0] != "version" && args[0] != "ping") {
+		return errors.New("usage: go run ./cmd/migrate [up|down|version|ping]")
 	}
 	cfg, err := config.Load()
 	if err != nil {
 		return err
+	}
+	if cfg.AppEnv == "production" {
+		if _, err := config.ValidateProduction(); err != nil {
+			return fmt.Errorf("production configuration error: %w", err)
+		}
+	}
+	if args[0] == "ping" {
+		ctx, cancel := context.WithTimeout(context.Background(), database.ConnectTimeout)
+		defer cancel()
+		pool, err := database.Connect(ctx, cfg.DatabaseURL)
+		if err != nil {
+			return err
+		}
+		pool.Close()
+		fmt.Println("Database connection successful")
+		return nil
 	}
 	m, err := database.NewMigrator(cfg.DatabaseURL)
 	if err != nil {
