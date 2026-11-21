@@ -1,10 +1,27 @@
-# Blueprint configuration only; provisioning requires an explicit Render deployment.
+# Render Blueprint specification for Halisi production service.
+# Provisioning requires an explicit Render blueprint deployment or service connection.
+databases:
+  - name: halisi-postgres
+    databaseName: halisi
+    user: halisi
+    plan: 0.5c-1g
+    region: oregon
+    postgresMajorVersion: "17"
+    ipAllowList: []
+
 services:
   - type: web
     name: halisi
     runtime: go
     plan: starter
-    buildCommand: go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
+    region: oregon
+    branch: main
+    autoDeploy: false
+    # Custom domains configured in Render Dashboard or uncomment after DNS is pointed:
+    # domains:
+    #   - halisi.co.ke
+    #   - www.halisi.co.ke
+    buildCommand: mkdir -p bin && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
     preDeployCommand: ./bin/migrate up
     startCommand: ./bin/server
     healthCheckPath: /health
@@ -18,7 +35,11 @@ services:
       - key: VENDOR_DOCUMENT_DIR
         value: /var/data/vendor-documents
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: halisi-postgres
+          property: connectionString
+      - key: PGSSLMODE
+        value: require
       - key: PUBLIC_BASE_URL
         sync: false
       - key: SMTP_HOST
@@ -32,4 +53,22 @@ services:
       - key: SMTP_USERNAME
         sync: false
       - key: SMTP_PASSWORD
+        sync: false
+      # Optional Google OAuth credentials; set in Render dashboard when enabled.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # Optional M-Pesa Daraja STK Push credentials; set in Render dashboard when enabled.
+      - key: MPESA_ENV
+        sync: false
+      - key: MPESA_CONSUMER_KEY
+        sync: false
+      - key: MPESA_CONSUMER_SECRET
+        sync: false
+      - key: MPESA_SHORT_CODE
+        sync: false
+      - key: MPESA_PASSKEY
+        sync: false
+      - key: MPESA_TRANSACTION_TYPE
         sync: false

@@ -4,7 +4,7 @@ import "testing"
 
 func TestIdentityConfiguration(t *testing.T) {
 	keys := []string{"PUBLIC_BASE_URL", "SMTP_HOST", "SMTP_PORT", "SMTP_TLS_MODE", "SMTP_FROM", "SMTP_USERNAME", "SMTP_PASSWORD", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"}
-	for _, name := range []string{"local", "production", "insecure production", "insecure remote SMTP", "missing Google secret", "unsafe public URL", "unsafe sender"} {
+	for _, name := range []string{"local", "production", "production missing SMTP credentials", "insecure production", "insecure remote SMTP", "missing Google secret", "unsafe public URL", "unsafe sender"} {
 		t.Run(name, func(t *testing.T) {
 			for _, key := range keys {
 				t.Setenv(key, "")
@@ -17,6 +17,12 @@ func TestIdentityConfiguration(t *testing.T) {
 			env := "development"
 			switch name {
 			case "production":
+				env = "production"
+				t.Setenv("PUBLIC_BASE_URL", "https://halisi.example")
+				t.Setenv("SMTP_TLS_MODE", "starttls")
+				t.Setenv("SMTP_USERNAME", "apikey")
+				t.Setenv("SMTP_PASSWORD", "secret")
+			case "production missing SMTP credentials":
 				env = "production"
 				t.Setenv("PUBLIC_BASE_URL", "https://halisi.example")
 				t.Setenv("SMTP_TLS_MODE", "starttls")

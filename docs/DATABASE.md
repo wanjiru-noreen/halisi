@@ -27,6 +27,7 @@ go mod download
 make migrate-up
 make migrate-version
 make migrate-down
+make migrate-ping
 ```
 
 Without Make (including PowerShell):
@@ -35,13 +36,37 @@ Without Make (including PowerShell):
 go run ./cmd/migrate up
 go run ./cmd/migrate version
 go run ./cmd/migrate down
+go run ./cmd/migrate ping
 ```
 
-`up` applies all pending versions. Repeating it succeeds without reapplying
+`ping` verifies database reachability and credentials via `database.Connect` without running or altering schema migrations. `up` applies all pending versions. Repeating it succeeds without reapplying
 existing migrations. `down` rolls back exactly one version and deletes the
 tables/data removed by that version. Back up any data you need before rollback.
 The HTTP server does not automatically apply migrations; run them explicitly
 before deploying code that needs the schema.
+
+## Production PostgreSQL and backups
+
+The repository's `render.yaml` declares a managed PostgreSQL 17 database service (`halisi-postgres`) co-located with the web service in `region: oregon` on the `0.5c-1g` compute plan, with public internet access disabled via `ipAllowList: []` for private network isolation. Render automatically generates secure database credentials and injects the connection string into `DATABASE_URL` via the Blueprint property `fromDatabase: { name: halisi-postgres, property: connectionString }`, and the service environment sets `PGSSLMODE=require` so pgx enforces TLS without falling back to plaintext. In production (`APP_ENV=production`), both `database.Connect` and `config.ValidateProduction` enforce TLS.
+
+### Automated backups and recovery
+Render manages continuous point-in-time recovery (PITR) and backups based on the workspace plan (a 3-day continuous PITR window for Hobby workspaces, and a 7-day continuous PITR window for Pro or higher workspaces; see [Render recovery docs](https://render.com/docs/postgresql-backups)). In the Render Dashboard under **PostgreSQL > Backups**, operators can:
+1. View automated recovery checkpoints and their timestamps.
+2. Trigger an immediate manual logical export before schema migrations or major releases (Render retains downloadable manual exports for 7 days).
+3. Restore a checkpoint or export to a new PostgreSQL instance with a single click.
+
+### Logical export and offsite backups
+For disaster recovery or offsite archive retention, export a logical dump over TLS:
+```sh
+# Export a compressed custom-format backup (never commit the dump or credentials)
+pg_dump "$DATABASE_URL" -Fc -f halisi_backup_$(date +%Y%m%d).dump
+
+# Restore into an isolated recovery target database:
+# WARNING: --clean drops existing schema objects before recreating them. Never run
+# this directly against an active production database without first validating on
+# an isolated target database (e.g. $TARGET_DATABASE_URL) and planning cutover.
+pg_restore --clean --if-exists -d "$TARGET_DATABASE_URL" halisi_backup_YYYYMMDD.dump
+```
 
 ## Initial schema
 
