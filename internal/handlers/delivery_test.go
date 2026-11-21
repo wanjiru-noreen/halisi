@@ -218,7 +218,86 @@ func TestDeliveryManagementPostgres(t *testing.T) {
 	reject("UPDATE deliveries SET status='picked_up' WHERE id=$1", delivery.ID)
 	reject("UPDATE deliveries SET status='assigned',rider_id=$2 WHERE id=$1", delivery.ID, users["pendingRider"])
 	reject("UPDATE deliveries SET status='assigned',rider_id=$2 WHERE id=$1", delivery.ID, users["customer"])
-	exec("UPDATE deliveries SET status='assigned',rider_id=$2 WHERE id=$1", delivery.ID, users["rider"])
+
+	// Test approved riders listing
+	check("", "GET", "/api/vendor/riders", 401)
+	check("customer", "GET", "/api/vendor/riders", 403)
+	w = check("vendor", "GET", "/api/vendor/riders", 200)
+	var riderListResp struct {
+		Riders []dbsqlc.ListApprovedRidersRow `json:"riders"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &riderListResp); err != nil {
+		t.Fatal(err)
+	}
+	if len(riderListResp.Riders) != 2 {
+		t.Fatalf("expected 2 approved riders, got %d", len(riderListResp.Riders))
+	}
+	check("admin", "GET", "/api/admin/riders", 200)
+
+	// Test delivery assignment endpoints
+	assignPath := fmt.Sprintf("/api/vendor/deliveries/%d/assign", delivery.ID)
+	adminAssignPath := fmt.Sprintf("/api/admin/deliveries/%d/assign", delivery.ID)
+
+	check("", "POST", assignPath, 401)
+	check("customer", "POST", assignPath, 403)
+	w = request("otherVendor", "POST", assignPath, fmt.Sprintf(`{"rider_id":%d}`, users["rider"]))
+	if w.Code != 403 {
+		t.Fatalf("other vendor assign: got %d want 403", w.Code)
+	}
+
+	w = request("vendor", "POST", assignPath, `{"rider_id":0}`)
+	if w.Code != 422 {
+		t.Fatalf("zero rider id: got %d want 422", w.Code)
+	}
+
+	w = request("vendor", "POST", assignPath, fmt.Sprintf(`{"rider_id":%d}`, users["pendingRider"]))
+	if w.Code != 422 {
+		t.Fatalf("pending rider assign: got %d want 422", w.Code)
+	}
+
+	w = request("vendor", "POST", assignPath, fmt.Sprintf(`{"rider_id":%d}`, users["rider"]))
+	if w.Code != 200 {
+		t.Fatalf("vendor assign: got %d want 200: %s", w.Code, w.Body.String())
+	}
+	var assignResp struct {
+		Delivery dbsqlc.Delivery `json:"delivery"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &assignResp); err != nil {
+		t.Fatal(err)
+	}
+	if assignResp.Delivery.Status != "assigned" || !assignResp.Delivery.RiderID.Valid || assignResp.Delivery.RiderID.Int64 != users["rider"] {
+		t.Fatalf("invalid assigned delivery response: %+v", assignResp.Delivery)
+	}
+
+	// Admin can reassign to other approved rider
+	w = request("admin", "POST", adminAssignPath, fmt.Sprintf(`{"rider_id":%d}`, users["otherRider"]))
+	if w.Code != 200 {
+		t.Fatalf("admin assign: got %d want 200: %s", w.Code, w.Body.String())
+	}
+
+	// Reassign back to users["rider"]
+	w = request("vendor", "POST", assignPath, fmt.Sprintf(`{"rider_id":%d}`, users["rider"]))
+	if w.Code != 200 {
+		t.Fatalf("vendor reassign: got %d want 200: %s", w.Code, w.Body.String())
+	}
+
+	// Customer tracking endpoint: GET /api/customer/orders/{order} returns rider details
+	w = check("customer", "GET", fmt.Sprintf("/api/customer/orders/%d", order), 200)
+	var orderTrackingResp struct {
+		Delivery *struct {
+			ID         int64   `json:"id"`
+			Status     string  `json:"status"`
+			RiderName  *string `json:"rider_name"`
+			RiderPhone *string `json:"rider_phone"`
+		} `json:"delivery"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &orderTrackingResp); err != nil {
+		t.Fatal(err)
+	}
+	if orderTrackingResp.Delivery == nil || orderTrackingResp.Delivery.Status != "assigned" || orderTrackingResp.Delivery.RiderName == nil || *orderTrackingResp.Delivery.RiderName != "rider" {
+		t.Fatalf("customer order tracking missing rider details: %+v", orderTrackingResp.Delivery)
+	}
+
 	check("rider", "GET", fmt.Sprintf("/api/rider/deliveries/%d", delivery.ID), 200)
 	check("otherRider", "GET", fmt.Sprintf("/api/rider/deliveries/%d", delivery.ID), 403)
 	exec("UPDATE rider_profiles SET status='suspended' WHERE user_id=$1", users["rider"])
@@ -226,6 +305,16 @@ func TestDeliveryManagementPostgres(t *testing.T) {
 	exec("UPDATE rider_profiles SET status='approved' WHERE user_id=$1", users["rider"])
 	reject("UPDATE deliveries SET status='delivered',delivered_at=NOW() WHERE id=$1", delivery.ID)
 	exec("UPDATE deliveries SET status='picked_up' WHERE id=$1", delivery.ID)
+
+	// Reassignment after picked_up must fail with 422
+	w = request("vendor", "POST", assignPath, fmt.Sprintf(`{"rider_id":%d}`, users["otherRider"]))
+	if w.Code != 422 {
+		t.Fatalf("reassignment after picked_up: got %d want 422", w.Code)
+	}
+	w = request("admin", "POST", adminAssignPath, fmt.Sprintf(`{"rider_id":%d}`, users["otherRider"]))
+	if w.Code != 422 {
+		t.Fatalf("admin reassignment after picked_up: got %d want 422", w.Code)
+	}
 	reject("UPDATE deliveries SET rider_id=$2 WHERE id=$1", delivery.ID, users["otherRider"])
 	reject("UPDATE deliveries SET status='cancelled' WHERE id=$1", delivery.ID)
 	exec("UPDATE deliveries SET status='delivered',delivered_at=NOW() WHERE id=$1", delivery.ID)
