@@ -67,6 +67,7 @@ databases:
     plan: 0.5c-1g
     region: oregon
     postgresMajorVersion: "17"
+    ipAllowList: []
 
 services:
   - type: web
@@ -93,6 +94,8 @@ services:
         fromDatabase:
           name: halisi-postgres
           property: connectionString
+      - key: PGSSLMODE
+        value: require
       - key: PUBLIC_BASE_URL
         sync: false
       - key: SMTP_HOST

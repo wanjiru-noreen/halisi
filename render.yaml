@@ -38,6 +38,8 @@ services:
         fromDatabase:
           name: halisi-postgres
           property: connectionString
+      - key: PGSSLMODE
+        value: require
       - key: PUBLIC_BASE_URL
         sync: false
       - key: SMTP_HOST

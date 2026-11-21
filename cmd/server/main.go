@@ -43,6 +43,11 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("configuration error: %w", err)
 	}
+	if cfg.AppEnv == "production" {
+		if _, err := config.ValidateProduction(); err != nil {
+			return fmt.Errorf("production configuration error: %w", err)
+		}
+	}
 	pool, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return err

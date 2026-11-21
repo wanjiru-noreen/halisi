@@ -28,6 +28,15 @@ func ValidateProduction() (ProductionSettings, error) {
 	if cfg.AppEnv != "production" {
 		return ProductionSettings{}, fmt.Errorf("APP_ENV must be production (got %q)", cfg.AppEnv)
 	}
+	databaseURL, err := url.Parse(cfg.DatabaseURL)
+	if err != nil {
+		return ProductionSettings{}, fmt.Errorf("DATABASE_URL is invalid: %w", err)
+	}
+	sslmode := databaseURL.Query().Get("sslmode")
+	pgSSLMode := os.Getenv("PGSSLMODE")
+	if !isSecureSSLMode(sslmode) && !isSecureSSLMode(pgSSLMode) {
+		return ProductionSettings{}, fmt.Errorf("DATABASE_URL or PGSSLMODE must require TLS in production (e.g. sslmode=require)")
+	}
 	docDir := os.Getenv("VENDOR_DOCUMENT_DIR")
 	if docDir == "" || !(filepath.IsAbs(docDir) || strings.HasPrefix(docDir, "/")) {
 		return ProductionSettings{}, fmt.Errorf("VENDOR_DOCUMENT_DIR must be an absolute path in production")
@@ -49,6 +58,15 @@ func ValidateProduction() (ProductionSettings, error) {
 		MPesa:        mpesa,
 		VendorDocDir: docDir,
 	}, nil
+}
+
+func isSecureSSLMode(mode string) bool {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "require", "verify-ca", "verify-full":
+		return true
+	default:
+		return false
+	}
 }
 
 // Config contains validated application settings loaded from the environment.
