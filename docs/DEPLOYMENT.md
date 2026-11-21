@@ -239,7 +239,7 @@ Halisi can be served directly from Render's default domain (`https://halisi.onre
 The environment variable `PUBLIC_BASE_URL` must match the public HTTPS origin used by clients (e.g. `https://halisi.co.ke` or `https://halisi.onrender.com`). It directly configures:
 - **Email Verification**: Generates valid links such as `${PUBLIC_BASE_URL}/verify-email#token=...`.
 - **Google OAuth**: Must strictly match the authorized redirect URI registered in Google Cloud Console (`${PUBLIC_BASE_URL}/api/auth/google/callback`).
-- **M-Pesa STK Push**: Must provide the public callback URL for Safaricom Daraja notifications (`${PUBLIC_BASE_URL}/api/payments/mpesa/callback?token=...`).
+- **M-Pesa STK Push**: Must provide the public callback URL for Safaricom Daraja notifications (`${PUBLIC_BASE_URL}/api/mpesa/callback/{token}`).
 
 ### Production Secrets and Credential Hygiene
 All sensitive production settings are declared with `sync: false` in `render.yaml`. This ensures that real credentials are never stored or exposed in Git.
