@@ -4,6 +4,8 @@ import (
 	"embed"
 	"errors"
 	"net/url"
+	"os"
+	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
@@ -19,6 +21,17 @@ func NewMigrator(databaseURL string) (*migrate.Migrate, error) {
 	u, err := url.Parse(databaseURL)
 	if err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") || u.Hostname() == "" {
 		return nil, errors.New("migrations: DATABASE_URL must be a PostgreSQL URL with a host")
+	}
+	if strings.TrimSpace(os.Getenv("APP_ENV")) == "production" {
+		effective := u.Query().Get("sslmode")
+		if effective == "" {
+			effective = os.Getenv("PGSSLMODE")
+		}
+		switch strings.ToLower(strings.TrimSpace(effective)) {
+		case "require", "verify-ca", "verify-full":
+		default:
+			return nil, errors.New("migrations: TLS is required in production (sslmode=require)")
+		}
 	}
 	u.Scheme = "pgx5"
 	query := u.Query()

@@ -186,8 +186,24 @@ func TestValidateProduction(t *testing.T) {
 		t.Setenv("DATABASE_URL", "postgres://user:secret@db.internal:5432/halisi")
 		t.Setenv("PGSSLMODE", "")
 		_, err := ValidateProduction()
-		if err == nil || !strings.Contains(err.Error(), "DATABASE_URL or PGSSLMODE must require TLS in production") {
+		if err == nil || !strings.Contains(err.Error(), "effective database SSL mode must require TLS in production") {
 			t.Fatalf("expected TLS error, got: %v", err)
+		}
+	})
+
+	t.Run("rejects insecure sslmode in DATABASE_URL even when PGSSLMODE=require is set", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("PGSSLMODE", "require")
+		for _, insecureURL := range []string{
+			"postgres://user:secret@db.internal:5432/halisi?sslmode=disable",
+			"postgres://user:secret@db.internal:5432/halisi?sslmode=prefer",
+			"postgres://user:secret@db.internal:5432/halisi?sslmode=allow",
+		} {
+			t.Setenv("DATABASE_URL", insecureURL)
+			_, err := ValidateProduction()
+			if err == nil || !strings.Contains(err.Error(), "effective database SSL mode must require TLS in production") {
+				t.Fatalf("expected rejection of URL %q, got: %v", insecureURL, err)
+			}
 		}
 	})
 
