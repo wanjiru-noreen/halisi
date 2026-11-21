@@ -118,13 +118,14 @@ cfg.MaxConnIdleTime = 5 * time.Minute
 - **Action Steps (Automated Snapshot Restore)**:
   1. Open Render Dashboard and navigate to the managed PostgreSQL database (`halisi-postgres`).
   2. Click **Backups**.
-  3. Select the latest healthy snapshot (Render retains automated daily snapshots for 7 days on Starter).
+  3. Select the target point-in-time recovery checkpoint (e.g. 3-day continuous PITR window for Hobby workspaces, extending up to 7–30 days on paid team tiers; downloadable manual logical exports are retained for 7 days).
   4. Click **Restore Backup to New Database**.
   5. Update the web service's `DATABASE_URL` or database reference to point to the restored instance.
 - **Action Steps (Logical Restore from pg_dump)**:
-  1. Restore the custom-format dump into target database:
+  1. Restore the custom-format dump into an isolated recovery/staging database:
+     > **Warning**: `--clean` drops database objects before recreating them. Never execute this against the active production database while serving traffic. Restore into an isolated database first (e.g. `$TARGET_DATABASE_URL`) to validate integrity before cutting over.
      ```sh
-     pg_restore --clean --if-exists -d "$DATABASE_URL" halisi_backup_YYYYMMDD.dump
+     pg_restore --clean --if-exists -d "$TARGET_DATABASE_URL" halisi_backup_YYYYMMDD.dump
      ```
   2. Verify connectivity with `make migrate-ping`.
   3. Verify schema state with `make migrate-version`.
