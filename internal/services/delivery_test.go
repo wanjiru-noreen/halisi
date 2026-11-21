@@ -1,6 +1,9 @@
 package services
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestDeliveryLifecycle(t *testing.T) {
 	allowed := map[[2]string]bool{
@@ -21,5 +24,20 @@ func TestDeliveryLifecycle(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestDeliveryAssignmentValidation(t *testing.T) {
+	mgr := NewDeliveryManagement(nil)
+	ctx := context.Background()
+
+	_, err := mgr.Assign(ctx, 1, 1, 0)
+	if err == nil {
+		t.Fatal("expected validation error for rider_id <= 0")
+	}
+
+	_, err = mgr.AdminAssign(ctx, 1, -5)
+	if err == nil {
+		t.Fatal("expected validation error for admin rider_id <= 0")
 	}
 }

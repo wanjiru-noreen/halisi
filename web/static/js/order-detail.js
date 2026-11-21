@@ -7,15 +7,34 @@ let currentPayment = null;
 
 function setText(id, value) { document.getElementById(id).textContent = value; }
 
-function tracking(status, delivery) {
+function tracking(status, delivery, order) {
   const steps = document.getElementById("tracking-steps");
-  const stages = ["pending", "confirmed", "preparing", "dispatched", "delivered"];
-  const finalStatus = delivery?.status || status;
-  const normalized = String(finalStatus || "pending").toLowerCase();
-  const failed = ["failed", "cancelled"].includes(normalized);
-  const current = stages.indexOf(normalized);
-  const orderProgress = stages.indexOf(status);
-  const index = current >= 0 ? current : orderProgress;
+  const stages = [
+    { key: "pending", label: "Order Placed" },
+    { key: "confirmed", label: "Confirmed" },
+    { key: "assigned", label: "Rider Assigned" },
+    { key: "picked_up", label: "In Transit" },
+    { key: "delivered", label: "Delivered" },
+  ];
+  const deliveryStatus = delivery?.status ? String(delivery.status).toLowerCase() : "";
+  const orderStatus = String(status || "pending").toLowerCase();
+  const failed = ["failed", "cancelled"].includes(deliveryStatus) || ["failed", "cancelled"].includes(orderStatus);
+
+  let index = 0;
+  if (failed) {
+    index = -1;
+  } else if (deliveryStatus === "delivered" || orderStatus === "delivered") {
+    index = 4;
+  } else if (deliveryStatus === "picked_up" || orderStatus === "dispatched") {
+    index = 3;
+  } else if (deliveryStatus === "assigned") {
+    index = 2;
+  } else if (orderStatus === "confirmed" || orderStatus === "preparing" || delivery) {
+    index = 1;
+  } else {
+    index = 0;
+  }
+
   stages.forEach((stage, position) => {
     const item = document.createElement("li");
     item.className = "flex items-center gap-3 rounded-xl border p-3 text-sm";
@@ -24,15 +43,109 @@ function tracking(status, delivery) {
     dot.setAttribute("aria-hidden", "true");
     const label = document.createElement("span");
     label.className = position <= index && !failed ? "font-semibold capitalize text-emerald-900" : "capitalize text-stone-500";
-    label.textContent = stage;
+    label.textContent = stage.label;
     item.append(dot, label);
     steps.append(item);
   });
+
   const message = document.getElementById("tracking-message");
-  if (failed) message.textContent = `This order is ${normalized.replaceAll("_", " ")}. Contact support or your vendor if you need help.`;
-  else if (!delivery) message.textContent = "Your order has been recorded. Delivery updates will appear here when a rider is assigned.";
-  else if (delivery.delivered_at) message.textContent = `Delivered on ${new Date(delivery.delivered_at).toLocaleString()}.`;
-  else message.textContent = `Current delivery status: ${normalized.replaceAll("_", " ")}.`;
+  if (failed) {
+    const reason = deliveryStatus || orderStatus;
+    message.textContent = `This order is ${reason.replaceAll("_", " ")}. Contact support or your vendor if you need help.`;
+  } else if (!delivery) {
+    message.textContent = "Your order has been recorded. Delivery updates will appear here when confirmed by your vendor.";
+  } else if (delivery.delivered_at) {
+    message.textContent = `Delivered on ${new Date(delivery.delivered_at).toLocaleString()}.`;
+  } else if (delivery.status === "picked_up") {
+    message.textContent = "Your cooking gas has been collected from the vendor and is on its way to you.";
+  } else if (delivery.status === "assigned") {
+    message.textContent = "A verified rider partner has been assigned and is heading to collect your gas cylinder.";
+  } else {
+    message.textContent = "Order confirmed. The vendor is preparing your cylinder for rider assignment.";
+  }
+
+  const riderCard = document.getElementById("rider-card");
+  if (riderCard) {
+    if (delivery && (delivery.rider_name || delivery.rider_phone)) {
+      document.getElementById("rider-name").textContent = delivery.rider_name || "Assigned Rider";
+      const callLink = document.getElementById("rider-call");
+      if (callLink) {
+        if (delivery.rider_phone) {
+          callLink.href = `tel:${encodeURIComponent(delivery.rider_phone)}`;
+          callLink.textContent = `Call ${delivery.rider_phone}`;
+          callLink.hidden = false;
+        } else {
+          callLink.hidden = true;
+        }
+      }
+      riderCard.hidden = false;
+    } else {
+      riderCard.hidden = true;
+    }
+  }
+
+  const routeCard = document.getElementById("route-card");
+  if (routeCard) {
+    const pickupAddr = delivery?.pickup_address || order?.vendor_name || "";
+    const dropoffAddr = delivery?.dropoff_address || order?.delivery_address || "";
+    const pLat = delivery?.pickup_latitude;
+    const pLng = delivery?.pickup_longitude;
+    const dLat = delivery?.dropoff_latitude;
+    const dLng = delivery?.dropoff_longitude;
+
+    const hasDropoffCoords = dLat !== null && dLat !== undefined && dLng !== null && dLng !== undefined;
+    const hasPickupCoords = pLat !== null && pLat !== undefined && pLng !== null && pLng !== undefined;
+
+    document.getElementById("pickup-location-text").textContent = pickupAddr || "Vendor shop";
+    document.getElementById("dropoff-location-text").textContent = dropoffAddr || "Delivery address";
+
+    const pickupCoordsEl = document.getElementById("pickup-coords-text");
+    if (pickupCoordsEl) {
+      if (hasPickupCoords) {
+        pickupCoordsEl.textContent = `📍 ${Number(pLat).toFixed(5)}, ${Number(pLng).toFixed(5)}`;
+        pickupCoordsEl.hidden = false;
+      } else {
+        pickupCoordsEl.hidden = true;
+      }
+    }
+
+    const dropoffCoordsEl = document.getElementById("dropoff-coords-text");
+    if (dropoffCoordsEl) {
+      if (hasDropoffCoords) {
+        dropoffCoordsEl.textContent = `📍 ${Number(dLat).toFixed(5)}, ${Number(dLng).toFixed(5)}`;
+        dropoffCoordsEl.hidden = false;
+      } else {
+        dropoffCoordsEl.hidden = true;
+      }
+    }
+
+    const coordsBadge = document.getElementById("route-coords-badge");
+    if (coordsBadge) {
+      coordsBadge.hidden = !hasDropoffCoords;
+    }
+
+    const directionsLink = document.getElementById("view-directions-map");
+    if (directionsLink) {
+      if (hasPickupCoords && hasDropoffCoords) {
+        directionsLink.href = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(pLat + "," + pLng)}&destination=${encodeURIComponent(dLat + "," + dLng)}`;
+      } else if (hasDropoffCoords) {
+        directionsLink.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dLat + "," + dLng)}`;
+      } else {
+        directionsLink.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dropoffAddr)}`;
+      }
+    }
+
+    const dropoffMapLink = document.getElementById("view-dropoff-map");
+    if (dropoffMapLink) {
+      if (hasDropoffCoords) {
+        dropoffMapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dLat + "," + dLng)}`;
+      } else {
+        dropoffMapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoffAddr)}`;
+      }
+    }
+
+    routeCard.hidden = !delivery && !dropoffAddr;
+  }
 }
 
 function addItem(item) {
@@ -69,7 +182,7 @@ async function loadOrder() {
     setText("delivery-address", order.delivery_address);
     setText("order-total", `${order.currency} ${order.total}`);
     body.items.forEach(addItem);
-    tracking(order.status, body.delivery);
+    tracking(order.status, body.delivery, order);
     currentPayment = body.payment;
     const paymentPanel = document.getElementById("payment-panel");
     const availabilityResponse = await fetch("/api/mpesa/availability", { cache: "no-store", headers: { Accept: "application/json" } });
