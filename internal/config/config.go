@@ -36,6 +36,9 @@ func ValidateProduction() (ProductionSettings, error) {
 	if err != nil {
 		return ProductionSettings{}, fmt.Errorf("identity error: %w", err)
 	}
+	if ident.SMTPUsername == "" || ident.SMTPPassword == "" {
+		return ProductionSettings{}, fmt.Errorf("SMTP_USERNAME and SMTP_PASSWORD are required in production")
+	}
 	mpesa, err := LoadMPesa()
 	if err != nil {
 		return ProductionSettings{}, fmt.Errorf("M-Pesa error: %w", err)

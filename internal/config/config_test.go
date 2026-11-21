@@ -151,6 +151,16 @@ func TestValidateProduction(t *testing.T) {
 		}
 	})
 
+	t.Run("rejects unset SMTP credentials in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("SMTP_USERNAME", "")
+		t.Setenv("SMTP_PASSWORD", "")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "SMTP_USERNAME and SMTP_PASSWORD are required in production") {
+			t.Fatalf("expected SMTP credentials error, got: %v", err)
+		}
+	})
+
 	t.Run("rejects partial Google OAuth credentials", func(t *testing.T) {
 		setBaseValidProductionEnv(t)
 		t.Setenv("GOOGLE_CLIENT_ID", "google-client-id-only")
