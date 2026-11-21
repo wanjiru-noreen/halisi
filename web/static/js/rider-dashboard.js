@@ -602,8 +602,19 @@ if (logoutBtn) {
 
 async function loadDeliveries() {
   try {
-    const data = await api("/api/rider/deliveries?limit=100&offset=0");
-    allDeliveries = Array.isArray(data.deliveries) ? data.deliveries : [];
+    const [activeData, recentData] = await Promise.all([
+      api("/api/rider/deliveries?status=active"),
+      api("/api/rider/deliveries?limit=100&offset=0"),
+    ]);
+    const activeItems = Array.isArray(activeData.deliveries) ? activeData.deliveries : [];
+    const recentItems = Array.isArray(recentData.deliveries) ? recentData.deliveries : [];
+    const mergedMap = new Map();
+    activeItems.forEach((d) => mergedMap.set(d.id, d));
+    recentItems.forEach((d) => {
+      if (!mergedMap.has(d.id)) mergedMap.set(d.id, d);
+    });
+    allDeliveries = Array.from(mergedMap.values());
+    allDeliveries.sort((a, b) => b.id - a.id);
     renderUI();
   } catch (err) {
     showError(err.message || "Failed to load assigned deliveries.");

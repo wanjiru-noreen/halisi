@@ -130,6 +130,11 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		return map[string]any{"order": v}, e
 	})
 	mount("GET /api/rider/deliveries", models.RiderAssignments, func(w http.ResponseWriter, r *http.Request, id int64) (any, error) {
+		riderID := pgtype.Int8{Int64: id, Valid: true}
+		if r.URL.Query().Get("status") == "active" {
+			v, e := h.queries.ActiveAssignedDeliveries(r.Context(), riderID)
+			return map[string]any{"deliveries": v}, e
+		}
 		limit := int32(100)
 		if raw := r.URL.Query().Get("limit"); raw != "" {
 			if l, err := strconv.Atoi(raw); err == nil && l > 0 && l <= 100 {
@@ -143,7 +148,7 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 			}
 		}
 		v, e := h.queries.AssignedDeliveries(r.Context(), dbsqlc.AssignedDeliveriesParams{
-			RiderID: pgtype.Int8{Int64: id, Valid: true},
+			RiderID: riderID,
 			Limit:   limit,
 			Offset:  offset,
 		})
