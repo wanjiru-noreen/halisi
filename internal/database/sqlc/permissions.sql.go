@@ -16,8 +16,14 @@ SELECT d.id,d.order_id,d.status,d.delivered_at,d.created_at,d.updated_at,d.dropo
 FROM deliveries d JOIN orders o ON o.id=d.order_id JOIN users u ON u.id=o.customer_id
 WHERE d.rider_id=$1 
 ORDER BY (CASE WHEN d.status IN ('assigned', 'picked_up') THEN 0 ELSE 1 END), d.id DESC 
-LIMIT 100
+LIMIT $2 OFFSET $3
 `
+
+type AssignedDeliveriesParams struct {
+	RiderID pgtype.Int8 `json:"rider_id"`
+	Limit   int32       `json:"limit"`
+	Offset  int32       `json:"offset"`
+}
 
 type AssignedDeliveriesRow struct {
 	ID              int64              `json:"id"`
@@ -31,8 +37,8 @@ type AssignedDeliveriesRow struct {
 	Phone           pgtype.Text        `json:"phone"`
 }
 
-func (q *Queries) AssignedDeliveries(ctx context.Context, riderID pgtype.Int8) ([]AssignedDeliveriesRow, error) {
-	rows, err := q.db.Query(ctx, assignedDeliveries, riderID)
+func (q *Queries) AssignedDeliveries(ctx context.Context, arg AssignedDeliveriesParams) ([]AssignedDeliveriesRow, error) {
+	rows, err := q.db.Query(ctx, assignedDeliveries, arg.RiderID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

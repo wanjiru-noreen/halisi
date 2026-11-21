@@ -130,7 +130,23 @@ func (h *Resources) Routes(mux *http.ServeMux) {
 		return map[string]any{"order": v}, e
 	})
 	mount("GET /api/rider/deliveries", models.RiderAssignments, func(w http.ResponseWriter, r *http.Request, id int64) (any, error) {
-		v, e := h.queries.AssignedDeliveries(r.Context(), pgtype.Int8{Int64: id, Valid: true})
+		limit := int32(100)
+		if raw := r.URL.Query().Get("limit"); raw != "" {
+			if l, err := strconv.Atoi(raw); err == nil && l > 0 && l <= 100 {
+				limit = int32(l)
+			}
+		}
+		offset := int32(0)
+		if raw := r.URL.Query().Get("offset"); raw != "" {
+			if o, err := strconv.Atoi(raw); err == nil && o >= 0 {
+				offset = int32(o)
+			}
+		}
+		v, e := h.queries.AssignedDeliveries(r.Context(), dbsqlc.AssignedDeliveriesParams{
+			RiderID: pgtype.Int8{Int64: id, Valid: true},
+			Limit:   limit,
+			Offset:  offset,
+		})
 		return map[string]any{"deliveries": v}, e
 	})
 	mount("GET /api/rider/deliveries/{id}", models.RiderAssignments, h.getDelivery)

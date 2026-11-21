@@ -602,7 +602,7 @@ if (logoutBtn) {
 
 async function loadDeliveries() {
   try {
-    const data = await api("/api/rider/deliveries");
+    const data = await api("/api/rider/deliveries?limit=100&offset=0");
     allDeliveries = Array.isArray(data.deliveries) ? data.deliveries : [];
     renderUI();
   } catch (err) {

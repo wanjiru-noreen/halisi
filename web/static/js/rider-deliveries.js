@@ -288,6 +288,17 @@ function renderUI() {
     deliveriesList.append(empty);
   } else {
     filtered.forEach((d) => deliveriesList.append(renderCard(d)));
+    if (hasMore && !currentSearch.trim() && currentFilter === "all") {
+      const loadMoreContainer = document.createElement("div");
+      loadMoreContainer.className = "pt-2 text-center";
+      const loadMoreBtn = document.createElement("button");
+      loadMoreBtn.type = "button";
+      loadMoreBtn.className = "w-full rounded-2xl border border-stone-300 bg-white py-3 text-sm font-semibold text-stone-700 hover:bg-stone-50";
+      loadMoreBtn.textContent = "Load More Deliveries";
+      loadMoreBtn.onclick = () => loadDeliveries(false);
+      loadMoreContainer.append(loadMoreBtn);
+      deliveriesList.append(loadMoreContainer);
+    }
   }
 }
 
@@ -490,10 +501,21 @@ if (logoutBtn) {
   });
 }
 
-async function loadDeliveries() {
+let currentOffset = 0;
+let hasMore = false;
+const pageSize = 100;
+
+async function loadDeliveries(reset = true) {
   try {
-    const data = await api("/api/rider/deliveries");
-    allDeliveries = Array.isArray(data.deliveries) ? data.deliveries : [];
+    if (reset) {
+      currentOffset = 0;
+      allDeliveries = [];
+    }
+    const data = await api(`/api/rider/deliveries?limit=${pageSize}&offset=${currentOffset}`);
+    const fetched = Array.isArray(data.deliveries) ? data.deliveries : [];
+    hasMore = fetched.length === pageSize;
+    currentOffset += fetched.length;
+    allDeliveries = reset ? fetched : allDeliveries.concat(fetched);
     renderUI();
   } catch (err) {
     showError(err.message || "Failed to load assigned deliveries.");
