@@ -101,11 +101,11 @@ func TestValidateProduction(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected valid production settings, got error: %v", err)
 		}
-		if settings.Config.AppEnv != "production" {
-			t.Errorf("expected APP_ENV production, got %q", settings.Config.AppEnv)
+		if settings.AppEnv != "production" {
+			t.Errorf("expected APP_ENV production, got %q", settings.AppEnv)
 		}
-		if settings.Identity.PublicBaseURL != "https://halisi.onrender.com" {
-			t.Errorf("expected PublicBaseURL https://halisi.onrender.com, got %q", settings.Identity.PublicBaseURL)
+		if settings.PublicBaseURL != "https://halisi.onrender.com" {
+			t.Errorf("expected PublicBaseURL https://halisi.onrender.com, got %q", settings.PublicBaseURL)
 		}
 		if settings.VendorDocDir != "/var/data/vendor-documents" {
 			t.Errorf("expected VendorDocDir /var/data/vendor-documents, got %q", settings.VendorDocDir)
@@ -119,8 +119,8 @@ func TestValidateProduction(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected valid custom domain, got: %v", err)
 		}
-		if settings.Identity.PublicBaseURL != "https://halisi.co.ke" {
-			t.Errorf("expected PublicBaseURL https://halisi.co.ke, got %q", settings.Identity.PublicBaseURL)
+		if settings.PublicBaseURL != "https://halisi.co.ke" {
+			t.Errorf("expected PublicBaseURL https://halisi.co.ke, got %q", settings.PublicBaseURL)
 		}
 	})
 
@@ -214,6 +214,20 @@ func TestValidateProduction(t *testing.T) {
 		_, err := ValidateProduction()
 		if err != nil {
 			t.Fatalf("expected valid with PGSSLMODE=require, got: %v", err)
+		}
+	})
+
+	t.Run("production settings redact secrets and credentials", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		settings, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("unexpected validation error: %v", err)
+		}
+		str := settings.String()
+		for _, secret := range []string{"secret_password", "apikey", "sg_secret_key", "secret"} {
+			if strings.Contains(str, secret) {
+				t.Fatalf("redacted string leaked sensitive value: %q", secret)
+			}
 		}
 	})
 }
