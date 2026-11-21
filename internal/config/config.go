@@ -4,49 +4,9 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 )
-
-// ProductionSettings encapsulates validated production settings.
-type ProductionSettings struct {
-	Config       Config
-	Identity     Identity
-	MPesa        *MPesa
-	VendorDocDir string
-}
-
-// ValidateProduction verifies that all required environment variables, secrets,
-// and domain configurations for running in production are set, well-formed,
-// and meet production security constraints. It never returns sensitive credential values.
-func ValidateProduction() (ProductionSettings, error) {
-	cfg, err := Load()
-	if err != nil {
-		return ProductionSettings{}, fmt.Errorf("configuration error: %w", err)
-	}
-	if cfg.AppEnv != "production" {
-		return ProductionSettings{}, fmt.Errorf("APP_ENV must be production (got %q)", cfg.AppEnv)
-	}
-	docDir := os.Getenv("VENDOR_DOCUMENT_DIR")
-	if docDir == "" || !(filepath.IsAbs(docDir) || strings.HasPrefix(docDir, "/")) {
-		return ProductionSettings{}, fmt.Errorf("VENDOR_DOCUMENT_DIR must be an absolute path in production")
-	}
-	ident, err := LoadIdentity("production")
-	if err != nil {
-		return ProductionSettings{}, fmt.Errorf("identity error: %w", err)
-	}
-	mpesa, err := LoadMPesa()
-	if err != nil {
-		return ProductionSettings{}, fmt.Errorf("M-Pesa error: %w", err)
-	}
-	return ProductionSettings{
-		Config:       cfg,
-		Identity:     ident,
-		MPesa:        mpesa,
-		VendorDocDir: docDir,
-	}, nil
-}
 
 // Config contains validated application settings loaded from the environment.
 // Avoid logging Config because DatabaseURL may contain credentials.

@@ -62,15 +62,11 @@ Collections are limited to 100 records except the existing user-address query.
 | `/api/vendor/products` | GET, POST | Products in the session vendor's shop |
 | `/api/vendor/products/{id}` | GET, PATCH, DELETE | That vendor's product only |
 | `/api/vendor/orders`, `/api/vendor/orders/{id}` | GET | Orders for the session vendor's shop |
-| `/api/vendor/deliveries/{id}/assign` | POST | Assign or reassign own shop's delivery to an approved rider |
-| `/api/vendor/riders` | GET | List approved riders available for delivery assignment |
 | `/api/rider/deliveries`, `/api/rider/deliveries/{id}` | GET | Session rider's assignments; unassigned deliveries are excluded |
 | `/api/rider/deliveries/{id}` | PATCH | Assigned rider's permitted status transitions |
 | `/api/admin/users` | GET | Management projection excluding password/session data |
 | `/api/admin/vendors` | GET | Vendor management listing |
 | `/api/admin/vendors/{id}/status` | PATCH | Administrator-only vendor approval/status changes |
-| `/api/admin/deliveries/{id}/assign` | POST | Administrator assignment/reassignment of delivery to an approved rider |
-| `/api/admin/riders` | GET | List approved riders available for delivery assignment |
 
 Shop creation/update accepts `{ "name": "My shop", "address": "Nairobi" }`.
 The server supplies `user_id`; new shops start `pending`. Updating an address

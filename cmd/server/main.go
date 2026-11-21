@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"strings"
 	"syscall"
 	"time"
 
@@ -23,13 +22,6 @@ import (
 )
 
 func main() {
-	if len(os.Args) > 1 && (os.Args[1] == "--check-config" || os.Args[1] == "-check") {
-		if _, err := config.ValidateProduction(); err != nil {
-			log.Fatalf("Production configuration check failed: %v", err)
-		}
-		fmt.Println("Production configuration verified successfully")
-		return
-	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := run(ctx); err != nil {
@@ -71,7 +63,7 @@ func run(ctx context.Context) error {
 	}
 	auth := handlers.NewAuth(authService, cfg.AppEnv)
 	documentDirectory := os.Getenv("VENDOR_DOCUMENT_DIR")
-	if cfg.AppEnv == "production" && (documentDirectory == "" || !(filepath.IsAbs(documentDirectory) || strings.HasPrefix(documentDirectory, "/"))) {
+	if cfg.AppEnv == "production" && (documentDirectory == "" || !filepath.IsAbs(documentDirectory)) {
 		return errors.New("VENDOR_DOCUMENT_DIR must be an absolute persistent-volume path in production")
 	}
 	if documentDirectory == "" {
