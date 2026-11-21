@@ -206,7 +206,7 @@ Halisi securely stores vendor registration documents (certificates of incorporat
 
 - **Disk Mount**: Mounted at `/var/data` as configured in `render.yaml`.
 - **Directory Path**: Set via `VENDOR_DOCUMENT_DIR=/var/data/vendor-documents`.
-- **Validation**: In `APP_ENV=production`, the application enforces that `VENDOR_DOCUMENT_DIR` is an absolute path (`filepath.IsAbs`). Operators must ensure this path resides on the configured persistent disk mount (`/var/data`) so uploaded documents persist across service deployments.
+- **Validation**: In `APP_ENV=production`, the application enforces that `VENDOR_DOCUMENT_DIR` is located within the persistent disk mount `/var/data` (e.g. `/var/data/vendor-documents`) so uploaded verification documents persist across service deployments and container replacements. Paths outside `/var/data` are rejected at startup.
 - **Security Model**:
   - Files are given cryptographically random 256-bit filenames.
   - Directory permissions are restricted to `0700` and file permissions to `0600`.
