@@ -9,12 +9,26 @@ import (
 	"strings"
 )
 
-// ProductionSettings encapsulates validated production settings.
+// ProductionSettings encapsulates non-sensitive, validated production configuration.
+// Sensitive credentials (passwords, secrets, keys) are deliberately omitted so that
+// this struct can be safely logged, printed, or inspected without leaking secrets.
 type ProductionSettings struct {
-	Config       Config
-	Identity     Identity
-	MPesa        *MPesa
-	VendorDocDir string
+	AppEnv        string
+	Port          string
+	DatabaseHost  string
+	PublicBaseURL string
+	VendorDocDir  string
+	SMTPHost      string
+	SMTPPort      string
+	SMTPFrom      string
+	SMTPTLSMode   string
+	HasGoogleAuth bool
+	HasMPesa      bool
+}
+
+// String returns a redacted, safe summary of validated production settings.
+func (p ProductionSettings) String() string {
+	return fmt.Sprintf("env=%s host=%s base_url=%s doc_dir=%s", p.AppEnv, p.DatabaseHost, p.PublicBaseURL, p.VendorDocDir)
 }
 
 // ValidateProduction verifies that all required environment variables, secrets,
@@ -57,10 +71,17 @@ func ValidateProduction() (ProductionSettings, error) {
 		return ProductionSettings{}, fmt.Errorf("M-Pesa error: %w", err)
 	}
 	return ProductionSettings{
-		Config:       cfg,
-		Identity:     ident,
-		MPesa:        mpesa,
-		VendorDocDir: docDir,
+		AppEnv:        cfg.AppEnv,
+		Port:          cfg.Port,
+		DatabaseHost:  databaseURL.Hostname(),
+		PublicBaseURL: ident.PublicBaseURL,
+		VendorDocDir:  docDir,
+		SMTPHost:      ident.SMTPHost,
+		SMTPPort:      ident.SMTPPort,
+		SMTPFrom:      ident.SMTPFrom,
+		SMTPTLSMode:   ident.SMTPTLSMode,
+		HasGoogleAuth: ident.GoogleClientID != "",
+		HasMPesa:      mpesa != nil,
 	}, nil
 }
 

@@ -151,11 +151,11 @@ func TestReadiness_ProductionEnvironmentValidation(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected validation error: %v", err)
 		}
-		if settings.Config.AppEnv != "production" {
-			t.Errorf("expected APP_ENV production, got %q", settings.Config.AppEnv)
+		if settings.AppEnv != "production" {
+			t.Errorf("expected APP_ENV production, got %q", settings.AppEnv)
 		}
-		if settings.Identity.PublicBaseURL != "https://halisi.onrender.com" {
-			t.Errorf("expected PublicBaseURL https://halisi.onrender.com, got %q", settings.Identity.PublicBaseURL)
+		if settings.PublicBaseURL != "https://halisi.onrender.com" {
+			t.Errorf("expected PublicBaseURL https://halisi.onrender.com, got %q", settings.PublicBaseURL)
 		}
 	})
 
