@@ -178,4 +178,24 @@ func TestValidateProduction(t *testing.T) {
 			t.Fatalf("expected M-Pesa error, got: %v", err)
 		}
 	})
+
+	t.Run("rejects non-TLS database URL in production", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("DATABASE_URL", "postgres://user:secret@db.internal:5432/halisi")
+		t.Setenv("PGSSLMODE", "")
+		_, err := ValidateProduction()
+		if err == nil || !strings.Contains(err.Error(), "DATABASE_URL or PGSSLMODE must require TLS in production") {
+			t.Fatalf("expected TLS error, got: %v", err)
+		}
+	})
+
+	t.Run("allows unadorned database URL when PGSSLMODE=require is set", func(t *testing.T) {
+		setBaseValidProductionEnv(t)
+		t.Setenv("DATABASE_URL", "postgres://user:secret@db.internal:5432/halisi")
+		t.Setenv("PGSSLMODE", "require")
+		_, err := ValidateProduction()
+		if err != nil {
+			t.Fatalf("expected valid with PGSSLMODE=require, got: %v", err)
+		}
+	})
 }

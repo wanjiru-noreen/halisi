@@ -47,7 +47,7 @@ before deploying code that needs the schema.
 
 ## Production PostgreSQL and backups
 
-The repository's `render.yaml` declares a managed PostgreSQL 17 database service (`halisi-postgres`) co-located with the web service in `region: oregon` on the `0.5c-1g` compute plan. Render automatically generates secure database credentials and injects the TLS-enforced connection string into `DATABASE_URL` via the Blueprint property `fromDatabase: { name: halisi-postgres, property: connectionString }`.
+The repository's `render.yaml` declares a managed PostgreSQL 17 database service (`halisi-postgres`) co-located with the web service in `region: oregon` on the `0.5c-1g` compute plan, with public internet access disabled via `ipAllowList: []` for private network isolation. Render automatically generates secure database credentials and injects the connection string into `DATABASE_URL` via the Blueprint property `fromDatabase: { name: halisi-postgres, property: connectionString }`, and the service environment sets `PGSSLMODE=require` so pgx enforces TLS without falling back to plaintext. In production (`APP_ENV=production`), both `database.Connect` and `config.ValidateProduction` enforce TLS.
 
 ### Automated backups and recovery
 Render manages point-in-time recovery (PITR) and backups based on the workspace plan (e.g. 3-day recovery window for Hobby workspaces, extending up to 7-30 days on paid team tiers). In the Render Dashboard under **PostgreSQL > Backups**, operators can:

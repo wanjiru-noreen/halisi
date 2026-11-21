@@ -3,6 +3,8 @@ package database
 import (
 	"context"
 	"errors"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,6 +21,11 @@ func Connect(ctx context.Context, databaseURL string) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(databaseURL)
 	if err != nil {
 		return nil, errors.New("database: invalid DATABASE_URL or pool settings")
+	}
+	if strings.TrimSpace(os.Getenv("APP_ENV")) == "production" {
+		if cfg.ConnConfig.TLSConfig == nil || len(cfg.ConnConfig.Fallbacks) > 0 {
+			return nil, errors.New("database: TLS is required in production (sslmode=require)")
+		}
 	}
 	cfg.ConnConfig.ConnectTimeout = ConnectTimeout
 	// URL pool settings may override pgx defaults; cap resource usage explicitly.

@@ -29,6 +29,7 @@ func TestRenderBlueprintSpecification(t *testing.T) {
 		"user: halisi",
 		"plan: 0.5c-1g",
 		"postgresMajorVersion: \"17\"",
+		"ipAllowList: []",
 		"type: web",
 		"name: halisi",
 		"runtime: go",
@@ -49,6 +50,8 @@ func TestRenderBlueprintSpecification(t *testing.T) {
 		"key: DATABASE_URL",
 		"fromDatabase:",
 		"property: connectionString",
+		"key: PGSSLMODE",
+		"value: require",
 		"key: PUBLIC_BASE_URL",
 		"key: SMTP_HOST",
 		"key: SMTP_PORT",
@@ -140,6 +143,8 @@ func TestProductionEnvironmentRequirements(t *testing.T) {
 		t.Setenv("PUBLIC_BASE_URL", "https://halisi.onrender.com")
 		t.Setenv("SMTP_HOST", "smtp.example.com")
 		t.Setenv("SMTP_FROM", "no-reply@example.com")
+		t.Setenv("SMTP_USERNAME", "smtp_user")
+		t.Setenv("SMTP_PASSWORD", "smtp_pass")
 		t.Setenv("SMTP_TLS_MODE", "none")
 		_, err := config.LoadIdentity("production")
 		if err == nil || !strings.Contains(err.Error(), "SMTP_TLS_MODE=none is permitted only for local development") {

@@ -54,9 +54,6 @@ func LoadIdentity(appEnv string) (Identity, error) {
 	if strings.ContainsAny(c.SMTPHost, "/\\\r\n") {
 		return Identity{}, errors.New("SMTP_HOST must be a hostname or IP address")
 	}
-	if (c.SMTPUsername == "") != (c.SMTPPassword == "") {
-		return Identity{}, errors.New("SMTP_USERNAME and SMTP_PASSWORD must both be configured")
-	}
 	switch c.SMTPTLSMode {
 	case "starttls", "tls":
 	case "none":
@@ -65,6 +62,12 @@ func LoadIdentity(appEnv string) (Identity, error) {
 		}
 	default:
 		return Identity{}, errors.New("SMTP_TLS_MODE must be starttls, tls, or none")
+	}
+	if (c.SMTPUsername == "") != (c.SMTPPassword == "") {
+		return Identity{}, errors.New("SMTP_USERNAME and SMTP_PASSWORD must both be configured")
+	}
+	if appEnv == "production" && (c.SMTPUsername == "" || c.SMTPPassword == "") {
+		return Identity{}, errors.New("SMTP_USERNAME and SMTP_PASSWORD are required in production")
 	}
 	return c, nil
 }
