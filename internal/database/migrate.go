@@ -10,6 +10,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/pgx/v5"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 //go:embed migrations/*.sql
@@ -23,18 +24,27 @@ func NewMigrator(databaseURL string) (*migrate.Migrate, error) {
 		return nil, errors.New("migrations: DATABASE_URL must be a PostgreSQL URL with a host")
 	}
 	if strings.TrimSpace(os.Getenv("APP_ENV")) == "production" {
-		effective := u.Query().Get("sslmode")
-		if effective == "" {
-			effective = os.Getenv("PGSSLMODE")
+		pgCfg, err := pgconn.ParseConfig(databaseURL)
+		if err != nil {
+			return nil, errors.New("migrations: DATABASE_URL must be a valid PostgreSQL URL")
 		}
-		switch strings.ToLower(strings.TrimSpace(effective)) {
-		case "require", "verify-ca", "verify-full":
-		default:
+		if pgCfg.TLSConfig == nil {
 			return nil, errors.New("migrations: TLS is required in production (sslmode=require)")
+		}
+		for _, fb := range pgCfg.Fallbacks {
+			if fb.TLSConfig == nil {
+				return nil, errors.New("migrations: TLS is required in production (sslmode=require)")
+			}
 		}
 	}
 	u.Scheme = "pgx5"
 	query := u.Query()
+	if strings.TrimSpace(os.Getenv("APP_ENV")) == "production" {
+		sslmode := strings.ToLower(strings.TrimSpace(query.Get("sslmode")))
+		if sslmode != "require" && sslmode != "verify-ca" && sslmode != "verify-full" {
+			query.Set("sslmode", "require")
+		}
+	}
 	if !query.Has("connect_timeout") {
 		query.Set("connect_timeout", "5")
 	}
