@@ -53,3 +53,21 @@ func TestRunPingLive(t *testing.T) {
 		t.Fatalf("live ping failed: %v", err)
 	}
 }
+
+func TestRunProductionIndependentOfAppSettings(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("DATABASE_URL", "postgres://user:secret@127.0.0.1:54329/db?sslmode=require")
+	t.Setenv("VENDOR_DOCUMENT_DIR", "")
+	t.Setenv("PUBLIC_BASE_URL", "")
+	t.Setenv("SMTP_HOST", "")
+	t.Setenv("SMTP_USERNAME", "")
+	t.Setenv("SMTP_PASSWORD", "")
+
+	err := run([]string{"ping"})
+	if err == nil {
+		t.Fatal("expected connection check error")
+	}
+	if strings.Contains(err.Error(), "production configuration error") || strings.Contains(err.Error(), "VENDOR_DOCUMENT_DIR") {
+		t.Fatalf("migration command incorrectly required web application settings: %v", err)
+	}
+}

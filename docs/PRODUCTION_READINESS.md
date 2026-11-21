@@ -120,7 +120,7 @@ cfg.MaxConnIdleTime = 5 * time.Minute
 - **Action Steps (Automated Snapshot Restore)**:
   1. Open Render Dashboard and navigate to the managed PostgreSQL database (`halisi-postgres`).
   2. Click **Backups**.
-  3. Select the target point-in-time recovery checkpoint (e.g. 3-day continuous PITR window for Hobby workspaces, extending up to 7–30 days on paid team tiers; downloadable manual logical exports are retained for 7 days).
+  3. Select the target point-in-time recovery checkpoint (a 3-day continuous PITR window for Hobby workspaces, and a 7-day continuous PITR window for Pro or higher workspaces; downloadable manual logical exports are retained for 7 days).
   4. Click **Restore Backup to New Database**.
   5. Update the web service's `DATABASE_URL` or database reference to point to the restored instance.
 - **Action Steps (Logical Restore from pg_dump)**:
@@ -148,5 +148,5 @@ cfg.MaxConnIdleTime = 5 * time.Minute
   1. In Render Dashboard, go to **Environment**.
   2. Update the affected secret variable with a newly generated key (e.g. `SMTP_PASSWORD`, `GOOGLE_CLIENT_SECRET`, `MPESA_PASSKEY`).
   3. For database credentials: rotate the password in PostgreSQL and update `DATABASE_URL`.
-  4. Click **Save Changes**; Render performs a rolling redeployment with zero downtime.
+  4. Click **Save Changes**; because the service uses an attached persistent disk (`/var/data`), Render stops the active instance before starting the new one, resulting in a brief maintenance restart rather than zero-downtime rolling deploy.
   5. Invalidate the compromised token with the upstream provider.
