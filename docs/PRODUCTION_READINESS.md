@@ -140,7 +140,8 @@ cfg.MaxConnIdleTime = 5 * time.Minute
   3. Locate the previous stable deployment and click **Rollback**.
   4. Render instantly re-activates the previous container image without rebuilding.
   5. If the new release applied a schema migration that is incompatible with the old code:
-     - Run `./bin/migrate down` on a management shell to rollback one schema version.
+     - **Assess Data Impact & Backup**: Review the down migration SQL (e.g. `000010_commissions_settlements.down.sql`) to verify whether it drops tables, columns, or historical financial/transactional records. Never execute a downgrade blindly without assessing data impact. Take an immediate full database backup (`pg_dump "$DATABASE_URL" -Fc -f pre_downgrade_$(date +%Y%m%d_%H%M%S).dump`) and verify row counts before altering schema objects.
+     - Only once data preservation and impact are confirmed, run `./bin/migrate down` on a management shell to rollback one schema version.
 
 ### Runbook 5: Secret Leak or Compromised Credentials
 - **Symptom**: An API key, database password, or secret was accidentally shared or compromised.
