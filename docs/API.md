@@ -1,6 +1,6 @@
 # Halisi API Reference
 
-This document outlines the HTTP endpoints, request payloads, response formats, and authentication requirements for HALISI.
+This document outlines the HTTP endpoints, request payloads, response formats, and authentication requirements for HALISI. All endpoints listed below correspond to routes actually registered and wired into the application server.
 
 ---
 
@@ -11,7 +11,7 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
   - Web UI routes serve `text/html; charset=utf-8`.
   - API endpoints serve and accept `application/json; charset=utf-8`.
   - Document uploads accept `multipart/form-data`.
-- **Authentication**: Session cookie (`halisi_session`) transmitted with requests. Protected endpoints return `401 Unauthorized` or `403 Forbidden` if missing or unauthorized.
+- **Authentication**: Session cookie (`halisi_session`) transmitted with requests. Protected endpoints return `401 Unauthorized` when unauthenticated, or `403 Forbidden` when the role is insufficient.
 
 ---
 
@@ -19,7 +19,7 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
 
 ### 2.1. Liveness Probe
 `GET /health`
-- **Auth**: None (Public)
+- **Auth**: Public
 - **Response**: `200 OK`
 ```json
 {
@@ -29,7 +29,7 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
 
 ### 2.2. Database Probe
 `GET /health/db`
-- **Auth**: None (Public)
+- **Auth**: Public
 - **Response**:
   - `200 OK` when PostgreSQL database is reachable:
     ```json
@@ -46,26 +46,78 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
 
 ---
 
-## 3. Authentication & Sessions
+## 3. Storefront & Public Catalog
 
-### 3.1. Register Account
-`POST /auth/register`
+### 3.1. List Verified Vendors
+`GET /api/storefront/vendors?q={search}`
 - **Auth**: Public
+- **Query Parameters**:
+  - `q` (optional): Filter by vendor name or service area (max 100 characters).
+- **Response**: `200 OK`
+```json
+{
+  "vendors": [
+    {
+      "id": 1,
+      "name": "Nairobi Gas Depot",
+      "service_area": "Kilimani, Nairobi",
+      "product_count": 5
+    }
+  ]
+}
+```
+
+### 3.2. List Storefront Products
+`GET /api/storefront/products?vendor_id={id}&q={search}`
+- **Auth**: Public
+- **Query Parameters**:
+  - `vendor_id` (optional): Positive integer filtering products by vendor.
+  - `q` (optional): Search query matching product name or vendor name (max 100 characters).
+- **Response**: `200 OK`
+```json
+{
+  "products": [
+    {
+      "id": 1,
+      "vendor_id": 1,
+      "vendor_name": "Nairobi Gas Depot",
+      "name": "13kg Refill",
+      "price": "2800.00",
+      "available_quantity": 25
+    }
+  ]
+}
+```
+
+---
+
+## 4. Authentication & Identity
+
+### 4.1. Register Account
+`POST /api/auth/register`
+- **Auth**: Public (Rate-limited)
 - **Request**:
 ```json
 {
   "email": "customer@example.com",
   "password": "SecurePassword123!",
-  "role": "customer",
-  "full_name": "Jane Doe",
-  "phone": "0712345678"
+  "role": "customer"
 }
 ```
-- **Response**: `201 Created` with session cookie or verification email triggered.
+- **Response**: `201 Created`
+```json
+{
+  "user": {
+    "id": 1,
+    "email": "customer@example.com",
+    "role": "customer"
+  }
+}
+```
 
-### 3.2. Login
-`POST /auth/login`
-- **Auth**: Public
+### 4.2. Login
+`POST /api/auth/login`
+- **Auth**: Public (Rate-limited)
 - **Request**:
 ```json
 {
@@ -73,120 +125,124 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
   "password": "SecurePassword123!"
 }
 ```
-- **Response**: `200 OK` (Sets `halisi_session` cookie).
+- **Response**: `200 OK` (Sets `halisi_session` HTTP-only cookie)
 
-### 3.3. Logout
-`POST /auth/logout`
+### 4.3. Logout
+`POST /api/auth/logout`
 - **Auth**: Authenticated
-- **Response**: `200 OK` (Clears session cookie).
+- **Response**: `200 OK` (Clears session cookie)
 
-### 3.4. Google OAuth 2.0
-- `GET /auth/google`: Initiates Google OAuth consent flow with CSRF state token.
-- `GET /auth/google/callback`: Handles OAuth redirect, verifies Google ID token, and provisions session.
-
----
-
-## 4. Storefront & Catalog
-
-### 4.1. List Products
-`GET /api/v1/products?category=refill&brand=K-Gas`
-- **Auth**: Public
-- **Query Parameters**:
-  - `category` (optional): `cylinder_with_gas`, `refill`, `accessory`.
-  - `brand` (optional): Filter by gas brand name.
-  - `limit` (optional, default 20): Maximum items to return.
+### 4.4. Current User Session
+`GET /api/auth/me`
+- **Auth**: Authenticated
 - **Response**: `200 OK`
 ```json
-[
-  {
-    "id": "prod_01h...",
-    "vendor_id": "vend_01h...",
-    "brand": "K-Gas",
-    "weight_kg": 13.0,
-    "category": "refill",
-    "price_cents": 320000,
-    "stock_quantity": 15,
-    "is_active": true
+{
+  "user": {
+    "id": 1,
+    "email": "customer@example.com",
+    "role": "customer"
   }
-]
+}
 ```
+
+### 4.5. Auth Configuration Options
+`GET /api/auth/options`
+- **Auth**: Public
+- **Response**: `200 OK`
+```json
+{
+  "verification_required": true,
+  "google_enabled": true
+}
+```
+
+### 4.6. Email Verification
+- `POST /api/auth/verification/resend`: Resend email verification code.
+- `POST /api/auth/verify-email`: Submit verification token (`{"token": "..."}`).
+
+### 4.7. Google OAuth 2.0
+- `POST /api/auth/google/start`: Initiate OAuth redirect for login.
+- `POST /api/auth/google/link`: Initiate OAuth redirect to link Google account to logged-in user.
+- `GET /api/auth/google/callback`: Handle OAuth redirect and exchange code.
 
 ---
 
-## 5. Orders & Checkout
+## 5. Customer Orders & Checkout
 
-### 5.1. Create Order (Checkout)
-`POST /api/v1/checkout`
+### 5.1. Customer Checkout
+`POST /api/customer/checkout`
 - **Auth**: Authenticated (`Customer`)
 - **Request**:
 ```json
 {
+  "address_id": 1,
   "items": [
     {
-      "product_id": "prod_01h...",
+      "product_id": 1,
       "quantity": 1
     }
-  ],
-  "delivery_address": "Apartment 4B, Kilimani, Nairobi",
-  "delivery_lat": -1.2921,
-  "delivery_lng": 36.7845,
-  "customer_phone": "0712345678"
+  ]
 }
 ```
 - **Response**: `201 Created`
 ```json
 {
-  "order_id": "ord_01h...",
-  "status": "pending",
-  "total_amount_cents": 320000,
-  "currency": "KES"
+  "order": {
+    "id": 101,
+    "status": "pending",
+    "currency": "KES",
+    "total": "2800.00"
+  }
 }
 ```
 
-### 5.2. View Order Details
-`GET /api/v1/orders/{id}`
-- **Auth**: Authenticated (Order owner, assigned Vendor, assigned Rider, or Admin)
-- **Response**: `200 OK`
+### 5.2. Customer Orders
+- `GET /api/customer/orders`: List authenticated customer's orders.
+- `GET /api/customer/orders/{id}`: View specific order details.
+
+### 5.3. Customer Address Management
+- `GET /api/customer/addresses`: List customer saved addresses.
+- `POST /api/customer/addresses`: Create new address.
+- `GET /api/customer/addresses/{id}`: Get address.
+- `PATCH /api/customer/addresses/{id}`: Update address.
+- `DELETE /api/customer/addresses/{id}`: Delete address.
 
 ---
 
 ## 6. M-Pesa Daraja Payments
 
-### 6.1. Initiate STK Push
-`POST /api/v1/payments/mpesa/initiate`
+### 6.1. Gateway Availability
+`GET /api/mpesa/availability`
+- **Auth**: Public
+- **Response**: `200 OK`
+```json
+{
+  "enabled": true
+}
+```
+
+### 6.2. Initiate STK Push Payment
+`POST /api/customer/orders/{id}/payments/mpesa`
 - **Auth**: Authenticated (`Customer` owning the order)
+- **Headers**: `Idempotency-Key: <unique-request-key>`
 - **Request**:
 ```json
 {
-  "order_id": "ord_01h...",
-  "phone": "254712345678"
+  "phone_number": "254712345678"
 }
 ```
 - **Response**: `202 Accepted`
 ```json
 {
-  "payment_attempt_id": "att_01h...",
-  "checkout_request_id": "ws_CO_21112026...",
-  "status": "initiated"
-}
-```
-
-### 6.2. Query Payment Status
-`GET /api/v1/payments/mpesa/status/{attempt_id}`
-- **Auth**: Authenticated (Owner of payment attempt)
-- **Response**: `200 OK`
-```json
-{
-  "attempt_id": "att_01h...",
-  "status": "completed",
-  "receipt_number": "QKA12345XYZ",
-  "amount": 3200
+  "status": "initiated",
+  "request_key": "<unique-request-key>"
 }
 ```
 
 ### 6.3. Daraja Callback Webhook
-`POST /api/v1/payments/mpesa/callback?token={callback_token}`
-- **Auth**: Validated via secret single-use per-attempt query token.
+`POST /api/mpesa/callback/{token}`
+- **Auth**: Validated via secret per-attempt query token in route path.
 - **Payload**: Standard Safaricom Daraja STK Push JSON callback.
 - **Response**: `200 OK` `{"ResultCode": 0, "ResultDesc": "Accepted"}`
 
@@ -194,67 +250,55 @@ This document outlines the HTTP endpoints, request payloads, response formats, a
 
 ## 7. Deliveries & Rider Operations
 
-### 7.1. List Available Deliveries
-`GET /api/v1/deliveries`
-- **Auth**: Authenticated (`Rider`)
-- **Response**: `200 OK` list of pending unassigned delivery runs.
+### 7.1. Rider Registration
+- `POST /api/rider/registration`: Submit rider onboarding profile.
+- `GET /api/rider/registration`: Get rider profile status.
+- `PATCH /api/rider/registration`: Update rider profile.
 
-### 7.2. Accept Delivery Run
-`POST /api/v1/deliveries/{id}/accept`
-- **Auth**: Authenticated (`Rider` with verified status)
-- **Response**: `200 OK` (Assigns delivery to rider and transitions order to `assigned`).
-
-### 7.3. Update Delivery Milestone
-`POST /api/v1/deliveries/{id}/milestone`
-- **Auth**: Authenticated (Assigned `Rider`)
-- **Request**:
-```json
-{
-  "status": "in_transit",
-  "notes": "Picked up cylinder from vendor depot"
-}
-```
-- **Response**: `200 OK`
+### 7.2. Rider Deliveries
+- `GET /api/rider/deliveries`: List assigned deliveries.
+- `GET /api/rider/deliveries/{id}`: Get delivery run details.
+- `PATCH /api/rider/deliveries/{id}`: Update delivery run status.
 
 ---
 
-## 8. KYC Document Management
+## 8. Vendor Management & KYC
 
-### 8.1. Upload Vendor Verification Document
-`POST /api/v1/vendors/documents`
-- **Auth**: Authenticated (`Vendor`)
-- **Payload**: `multipart/form-data` with `document` file (PDF, PNG, JPG; max 5MB).
-- **Response**: `201 Created`
-```json
-{
-  "document_id": "doc_01h...",
-  "filename": "business_permit.pdf",
-  "status": "pending_review"
-}
-```
+### 8.1. Vendor Application
+- `GET /api/vendor/application`: View current onboarding application.
+- `PUT /api/vendor/application`: Save draft application.
+- `POST /api/vendor/application/submit`: Submit application for administrative verification.
 
-### 8.2. Stream Verification Document
-`GET /api/v1/vendors/documents/{id}`
-- **Auth**: Authenticated (Owning `Vendor` or `Admin`)
-- **Response**: `200 OK` binary stream with `Content-Type` matching detected document MIME type.
+### 8.2. KYC Documents
+- `POST /api/vendor/documents/{type}`: Upload document (`multipart/form-data`). Types: `business_permit`, `epra_license`, `id_card`.
+- `GET /api/vendor/documents/{id}`: Download document stream (restricted to owner or admin).
+
+### 8.3. Vendor Shop & Inventory
+- `GET /api/vendor/shop`: Get vendor shop details.
+- `POST /api/vendor/shop`: Create vendor shop.
+- `PATCH /api/vendor/shop`: Update vendor shop.
+- `GET /api/vendor/products`: List vendor-owned products.
+- `POST /api/vendor/products`: Add new product.
+- `PATCH /api/vendor/products/{id}`: Update product.
+- `DELETE /api/vendor/products/{id}`: Delete product.
+- `GET /api/vendor/orders`: List orders assigned to vendor.
+- `POST /api/vendor/orders/{id}/confirm`: Confirm order fulfillment.
+- `GET /api/vendor/commissions`: View earned commissions and balance.
 
 ---
 
-## 9. Administrator Management
+## 9. Administrative Operations
 
-### 9.1. List Pending Vendor Approvals
-`GET /api/v1/admin/vendors?status=pending`
-- **Auth**: Authenticated (`Admin`)
-- **Response**: `200 OK` list of vendors awaiting onboarding approval.
+### 9.1. Vendor Review & Verification
+- `GET /api/admin/vendor-applications`: List vendor applications by status.
+- `GET /api/admin/vendor-applications/{id}`: View specific application and attached documents.
+- `POST /api/admin/vendor-applications/{id}/review`: Approve or reject vendor application.
+- `PATCH /api/admin/vendors/{id}/status`: Enable, disable, or suspend vendor account.
+- `PATCH /api/admin/vendors/{id}/commission-rate`: Set custom commission rate.
 
-### 9.2. Approve or Reject Vendor
-`POST /api/v1/admin/vendors/{id}/verify`
-- **Auth**: Authenticated (`Admin`)
-- **Request**:
-```json
-{
-  "approved": true,
-  "comments": "Business permit and EPRA license verified."
-}
-```
-- **Response**: `200 OK`
+### 9.2. Delivery & Settlement Management
+- `GET /api/admin/deliveries/{id}`: View delivery details.
+- `POST /api/admin/deliveries/{id}/assign`: Assign or reassign rider.
+- `GET /api/admin/settlements`: List platform settlements.
+- `POST /api/admin/vendors/{id}/settlements`: Record vendor settlement payout.
+- `PATCH /api/admin/settlements/{id}`: Update settlement status.
