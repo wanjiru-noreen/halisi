@@ -600,7 +600,11 @@ if (logoutBtn) {
   });
 }
 
+let isDeliveriesLoading = false;
+
 async function loadDeliveries() {
+  if (isDeliveriesLoading) return;
+  isDeliveriesLoading = true;
   try {
     const [activeData, recentData] = await Promise.all([
       api("/api/rider/deliveries?status=active"),
@@ -618,6 +622,8 @@ async function loadDeliveries() {
     renderUI();
   } catch (err) {
     showError(err.message || "Failed to load assigned deliveries.");
+  } finally {
+    isDeliveriesLoading = false;
   }
 }
 

@@ -293,9 +293,9 @@ function renderUI() {
       loadMoreContainer.className = "pt-2 text-center";
       const loadMoreBtn = document.createElement("button");
       loadMoreBtn.type = "button";
-      loadMoreBtn.className = "w-full rounded-2xl border border-stone-300 bg-white py-3 text-sm font-semibold text-stone-700 hover:bg-stone-50";
+      loadMoreBtn.className = "w-full rounded-2xl border border-stone-300 bg-white py-3 text-sm font-semibold text-stone-700 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-not-allowed";
       loadMoreBtn.textContent = "Load More Deliveries";
-      loadMoreBtn.onclick = () => loadDeliveries(false);
+      loadMoreBtn.onclick = (e) => loadDeliveries(false, e.currentTarget);
       loadMoreContainer.append(loadMoreBtn);
       deliveriesList.append(loadMoreContainer);
     }
@@ -503,9 +503,16 @@ if (logoutBtn) {
 
 let currentOffset = 0;
 let hasMore = false;
+let isLoading = false;
 const pageSize = 100;
 
-async function loadDeliveries(reset = true) {
+async function loadDeliveries(reset = true, btn = null) {
+  if (isLoading) return;
+  isLoading = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Loading…";
+  }
   try {
     if (reset) {
       currentOffset = 0;
@@ -519,6 +526,12 @@ async function loadDeliveries(reset = true) {
     renderUI();
   } catch (err) {
     showError(err.message || "Failed to load assigned deliveries.");
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Load More Deliveries";
+    }
+  } finally {
+    isLoading = false;
   }
 }
 
