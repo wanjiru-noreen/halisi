@@ -193,10 +193,15 @@ func probeRoot(ctx context.Context, client *http.Client, endpoint string) (Check
 		return CheckResult{Name: "Storefront Probe (/)", Endpoint: endpoint, Passed: false, Latency: time.Since(start), Details: fmt.Sprintf("request error: %v", err)}, nil
 	}
 	defer resp.Body.Close()
-	_, err = io.Copy(io.Discard, io.LimitReader(resp.Body, 4096))
+	// Read storefront response body to completion to measure full delivery latency.
+	const maxStorefrontBytes = 10 * 1024 * 1024
+	n, err := io.Copy(io.Discard, io.LimitReader(resp.Body, maxStorefrontBytes+1))
 	latency := time.Since(start)
 	if err != nil {
 		return CheckResult{Name: "Storefront Probe (/)", Endpoint: endpoint, Passed: false, Latency: latency, Details: fmt.Sprintf("failed to read response body: %v", err)}, resp.Header
+	}
+	if n > maxStorefrontBytes {
+		return CheckResult{Name: "Storefront Probe (/)", Endpoint: endpoint, Passed: false, Latency: latency, Details: "storefront response exceeded 10MB limit"}, resp.Header
 	}
 
 	if resp.StatusCode != http.StatusOK {
