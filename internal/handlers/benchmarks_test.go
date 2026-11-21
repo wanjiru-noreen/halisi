@@ -1,13 +1,17 @@
 package handlers_test
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/wanjiru-noreen/halisi/internal/handlers"
+	"github.com/wanjiru-noreen/halisi/internal/middleware"
+	"github.com/wanjiru-noreen/halisi/internal/models"
 	"github.com/wanjiru-noreen/halisi/internal/routes"
+	"github.com/wanjiru-noreen/halisi/internal/services"
 )
 
 func BenchmarkNormalizeMPesaPhone(b *testing.B) {
@@ -29,12 +33,12 @@ func BenchmarkNormalizeMPesaPhone(b *testing.B) {
 func BenchmarkRouteDispatch(b *testing.B) {
 	handler := routes.New(nil)
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
-	rec := httptest.NewRecorder()
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
+		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
 	}
 }
@@ -45,12 +49,12 @@ func BenchmarkStorefrontListProductsValidation(b *testing.B) {
 	s.Routes(mux)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/storefront/products?q=gas&vendor_id=invalid", nil)
-	rec := httptest.NewRecorder()
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
+		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 	}
 }
@@ -61,14 +65,17 @@ func BenchmarkCheckoutValidationOversized(b *testing.B) {
 	c.Routes(mux)
 
 	oversizedPayload := `{"address_id":1,"items":[{"product_id":1,"quantity":` + strings.Repeat("9", 5000) + `}]}`
-	req := httptest.NewRequest(http.MethodPost, "/api/customer/checkout", strings.NewReader(oversizedPayload))
+	req := httptest.NewRequest(http.MethodPost, "/api/customer/checkout", nil)
 	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
+	ctx := middleware.WithCurrentUser(req.Context(), services.User{ID: 10, Role: string(models.Customer)})
+	req = req.WithContext(ctx)
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
+		req.Body = io.NopCloser(strings.NewReader(oversizedPayload))
+		rec := httptest.NewRecorder()
 		mux.ServeHTTP(rec, req)
 	}
 }

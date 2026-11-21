@@ -13,14 +13,13 @@ func BenchmarkSecurityHeaders(b *testing.B) {
 		w.WriteHeader(http.StatusOK)
 	})
 	handler := middleware.SecurityHeaders(noopHandler)
-
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
-	rec := httptest.NewRecorder()
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
+		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
 	}
 }
@@ -30,15 +29,14 @@ func BenchmarkSecurityHeadersHTTPS(b *testing.B) {
 		w.WriteHeader(http.StatusOK)
 	})
 	handler := middleware.SecurityHeaders(noopHandler)
-
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	req.Header.Set("X-Forwarded-Proto", "https")
-	rec := httptest.NewRecorder()
 
 	b.ResetTimer()
 	b.ReportAllocs()
 
 	for i := 0; i < b.N; i++ {
+		rec := httptest.NewRecorder()
 		handler.ServeHTTP(rec, req)
 	}
 }
