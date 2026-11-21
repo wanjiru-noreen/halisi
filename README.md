@@ -87,9 +87,13 @@ See [role permissions](docs/PERMISSIONS.md) for dashboards and ownership-scoped 
 See [vendor onboarding](docs/VENDOR_ONBOARDING.md) for verification and persistent documents.
 See [rider registration](docs/RIDER_REGISTRATION.md) for Task 6.1 APIs and pending-access rules.
 See [delivery management](docs/DELIVERIES.md) for confirmation, ownership and lifecycle rules.
+See [system architecture](docs/ARCHITECTURE.md) for component topology, layered design, and security architecture.
+See [API reference](docs/API.md) for HTTP endpoints, request/response formats, and status codes.
+See [business rules](docs/BUSINESS_RULES.md) for role boundaries, KYC compliance, order state transitions, and commission rules.
 See [production deployment](docs/DEPLOYMENT.md) for Render service setup, persistent disks, and build lifecycle.
 See [production readiness](docs/PRODUCTION_READINESS.md) for pre-deployment checks, observability benchmarks, and recovery runbooks.
 See [security review and optimization](docs/SECURITY_REVIEW.md) for pre-launch security audits, RBAC and document verification, and performance benchmarks.
+See [launch checklist](docs/LAUNCH_CHECKLIST.md) for production launch coordination, smoke verification, and rollback runbooks.
 
 ```sh
 go build ./...
