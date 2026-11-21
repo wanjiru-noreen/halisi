@@ -77,7 +77,7 @@ services:
     region: oregon
     branch: main
     autoDeploy: false
-    buildCommand: go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
+    buildCommand: mkdir -p bin && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
     preDeployCommand: ./bin/migrate up
     startCommand: ./bin/server
     healthCheckPath: /health
@@ -153,7 +153,7 @@ Render follows a three-stage lifecycle for every deployment:
 
 ### Stage 1: Build Phase
 ```sh
-go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
+mkdir -p bin && go build -o bin/server ./cmd/server && go build -o bin/migrate ./cmd/migrate
 ```
 - Compiles the Go server binary (`bin/server`) and migration utility (`bin/migrate`).
 - Static assets and templates from `web/` are embedded into the binaries.
