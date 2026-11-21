@@ -40,9 +40,15 @@ func NewMigrator(databaseURL string) (*migrate.Migrate, error) {
 	u.Scheme = "pgx5"
 	query := u.Query()
 	if strings.TrimSpace(os.Getenv("APP_ENV")) == "production" {
-		sslmode := strings.ToLower(strings.TrimSpace(query.Get("sslmode")))
-		if sslmode != "require" && sslmode != "verify-ca" && sslmode != "verify-full" {
-			query.Set("sslmode", "require")
+		// Preserve effective TLS mode from environment when not explicit in the URL query.
+		if !query.Has("sslmode") {
+			envMode := strings.ToLower(strings.TrimSpace(os.Getenv("PGSSLMODE")))
+			switch envMode {
+			case "verify-full", "verify-ca", "require":
+				query.Set("sslmode", envMode)
+			default:
+				query.Set("sslmode", "require")
+			}
 		}
 	}
 	if !query.Has("connect_timeout") {
