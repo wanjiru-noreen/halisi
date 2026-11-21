@@ -64,7 +64,7 @@ databases:
   - name: halisi-postgres
     databaseName: halisi
     user: halisi
-    plan: starter
+    plan: 0.5c-1g
     region: oregon
     postgresMajorVersion: "17"
 

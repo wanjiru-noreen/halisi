@@ -47,13 +47,13 @@ before deploying code that needs the schema.
 
 ## Production PostgreSQL and backups
 
-The repository's `render.yaml` declares a managed PostgreSQL 17 database service (`halisi-postgres`) co-located with the web service in `region: oregon` on the Starter plan. Render automatically generates secure database credentials and injects the TLS-enforced connection string into `DATABASE_URL` via the Blueprint property `fromDatabase: { name: halisi-postgres, property: connectionString }`.
+The repository's `render.yaml` declares a managed PostgreSQL 17 database service (`halisi-postgres`) co-located with the web service in `region: oregon` on the `0.5c-1g` compute plan. Render automatically generates secure database credentials and injects the TLS-enforced connection string into `DATABASE_URL` via the Blueprint property `fromDatabase: { name: halisi-postgres, property: connectionString }`.
 
-### Automated backups
-Render provides automated daily backups with 7-day retention for Starter databases. In the Render Dashboard under **PostgreSQL > Backups**, operators can:
-1. View automated daily snapshots and their creation timestamps.
-2. Trigger an immediate manual snapshot before schema migrations or major releases.
-3. Restore a snapshot to a new PostgreSQL instance with a single click.
+### Automated backups and recovery
+Render manages point-in-time recovery (PITR) and backups based on the workspace plan (e.g. 3-day recovery window for Hobby workspaces, extending up to 7-30 days on paid team tiers). In the Render Dashboard under **PostgreSQL > Backups**, operators can:
+1. View automated recovery checkpoints and their timestamps.
+2. Trigger an immediate manual logical export before schema migrations or major releases (Render retains downloadable manual exports for 7 days).
+3. Restore a checkpoint or export to a new PostgreSQL instance with a single click.
 
 ### Logical export and offsite backups
 For disaster recovery or offsite archive retention, export a logical dump over TLS:
