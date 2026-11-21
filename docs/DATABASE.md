@@ -50,7 +50,7 @@ before deploying code that needs the schema.
 The repository's `render.yaml` declares a managed PostgreSQL 17 database service (`halisi-postgres`) co-located with the web service in `region: oregon` on the `0.5c-1g` compute plan, with public internet access disabled via `ipAllowList: []` for private network isolation. Render automatically generates secure database credentials and injects the connection string into `DATABASE_URL` via the Blueprint property `fromDatabase: { name: halisi-postgres, property: connectionString }`.
 
 ### Automated backups and recovery
-Render manages point-in-time recovery (PITR) and backups based on the workspace plan (e.g. 3-day recovery window for Hobby workspaces, extending up to 7-30 days on paid team tiers). In the Render Dashboard under **PostgreSQL > Backups**, operators can:
+Render manages continuous point-in-time recovery (PITR) and backups based on the workspace plan (a 3-day continuous PITR window for Hobby workspaces, and a 7-day continuous PITR window for Pro or higher workspaces; see [Render recovery docs](https://render.com/docs/postgresql-backups)). In the Render Dashboard under **PostgreSQL > Backups**, operators can:
 1. View automated recovery checkpoints and their timestamps.
 2. Trigger an immediate manual logical export before schema migrations or major releases (Render retains downloadable manual exports for 7 days).
 3. Restore a checkpoint or export to a new PostgreSQL instance with a single click.
