@@ -1,0 +1,87 @@
+@import "tailwindcss" source(none);
+@source "../templates";
+@source "../static/js";
+
+@layer components {
+  .field {
+    @apply w-full rounded-xl border border-stone-300 bg-white px-4 py-3 text-base text-stone-900 outline-none transition placeholder:text-stone-400 focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20;
+  }
+
+  .button-primary {
+    @apply flex w-full items-center justify-center gap-3 rounded-xl bg-emerald-800 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-60;
+  }
+
+  .onboarding-shell {
+    width: min(100%, 30rem);
+    min-height: 100svh;
+    overflow: hidden;
+    position: relative;
+    background: white;
+  }
+
+  .onboarding-slide {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-rows: minmax(22rem, 57%) minmax(0, 43%);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(3.5rem) scale(.985);
+    transition: opacity 320ms ease, transform 420ms cubic-bezier(.22, 1, .36, 1);
+  }
+
+  .onboarding-slide[data-state="active"] {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0) scale(1);
+    z-index: 2;
+  }
+
+  .onboarding-slide[data-state="before"] {
+    transform: translateX(-3.5rem) scale(.985);
+  }
+
+  .onboarding-content {
+    position: relative;
+    margin-top: -2.25rem;
+    border-radius: 50% 50% 0 0 / 2.25rem 2.25rem 0 0;
+    background: white;
+  }
+
+  .onboarding-dot {
+    width: .625rem;
+    background: #cbd5e1;
+    transition: width 240ms ease, background-color 240ms ease;
+  }
+
+  .onboarding-dot[aria-current="step"] {
+    width: 1.8rem;
+    background: #d80714;
+  }
+
+  @media (min-width: 640px) and (min-height: 760px) {
+    .onboarding-shell {
+      min-height: min(56rem, calc(100svh - 2rem));
+      height: min(56rem, calc(100svh - 2rem));
+      border: 3px solid rgb(255 255 255 / .7);
+      border-radius: 3.25rem;
+      box-shadow: 0 2rem 5rem rgb(7 78 119 / .24);
+    }
+  }
+
+  @media (max-height: 720px) {
+    .onboarding-slide {
+      grid-template-rows: minmax(18rem, 52%) minmax(0, 48%);
+    }
+
+    .onboarding-content {
+      margin-top: -1.5rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .onboarding-slide {
+      transition: none;
+    }
+  }
+}

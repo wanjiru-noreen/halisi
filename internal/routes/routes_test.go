@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -49,5 +50,21 @@ func TestHealth(t *testing.T) {
 	}
 	if got := response.Body.String(); got != `{"status":"ok"}` {
 		t.Errorf("body = %q, want health JSON", got)
+	}
+}
+
+func TestCustomerOnboardingPage(t *testing.T) {
+	response := httptest.NewRecorder()
+	New(nil).ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/customer/onboarding", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", response.Code)
+	}
+	if got := response.Header().Get("Content-Type"); got != "text/html; charset=utf-8" {
+		t.Errorf("Content-Type = %q, want HTML", got)
+	}
+	for _, required := range []string{"Trusted Suppliers", "Fast Delivery", "Easy &amp; Secure", "/static/js/onboarding.js"} {
+		if !strings.Contains(response.Body.String(), required) {
+			t.Errorf("onboarding page does not contain %q", required)
+		}
 	}
 }
