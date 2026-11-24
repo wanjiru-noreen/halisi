@@ -1,17 +1,51 @@
 {{define "navbar.html"}}
-<header class="border-b border-stone-200 bg-white">
-  <nav class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8" aria-label="Main navigation">
-    <a href="/" class="text-xl font-black tracking-[0.18em] text-emerald-900">HALISI<span class="text-orange-500">.</span></a>
-    <div class="hidden items-center gap-7 text-sm font-medium text-stone-700 sm:flex">
-      <a class="hover:text-emerald-800" href="/customer/vendors">Shop vendors</a>
-      <a class="hover:text-emerald-800" href="/vendor/register">Register your business</a>
-      <a class="hover:text-emerald-800" href="/customer/orders">Track order</a>
-      <a class="hover:text-emerald-800" href="/#why-halisi">About</a>
+<header class="absolute inset-x-0 top-0 z-50 border-b border-white/50 bg-white/75 backdrop-blur-md">
+  <nav class="mx-auto flex h-[4.5rem] max-w-7xl items-center justify-between gap-6 px-5 sm:px-8" aria-label="Main navigation">
+    <a href="/" class="inline-flex shrink-0 items-center gap-2 rounded-md text-[#cf0712] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cf0712]" aria-label="HALISI home">
+      <svg class="h-11 w-11" viewBox="0 0 48 48" aria-hidden="true">
+        <circle cx="24" cy="25" r="19" fill="currentColor"/>
+        <path d="M25.8 7.8c1.2 7.9-7.7 10.4-7.7 18.8 0 3.7 2.7 6.7 6.1 6.7 4 0 6.5-3 6.5-7.1 0-2.8-1.1-5.3-2.9-7.8 5.6 3.7 8.2 8 8.2 12.9 0 7-5.5 11.7-12.8 11.7-7.6 0-13.1-5-13.1-12.4 0-8.8 7.1-13.1 15.7-22.8Z" fill="white"/>
+      </svg>
+      <span class="text-[2rem] font-black leading-none tracking-[-0.055em]">halisi<span aria-hidden="true">.</span></span>
+    </a>
+
+    <div class="hidden items-stretch gap-8 self-stretch text-sm font-extrabold text-slate-950 lg:flex">
+      <a class="relative flex items-center text-[#cf0712] after:absolute after:inset-x-0 after:bottom-4 after:h-0.5 after:rounded-full after:bg-[#cf0712] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" href="/" aria-current="page">Home</a>
+      <a class="flex items-center transition hover:text-[#cf0712] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" href="/#how-it-works">How It Works</a>
+      <a class="flex items-center transition hover:text-[#cf0712] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" href="/vendor/register">For Businesses</a>
+      <a class="flex items-center transition hover:text-[#cf0712] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" href="/register">For Riders</a>
+      <a class="flex items-center transition hover:text-[#cf0712] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" href="/#about">About</a>
+      <a class="flex items-center transition hover:text-[#cf0712] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" href="/#contact">Contact</a>
     </div>
-    <div class="flex items-center gap-3">
-      <a class="rounded-full px-3 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-100" href="/login">Log in</a>
-      <a class="rounded-full bg-emerald-800 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-900" href="/register">Create account</a>
+
+    <div class="hidden shrink-0 items-center gap-3 sm:flex">
+      <a class="inline-flex items-center gap-2 rounded-full border-2 border-[#cf0712] bg-white/80 px-5 py-2.5 text-sm font-extrabold text-[#b80710] transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" href="/login">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        Log In
+      </a>
+      <a class="rounded-full bg-[#d80714] px-6 py-3 text-sm font-extrabold text-white shadow-sm transition hover:bg-[#b80710] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" href="/register">Get Started</a>
     </div>
+
+    <details class="group relative lg:hidden">
+      <summary class="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-full border-2 border-[#cf0712] bg-white text-[#cf0712] transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" aria-label="Open navigation menu">
+        <svg class="h-6 w-6 group-open:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        <svg class="hidden h-6 w-6 group-open:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </summary>
+      <div class="absolute right-0 top-14 w-[min(20rem,calc(100vw-2.5rem))] rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl">
+        <div class="grid gap-1 text-sm font-bold text-slate-900">
+          <a class="rounded-xl bg-red-50 px-4 py-3 text-[#cf0712]" href="/">Home</a>
+          <a class="rounded-xl px-4 py-3 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#cf0712]" href="/#how-it-works">How It Works</a>
+          <a class="rounded-xl px-4 py-3 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#cf0712]" href="/vendor/register">For Businesses</a>
+          <a class="rounded-xl px-4 py-3 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#cf0712]" href="/register">For Riders</a>
+          <a class="rounded-xl px-4 py-3 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#cf0712]" href="/#about">About</a>
+          <a class="rounded-xl px-4 py-3 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#cf0712]" href="/#contact">Contact</a>
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+          <a class="rounded-full border-2 border-[#cf0712] px-4 py-2.5 text-center text-sm font-extrabold text-[#b80710]" href="/login">Log In</a>
+          <a class="rounded-full bg-[#d80714] px-4 py-3 text-center text-sm font-extrabold text-white" href="/register">Get Started</a>
+        </div>
+      </div>
+    </details>
   </nav>
 </header>
 {{end}}
