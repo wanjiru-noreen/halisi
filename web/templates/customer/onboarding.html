@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Discover trusted cooking gas suppliers, fast HALISI delivery, and secure payments.">
+  <title>Welcome to HALISI</title>
+  <link rel="preload" href="/static/images/landing-hero.jpg" as="image">
+  <link rel="stylesheet" href="/static/css/auth.css">
+  <script src="/static/js/onboarding.js" defer></script>
+</head>
+<body class="min-h-screen bg-[#9cddfb] text-slate-950 antialiased" data-onboarding-page data-onboarding-destination="/customer/vendors">
+  <main class="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-[#dff5ff] via-[#7bd2fb] to-[#3bbbf5] sm:p-4" aria-label="HALISI customer onboarding">
+    <div class="absolute inset-0 opacity-25" aria-hidden="true">
+      <img src="/static/images/landing-hero.jpg" alt="" class="h-full w-full scale-110 object-cover blur-lg">
+    </div>
+
+    <section class="onboarding-shell" aria-roledescription="carousel" aria-label="Welcome to HALISI">
+      <header class="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center justify-between px-6 pb-4 pt-7 sm:px-9 sm:pt-9">
+        <a href="/" class="pointer-events-auto inline-flex items-center gap-1.5 rounded-md text-[#cf0712] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cf0712]" aria-label="HALISI home">
+          <svg class="h-11 w-11" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="25" r="19" fill="currentColor"/><path d="M25.8 7.8c1.2 7.9-7.7 10.4-7.7 18.8 0 3.7 2.7 6.7 6.1 6.7 4 0 6.5-3 6.5-7.1 0-2.8-1.1-5.3-2.9-7.8 5.6 3.7 8.2 8 8.2 12.9 0 7-5.5 11.7-12.8 11.7-7.6 0-13.1-5-13.1-12.4 0-8.8 7.1-13.1 15.7-22.8Z" fill="white"/></svg>
+          <span class="text-[2rem] font-black leading-none tracking-[-0.055em]">halisi<span aria-hidden="true">.</span></span>
+        </a>
+        <button id="onboarding-skip" type="button" class="pointer-events-auto rounded-full bg-white/35 px-4 py-2 text-base font-bold text-slate-950 backdrop-blur-sm transition hover:bg-white/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]">Skip</button>
+      </header>
+
+      <div id="onboarding-slides">
+        <article class="onboarding-slide" data-onboarding-slide data-state="active" aria-hidden="false" aria-labelledby="onboarding-title-1">
+          <div class="relative overflow-hidden bg-[#8dd7f8]">
+            <img src="/static/images/landing-hero.jpg" alt="Verified LPG vendor storefront with red, blue and yellow cooking gas cylinders" width="1600" height="711" class="absolute inset-0 h-full w-full object-cover object-[72%_center]">
+            <div class="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-slate-900/5" aria-hidden="true"></div>
+            <div class="absolute bottom-10 right-7 flex h-20 w-20 items-center justify-center rounded-[2rem] border-4 border-white bg-amber-400 text-white shadow-xl" aria-hidden="true">
+              <svg class="h-11 w-11" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 25 8 8 17-19"/></svg>
+            </div>
+          </div>
+          <div class="onboarding-content px-7 pb-36 pt-14 text-center sm:px-10">
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-[#cf0712]">Welcome to HALISI</p>
+            <h1 id="onboarding-title-1" class="mt-2 text-3xl font-black tracking-[-0.035em] sm:text-4xl">Trusted Suppliers</h1>
+            <p class="mx-auto mt-3 max-w-sm text-base font-medium leading-7 text-slate-700 sm:text-lg">Order from verified and approved LPG vendors near you.</p>
+          </div>
+        </article>
+
+        <article class="onboarding-slide" data-onboarding-slide data-state="after" aria-hidden="true" aria-labelledby="onboarding-title-2" inert>
+          <div class="relative overflow-hidden bg-[#8dd7f8]">
+            <img src="/static/images/landing-hero.jpg" alt="" class="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-[2px]" aria-hidden="true">
+            <div class="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-sky-900/10" aria-hidden="true"></div>
+            <img src="/static/images/role-rider-cutout.png" alt="HALISI delivery rider on a red motorcycle" width="768" height="512" class="absolute bottom-1 left-1/2 w-[112%] max-w-none -translate-x-1/2 object-contain drop-shadow-2xl">
+          </div>
+          <div class="onboarding-content px-7 pb-36 pt-14 text-center sm:px-10">
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-[#cf0712]">Safe doorstep delivery</p>
+            <h2 id="onboarding-title-2" class="mt-2 text-3xl font-black tracking-[-0.035em] sm:text-4xl">Fast Delivery</h2>
+            <p class="mx-auto mt-3 max-w-sm text-base font-medium leading-7 text-slate-700 sm:text-lg">Get your cooking gas delivered safely and on time to your doorstep.</p>
+          </div>
+        </article>
+
+        <article class="onboarding-slide" data-onboarding-slide data-state="after" aria-hidden="true" aria-labelledby="onboarding-title-3" inert>
+          <div class="relative overflow-hidden bg-[#8dd7f8]">
+            <img src="/static/images/landing-hero.jpg" alt="" class="absolute inset-0 h-full w-full scale-110 object-cover opacity-55 blur-[3px]" aria-hidden="true">
+            <img src="/static/images/onboarding-payment-phone.png" alt="Customer holding a phone for secure payment and order tracking" width="500" height="750" class="absolute -bottom-16 -left-12 h-[86%] w-auto object-contain drop-shadow-2xl">
+            <div class="absolute left-[31%] top-[35%] flex h-16 w-16 items-center justify-center rounded-full border-4 border-white bg-emerald-500 text-white shadow-xl" aria-hidden="true">
+              <svg class="h-9 w-9" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 25 8 8 17-19"/></svg>
+            </div>
+            <div class="absolute bottom-12 right-4 grid gap-2 text-xs font-extrabold sm:right-6 sm:text-sm" aria-label="Secure M-Pesa payment and live order tracking">
+              <span class="rounded-full bg-white px-4 py-3 text-emerald-700 shadow-xl">M-PESA</span>
+              <span class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-3 text-slate-900 shadow-xl"><svg class="h-5 w-5 text-[#cf0712]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3 8 8 10 5-2 8-5 8-10V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>Secure payment</span>
+              <span class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-3 text-slate-900 shadow-xl"><svg class="h-5 w-5 text-[#cf0712]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2"/></svg>Track your order</span>
+            </div>
+          </div>
+          <div class="onboarding-content px-7 pb-36 pt-14 text-center sm:px-10">
+            <p class="text-xs font-black uppercase tracking-[0.18em] text-[#cf0712]">Simple from order to door</p>
+            <h2 id="onboarding-title-3" class="mt-2 text-3xl font-black tracking-[-0.035em] sm:text-4xl">Easy &amp; Secure</h2>
+            <p class="mx-auto mt-3 max-w-sm text-base font-medium leading-7 text-slate-700 sm:text-lg">Pay safely with M-Pesa, track your order in real time, and receive your gas at home.</p>
+          </div>
+        </article>
+      </div>
+
+      <div class="absolute inset-x-0 bottom-[6.75rem] z-20 flex justify-center gap-2.5" role="group" aria-label="Choose onboarding slide">
+        <button type="button" class="onboarding-dot h-2.5 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cf0712]" data-onboarding-dot aria-label="Show slide 1: Trusted Suppliers" aria-current="step"></button>
+        <button type="button" class="onboarding-dot h-2.5 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cf0712]" data-onboarding-dot aria-label="Show slide 2: Fast Delivery"></button>
+        <button type="button" class="onboarding-dot h-2.5 rounded-full focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cf0712]" data-onboarding-dot aria-label="Show slide 3: Easy and Secure"></button>
+      </div>
+
+      <nav class="absolute inset-x-0 bottom-0 z-20 grid grid-cols-[1fr_auto] items-center gap-4 bg-white px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-5 sm:px-9" aria-label="Onboarding controls">
+        <button id="onboarding-back" type="button" class="justify-self-start rounded-full px-3 py-3 text-base font-extrabold text-slate-900 transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#cf0712]" hidden>Back</button>
+        <button id="onboarding-next" type="button" class="col-start-2 inline-flex min-w-44 items-center justify-center gap-3 rounded-full bg-gradient-to-r from-[#cf0712] to-[#e30b17] px-7 py-3.5 text-base font-extrabold text-white shadow-lg shadow-red-900/15 transition hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#cf0712]"><span id="onboarding-next-label">Next</span> <span class="text-2xl leading-none" aria-hidden="true">→</span></button>
+      </nav>
+      <p id="onboarding-status" class="sr-only" aria-live="polite">Slide 1 of 3: Trusted Suppliers</p>
+      <noscript><div class="absolute inset-x-6 bottom-28 z-40 rounded-2xl bg-white p-4 text-center shadow-xl"><p class="text-sm">JavaScript is needed for the onboarding slides.</p><a href="/customer/vendors" class="mt-3 inline-block font-bold text-[#cf0712] underline">Skip to cooking gas vendors</a></div></noscript>
+    </section>
+  </main>
+</body>
+</html>
